@@ -28,11 +28,11 @@ def score_model(model_uri, databricks_token, data):
       raise Exception(f"Request failed with status {response.status_code}, {response.text}")
   return response.json()
 
-tone = st.multiselect("Tone", ["[Agency]", "[Urgency]", "[Exclusivity]", "All three"])
+tone = st.multiselect("Tone", ["[Agency]", "[Urgency]", "[Exclusivity]"])
 
 if prompt := st.chat_input():
   if tone:
-    prompt += " emphasizing "+tone
+    prompt += " emphasizing "+" ".join(tone) #TODO: for some reason (mnemonic?) the canonical ordering of these tags is [Urgency] [Agency] [Exclusivity]. They never appear in any other order, although they do appear in every subset.
   st.write(prompt)
   tokenizer = AutoTokenizer.from_pretrained("EleutherAI/pythia-160m-deduped")
   text_ids = tokenizer.encode(prompt, return_tensors = 'pt')
