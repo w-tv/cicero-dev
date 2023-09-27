@@ -27,42 +27,9 @@ def score_model(model_uri, databricks_token, data):
       raise Exception(f"Request failed with status {response.status_code}, {response.text}")
   return response.json()
 
-# for msg in st.session_state.messages:
-#   st.chat_message(msg["role"]).write(msg["content"])
 if prompt := st.chat_input():
-  print(prompt)
-  # st.session_state.messages.append({"role": "user", "content": prompt})
-  # st.chat_message("user").write(prompt)
+  st.write(prompt)
   tokenizer = AutoTokenizer.from_pretrained("EleutherAI/pythia-160m-deduped")
   text_ids = tokenizer.encode(prompt, return_tensors = 'pt')
   output = str(score_model(model_uri, databricks_api_token, text_ids))
   st.write(output[16:-1])
-
-
-# First
-import streamlit as st
-# with st.sidebar:
-#     openai_api_key = st.text_input("OpenAI API Key", key="chatbot_api_key", type="password")
-#     "[Get an OpenAI API key](https://platform.openai.com/account/api-keys)"
-#     "[View the source code](https://github.com/streamlit/llm-examples/blob/main/Chatbot.py)"
-#     "[![Open in GitHub Codespaces](https://github.com/codespaces/badge.svg)](https://codespaces.new/streamlit/llm-examples?quickstart=1)"
-
-# st.title("💬 Chatbot")
-# if "messages" not in st.session_state:
-#     st.session_state["messages"] = [{"role": "assistant", "content": "How can I help you?"}]
-
-# for msg in st.session_state.messages:
-#     st.chat_message(msg["role"]).write(msg["content"])
-
-# if prompt := st.chat_input():
-#     if not openai_api_key:
-#         st.info("Please add your OpenAI API key to continue.")
-#         st.stop()
-
-
-  # st.session_state.messages.append({"role": "user", "content": prompt})
-  # st.chat_message("user").write(prompt)
-  # response = openai.ChatCompletion.create(model="gpt-3.5-turbo", messages=st.session_state.messages)
-  # msg = response.choices[0].message
-  # st.session_state.messages.append(msg)
-  # st.chat_message("assistant").write(msg.content)
