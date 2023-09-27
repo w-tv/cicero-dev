@@ -28,10 +28,12 @@ def score_model(model_uri, databricks_token, data):
       raise Exception(f"Request failed with status {response.status_code}, {response.text}")
   return response.json()
 
-the_box_selection = st.selectbox("Tone", ["[Agency]", "[Urgency]", "[Exclusivity]", "All three"]) #TODO: could use st.multiselect for this one in particular
+the_box_selection = st.selectbox("","Tone", ["[Agency]", "[Urgency]", "[Exclusivity]", "All three"]) #TODO: could use st.multiselect for this one in particular
 
 if prompt := st.chat_input():
-  st.write(prompt + "emphasizing "+the_box_selection)
+  if the_box_selection:
+    prompt += "emphasizing "+the_box_selection
+  st.write(prompt)
   tokenizer = AutoTokenizer.from_pretrained("EleutherAI/pythia-160m-deduped")
   text_ids = tokenizer.encode(prompt, return_tensors = 'pt')
   output = str(score_model(model_uri, databricks_api_token, text_ids))
