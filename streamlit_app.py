@@ -32,7 +32,7 @@ tone = st.multiselect("Tone", ["[Agency]", "[Urgency]", "[Exclusivity]"])
 
 if prompt := st.chat_input():
   if tone:
-    prompt += " emphasizing "+" ".join(tone) #TODO: for some reason (mnemonic?) the canonical ordering of these tags is [Urgency] [Agency] [Exclusivity]. They never appear in any other order, although they do appear in every subset.
+    prompt += " emphasizing "+(" ".join(tone)) #TODO: for some reason (mnemonic?) the canonical ordering of these tags is [Urgency] [Agency] [Exclusivity]. They never appear in any other order, although they do appear in every subset.
   st.write(prompt)
   tokenizer = AutoTokenizer.from_pretrained("EleutherAI/pythia-160m-deduped")
   text_ids = tokenizer.encode(prompt, return_tensors = 'pt')
