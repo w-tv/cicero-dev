@@ -2,34 +2,7 @@ from collections import namedtuple
 import altair as alt
 import pandas as pd
 import streamlit as st
-
-
 import subprocess
-
-# Define the library you want to install
-# library_name = "transformers"  # Change this to the library you want to install
-
-# try:
-#     # Run pip install command
-#     subprocess.check_call(["pip", "install", library_name])
-#     print(f"{library_name} installed successfully!")
-# except subprocess.CalledProcessError as e:
-#     print(f"Error installing {library_name}: {e}")
-# except Exception as e:
-#     print(f"An error occurred: {e}")
-
-    # Define the library you want to install
-# library_name = "torch"  # Change this to the library you want to install
-
-# try:
-#     # Run pip install command
-#     subprocess.check_call(["pip", "install", library_name])
-#     print(f"{library_name} installed successfully!")
-# except subprocess.CalledProcessError as e:
-#     print(f"Error installing {library_name}: {e}")
-# except Exception as e:
-#     print(f"An error occurred: {e}")
-
 from transformers import AutoTokenizer
 import torch
 import pandas as pd
