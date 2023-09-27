@@ -28,7 +28,7 @@ def score_model(model_uri, databricks_token, data):
       raise Exception(f"Request failed with status {response.status_code}, {response.text}")
   return response.json()
 
-st.select_slider("Tone", ["Agency", "Urgency", "Exclusivity", "All three"]) #TODO: could use st.multiselect for this one in particular
+st.selectbox("Tone", ["Agency", "Urgency", "Exclusivity", "All three"]) #TODO: could use st.multiselect for this one in particular
 
 if prompt := st.chat_input():
   st.write(prompt)
