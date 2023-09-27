@@ -28,11 +28,20 @@ def score_model(model_uri, databricks_token, data):
       raise Exception(f"Request failed with status {response.status_code}, {response.text}")
   return response.json()
 
-tone = st.multiselect("Tone", ["[Agency]", "[Urgency]", "[Exclusivity]"])
+tone_indictators_sorted = ["[Urgency]", "[Agency]", "[Exclusivity]"]
+
+def sorted_by_tone(unsorted_tones: list[str]) -> list[str]:
+  """For some reason (mnemonic?) the canonical ordering of these tone tags is [Urgency] [Agency] [Exclusivity]. They never appear in any other order, although they do appear in every subset. Anyway, this function implements that ordering, regardless of the order the user selected them."""
+  sorted_tones = []
+  for indicator in tone_indictators_sorted:
+    if indicator in unsorted_tones: sorted_tones += indicator
+  return sorted_tones
+
+tone = st.multiselect("Tone", tone_indictators_sorted)
 
 if prompt := st.chat_input():
   if tone:
-    prompt += " emphasizing "+(" ".join(tone)) #TODO: for some reason (mnemonic?) the canonical ordering of these tags is [Urgency] [Agency] [Exclusivity]. They never appear in any other order, although they do appear in every subset.
+    prompt += " emphasizing "+(" ".join(sorted_by_tone(tone)))
   st.write(prompt)
   tokenizer = AutoTokenizer.from_pretrained("EleutherAI/pythia-160m-deduped")
   text_ids = tokenizer.encode(prompt, return_tensors = 'pt')
