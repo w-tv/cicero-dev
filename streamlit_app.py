@@ -34,7 +34,7 @@ def sorted_by_tone(unsorted_tones: list[str]) -> list[str]:
   """For some reason (mnemonic?) the canonical ordering of these tone tags is [Urgency] [Agency] [Exclusivity]. They never appear in any other order, although they do appear in every subset. Anyway, this function implements that ordering, regardless of the order the user selected them."""
   sorted_tones = []
   for indicator in tone_indictators_sorted:
-    if indicator in unsorted_tones: sorted_tones += indicator
+    if indicator in unsorted_tones: sorted_tones.append(indicator)
   return sorted_tones
 
 tone = st.multiselect("Tone", tone_indictators_sorted)
