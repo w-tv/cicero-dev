@@ -39,9 +39,13 @@ def sorted_by_tone(unsorted_tones: list[str]) -> list[str]:
     if indicator in unsorted_tones: sorted_tones.append(indicator)
   return sorted_tones
 
+account = st.selectbox("Account", ["Tim Scott", "Steve Scalise"])
+ask_type = st.selectbox("Ask type", ["fundraising hard ask text", "list building text", "fundraising medium ask text", "fundraising soft ask text", "other text"])
 tone = st.multiselect("Tone", tone_indictators_sorted)
+topics = st.text_input("Topics (write them like so: [GOP] [Control] [Dems] [Crime] [Military])", tone_indictators_sorted)
 
-if prompt := st.chat_input():
+if prompt := st.chat_input("Or, compose a full message here."):
+prompt = "Write a "ask_type+" for "++prompt+
   if tone:
     prompt += " emphasizing "+(" ".join(sorted_by_tone(tone)))
   st.write(prompt)
