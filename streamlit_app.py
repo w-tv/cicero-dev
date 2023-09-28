@@ -52,7 +52,7 @@ ask_type = st.selectbox("Ask type", ["fundraising hard ask text", "list building
 tone = st.multiselect("Tone", tone_indictators_sorted)
 topics = (st.text_input("Topics (write them like so: [GOP] [Control] [Dems] [Crime] [Military])") or "[No_Hook]") #Could become a very long mutli-select...
 additional_context = st.text_input("Additional context")
-generate_button = st.button("Generate based on selected content by clicking this button!"
+generate_button = st.button("Generate based on selected content by clicking this button!")
 
 if chat_prompt := st.chat_input("Or, compose a full message here."):
   tokenize_and_send(chat_prompt)
