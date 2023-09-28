@@ -30,9 +30,17 @@ def score_model(model_uri, databricks_token, data):
       raise Exception(f"Request failed with status {response.status_code}, {response.text}")
   return response.json()
 
+def tokenize_and_send(prompt):
+  st.write(prompt)
+  tokenizer = AutoTokenizer.from_pretrained("EleutherAI/pythia-160m-deduped")
+  text_ids = tokenizer.encode(prompt, return_tensors = 'pt')
+  output = str(score_model(model_uri, databricks_api_token, text_ids))
+  st.write(output[16:-1])
+  #I guess we don't like the first 16 characters of this for some reason.
+
 tone_indictators_sorted = ["[Urgency]", "[Agency]", "[Exclusivity]"]
 
-def sorted_by_tone(unsorted_tones: list[str]) -> list[str]:
+def sortedUAE(unsorted_tones: list[str]) -> list[str]:
   """For some reason (mnemonic?) the canonical ordering of these tone tags is [Urgency] [Agency] [Exclusivity]. They never appear in any other order, although they do appear in every subset. Anyway, this function implements that ordering, regardless of the order the user selected them."""
   sorted_tones = []
   for indicator in tone_indictators_sorted:
@@ -42,14 +50,12 @@ def sorted_by_tone(unsorted_tones: list[str]) -> list[str]:
 account = st.selectbox("Account", ["Tim Scott", "Steve Scalise"])
 ask_type = st.selectbox("Ask type", ["fundraising hard ask text", "list building text", "fundraising medium ask text", "fundraising soft ask text", "other text"])
 tone = st.multiselect("Tone", tone_indictators_sorted)
-topics = st.text_input("Topics (write them like so: [GOP] [Control] [Dems] [Crime] [Military])", tone_indictators_sorted)
+topics = (st.text_input("Topics (write them like so: [GOP] [Control] [Dems] [Crime] [Military])") || "[No_Hook]") #Could become a very long mutli-select...
+additional_context = st.text_input("Additional context")
+generate_button = st.button("Generate based on selected content by clicking this button!"
 
 if prompt := st.chat_input("Or, compose a full message here."):
-prompt = "Write a "ask_type+" for "++prompt+
-  if tone:
-    prompt += " emphasizing "+(" ".join(sorted_by_tone(tone)))
-  st.write(prompt)
-  tokenizer = AutoTokenizer.from_pretrained("EleutherAI/pythia-160m-deduped")
-  text_ids = tokenizer.encode(prompt, return_tensors = 'pt')
-  output = str(score_model(model_uri, databricks_api_token, text_ids))
-  st.write(output[16:-1])
+  tokenize_and_send(prompt)
+if generate_button:
+  prompt = "<|startoftext|> "+("" if not additional_context else "Context: "+additional_context+" ")+"Write a "ask_type+" for "+account+" about: "+topics+( "" if not tone else " emphasizing "+(" ".join(sortedUAE(tone))) )+" <|body|>"
+  tokenize_and_send(prompt)
