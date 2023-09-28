@@ -48,7 +48,7 @@ def sortedUAE(unsorted_tones: list[str]) -> list[str]:
   return sorted_tones
 
 account = st.selectbox("Account", ["Tim Scott", "Steve Scalise"])
-ask_type = st.selectbox("Ask type", ["fundraising hard ask text", "list building text", "fundraising medium ask text", "fundraising soft ask text", "other text"])
+ask_type = st.selectbox("Ask type", ["fundraising hard ask text", "fundraising medium ask text", "fundraising soft ask text", "list building text", "other text"])
 tone = st.multiselect("Tone", tone_indictators_sorted)
 topics = (st.text_input("Topics (write them like so: [GOP] [Control] [Dems] [Crime] [Military])") or "[No_Hook]") #Could become a very long mutli-select...
 additional_context = st.text_input("Additional context")
