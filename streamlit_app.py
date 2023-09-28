@@ -32,6 +32,7 @@ def score_model(model_uri, databricks_token, data):
 
 def tokenize_and_send(prompt):
   st.write(prompt)
+  prompt = "<|startoftext|> "+prompt+" <|body|>"
   tokenizer = AutoTokenizer.from_pretrained("EleutherAI/pythia-160m-deduped")
   text_ids = tokenizer.encode(prompt, return_tensors = 'pt')
   output = str(score_model(model_uri, databricks_api_token, text_ids))
@@ -57,5 +58,5 @@ generate_button = st.button("Generate based on selected content by clicking this
 if chat_prompt := st.chat_input("Or, compose a full message here."):
   tokenize_and_send(chat_prompt)
 if generate_button:
-  button_prompt = "<|startoftext|> "+("" if not additional_context else "Context: "+additional_context+" ")+"Write a "+ask_type+" for "+account+" about: "+topics+( "" if not tone else " emphasizing "+(" ".join(sortedUAE(tone))) )+" <|body|>"
+  button_prompt = ("" if not additional_context else "Context: "+additional_context+" ")+"Write a "+ask_type+" for "+account+" about: "+topics+( "" if not tone else " emphasizing "+(" ".join(sortedUAE(tone))) )
   tokenize_and_send(button_prompt)
