@@ -54,8 +54,8 @@ topics = (st.text_input("Topics (write them like so: [GOP] [Control] [Dems] [Cri
 additional_context = st.text_input("Additional context")
 generate_button = st.button("Generate based on selected content by clicking this button!"
 
-if prompt := st.chat_input("Or, compose a full message here."):
-  tokenize_and_send(prompt)
+if chat_prompt := st.chat_input("Or, compose a full message here."):
+  tokenize_and_send(chat_prompt)
 if generate_button:
-  prompt = "<|startoftext|> "+("" if not additional_context else "Context: "+additional_context+" ")+"Write a "ask_type+" for "+account+" about: "+topics+( "" if not tone else " emphasizing "+(" ".join(sortedUAE(tone))) )+" <|body|>"
-  tokenize_and_send(prompt)
+  button_prompt = "<|startoftext|> "+("" if not additional_context else "Context: "+additional_context+" ")+"Write a "ask_type+" for "+account+" about: "+topics+( "" if not tone else " emphasizing "+(" ".join(sortedUAE(tone))) )+" <|body|>"
+  tokenize_and_send(button_prompt)
