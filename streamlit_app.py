@@ -24,7 +24,9 @@ def score_model(model_uri, databricks_token, data):
   }
   data_json = json.dumps({'dataframe_records': data.to_dict(orient='records')}) if isinstance(data, pd.DataFrame) else create_tf_serving_json(data)
   response = requests.request(method='POST', headers=headers, url=model_uri, json=data_json)
-  if response.status_code != 200:
+  if response.status_code == 504:
+    return score_model(model_uri, databricks_token, data) #we recursively call this until the machine wakes up.
+  elif response.status_code != 200:
       raise Exception(f"Request failed with status {response.status_code}, {response.text}")
   return response.json()
 
