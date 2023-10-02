@@ -9,9 +9,8 @@ import pandas as pd
 import requests
 import json
 
-st.title("💬 Cicero") #TODO: https://targetedvictory.com/wp-content/uploads/2019/07/favicon.png
+st.title("![logo](https://targetedvictory.com/wp-content/uploads/2019/07/favicon.png) Cicero")
 st.caption("It's pronounced ‘Kickero’")
-st.text('This is some <i>text</i>. <img src="https://targetedvictory.com/wp-content/uploads/2019/07/favicon.png">')
 model_uri = 'https://dbc-ca8d208b-aaa9.cloud.databricks.com/serving-endpoints/pythia/invocations'
 databricks_api_token = 'dapi360d025c9e135c809de05abbf3196a06'
 
