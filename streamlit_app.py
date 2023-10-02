@@ -10,7 +10,7 @@ import requests
 import json
 
 #Also, it could not find the image in my project using relative paths?? # st.title('![💬](logo.png) Cicero') #this displays, but I don't think you can resize images in github markdown, which is what st uses. I tried using literal html in this string and it just displayed that as text.
-bespoke_title_element = '<script>document.title = "💬 Cicero";</script><h1><img src="https://targetedvictory.com/wp-content/uploads/2019/07/favicon.png" alt="💬" style="display:inline-block; height:1am; width:auto;"> Cicero</h1>'
+bespoke_title_element = '<script type="text/javascript">document.title = "💬 Cicero";</script><h1><img src="https://targetedvictory.com/wp-content/uploads/2019/07/favicon.png" alt="💬" style="display:inline-block; height:1em; width:auto;"> Cicero</h1>'
 st.markdown(bespoke_title_element, unsafe_allow_html=True)
 st.caption("It's pronounced ‘Kickero’")
 model_uri = 'https://dbc-ca8d208b-aaa9.cloud.databricks.com/serving-endpoints/pythia/invocations'
