@@ -51,24 +51,23 @@ def sortedUAE(unsorted_tones: list[str]) -> list[str]:
 
 def list_to_bracketeds_string(l: list[str]) -> str:
   s = ""
-  first_item = True
+  is_first_item = True
   for i in l:
-    if first_item:
-      first_item = False
-    else:
-      s += " "
-    s += ("["+i+"]")
+    s += " " if not is_first_item else ""
+    is_first_item = False #malarkey 
+    s += ("["+i.strip().replace(" ", "_")+"]")
   return s
 
 account = st.selectbox("Account", ["Tim Scott", "Steve Scalise"])
 ask_type = st.selectbox("Ask type", ["fundraising hard ask text", "fundraising medium ask text", "fundraising soft ask text", "list building text", "other text"])
 tone = st.multiselect("Tone", tone_indictators_sorted)
 topics = st.multiselect("Topics", ["GOP", "Control", "Dems", "Crime", "Military", "GovOverreach", "Religion"])
-additional_topics = st.text_input("Additional topics (free text entry, separated by spaces)").split()
+additional_topics = st.text_input("Additional topics (free text entry, separated by commas. Example: China, State of the Race, Match)").split(",")
 generate_button = st.button("Generate a message based on the above by clicking this button!")
 
 # if chat_prompt := st.chat_input("Or, compose a full message here."): #removed as not useful to end-user
 #  tokenize_and_send(chat_prompt)
+#TODO: add bio dict and add the bio to context before prompt. In tokenize_and_send I guess. Maybe rename that to "fluff and send".
 if generate_button:
   button_prompt = "Write a "+ask_type+" for "+account+" about: "+list_to_bracketeds_string(topics+additional_topics or ["No_Hook"])+( "" if not tone else " emphasizing "+ list_to_bracketeds_string(sortedUAE(tone)) )
   tokenize_and_send(button_prompt)
