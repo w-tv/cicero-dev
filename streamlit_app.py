@@ -11,6 +11,7 @@ import json
 
 st.title("💬 Cicero") #TODO: https://targetedvictory.com/wp-content/uploads/2019/07/favicon.png
 st.caption("It's pronounced ‘Kickero’")
+st.text('This is some <i>text</i>. <img src="https://targetedvictory.com/wp-content/uploads/2019/07/favicon.png">')
 model_uri = 'https://dbc-ca8d208b-aaa9.cloud.databricks.com/serving-endpoints/pythia/invocations'
 databricks_api_token = 'dapi360d025c9e135c809de05abbf3196a06'
 
@@ -47,7 +48,7 @@ def sortedUAE(unsorted_tones: list[str]) -> list[str]:
     if indicator in unsorted_tones: sorted_tones.append(indicator)
   return sorted_tones
 
-def list_to_bracketed_items_string(l: list[str]) -> str:
+def list_to_bracketeds_string(l: list[str]) -> str:
   s = ""
   first_item = True
   for i in l:
@@ -61,12 +62,12 @@ def list_to_bracketed_items_string(l: list[str]) -> str:
 account = st.selectbox("Account", ["Tim Scott", "Steve Scalise"])
 ask_type = st.selectbox("Ask type", ["fundraising hard ask text", "fundraising medium ask text", "fundraising soft ask text", "list building text", "other text"])
 tone = st.multiselect("Tone", tone_indictators_sorted)
-topics = (st.multiselect("Topics", ["GOP", "Control", "Dems", "Crime", "Military", "GovOverreach", "Religion"]) # or "[No_Hook]")
+topics = st.multiselect("Topics", ["GOP", "Control", "Dems", "Crime", "Military", "GovOverreach", "Religion"])
 additional_topics = st.text_input("Additional topics (free text entry, separated by spaces)").split()
 generate_button = st.button("Generate a message based on the above by clicking this button!")
 
 # if chat_prompt := st.chat_input("Or, compose a full message here."): #removed as not useful to end-user
 #  tokenize_and_send(chat_prompt)
 if generate_button:
-  button_prompt = "Write a "+ask_type+" for "+account+" about: "+list_to_bracketed_items_string(topics+additional_topics or ["No_Hook"])+( "" if not tone else " emphasizing "+ list_to_bracketed_items_string(sortedUAE(tone)) )
+  button_prompt = "Write a "+ask_type+" for "+account+" about: "+list_to_bracketeds_string(topics+additional_topics or ["No_Hook"])+( "" if not tone else " emphasizing "+ list_to_bracketeds_string(sortedUAE(tone)) )
   tokenize_and_send(button_prompt)
