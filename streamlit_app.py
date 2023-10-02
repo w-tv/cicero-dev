@@ -9,8 +9,8 @@ import pandas as pd
 import requests
 import json
 
-st.title('<title>💬Cicero</title><img src="https://targetedvictory.com/wp-content/uploads/2019/07/favicon.png"> Cicero')
-# ![logo](https://targetedvictory.com/wp-content/uploads/2019/07/favicon.png) #this displays, but I don't think you can resize in github markdown
+st.title('![💬](logo.png) Cicero') #this displays, but I don't think you can resize images in github markdown, which is what st uses. I tried using literal html in this string and it just displayed that as text.
+# <img src="favicon.png" style="display:inline-block; height:100%; width:auto;"> #this is how I would display it to resize correctly, I guess (untested), but st won't let me use html.
 st.caption("It's pronounced ‘Kickero’")
 model_uri = 'https://dbc-ca8d208b-aaa9.cloud.databricks.com/serving-endpoints/pythia/invocations'
 databricks_api_token = 'dapi360d025c9e135c809de05abbf3196a06'
