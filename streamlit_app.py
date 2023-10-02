@@ -9,7 +9,7 @@ import pandas as pd
 import requests
 import json
 
-st.title("💬 Cicero")
+st.title("💬 Cicero") #TODO: https://targetedvictory.com/wp-content/uploads/2019/07/favicon.png
 st.caption("It's pronounced ‘Kickero’")
 model_uri = 'https://dbc-ca8d208b-aaa9.cloud.databricks.com/serving-endpoints/pythia/invocations'
 databricks_api_token = 'dapi360d025c9e135c809de05abbf3196a06'
@@ -36,27 +36,37 @@ def tokenize_and_send(prompt):
   tokenizer = AutoTokenizer.from_pretrained("EleutherAI/pythia-160m-deduped")
   text_ids = tokenizer.encode(prompt, return_tensors = 'pt')
   output = str(score_model(model_uri, databricks_api_token, text_ids))
-  st.write(output[16:-1])
-  #I guess we don't like the first 16 characters of this for some reason.
+  st.write(output[16:-1]) #I guess we don't like the first 16 characters of this for some reason.
 
-tone_indictators_sorted = ["[Urgency]", "[Agency]", "[Exclusivity]"]
+tone_indictators_sorted = ["Urgency", "Agency", "Exclusivity"]
 
 def sortedUAE(unsorted_tones: list[str]) -> list[str]:
-  """For some reason (mnemonic?) the canonical ordering of these tone tags is [Urgency] [Agency] [Exclusivity]. They never appear in any other order, although they do appear in every subset. Anyway, this function implements that ordering, regardless of the order the user selected them."""
+  """For some reason (mnemonic?) the canonical ordering of these tone tags is Urgency Agency Exclusivity. They never appear in any other order, although they do appear in every subset. Anyway, this function implements that ordering, regardless of the order the user selected them."""
   sorted_tones = []
   for indicator in tone_indictators_sorted:
     if indicator in unsorted_tones: sorted_tones.append(indicator)
   return sorted_tones
 
+def list_to_bracketed_items_string(l: list[str]) -> str:
+  s = ""
+  first_item = True
+  for i in l:
+    if first_item:
+      first_item = False
+    else:
+      s += " "
+    s += ("["+i+"]")
+  return s
+
 account = st.selectbox("Account", ["Tim Scott", "Steve Scalise"])
 ask_type = st.selectbox("Ask type", ["fundraising hard ask text", "fundraising medium ask text", "fundraising soft ask text", "list building text", "other text"])
 tone = st.multiselect("Tone", tone_indictators_sorted)
-topics = (st.text_input("Topics (write them like so: [GOP] [Control] [Dems] [Crime] [Military])") or "[No_Hook]") #Could become a very long mutli-select...
-additional_context = st.text_input("Additional context")
-generate_button = st.button("Generate based on selected content by clicking this button!")
+topics = (st.multiselect("Topics", ["GOP", "Control", "Dems", "Crime", "Military", "GovOverreach", "Religion"]) # or "[No_Hook]")
+additional_topics = st.text_input("Additional topics (free text entry, separated by spaces)").split()
+generate_button = st.button("Generate a message based on the above by clicking this button!")
 
-if chat_prompt := st.chat_input("Or, compose a full message here."):
-  tokenize_and_send(chat_prompt)
+# if chat_prompt := st.chat_input("Or, compose a full message here."): #removed as not useful to end-user
+#  tokenize_and_send(chat_prompt)
 if generate_button:
-  button_prompt = ("" if not additional_context else "Context: "+additional_context+" ")+"Write a "+ask_type+" for "+account+" about: "+topics+( "" if not tone else " emphasizing "+(" ".join(sortedUAE(tone))) )
+  button_prompt = "Write a "+ask_type+" for "+account+" about: "+list_to_bracketed_items_string(topics+additional_topics or ["No_Hook"])+( "" if not tone else " emphasizing "+ list_to_bracketed_items_string(sortedUAE(tone)) )
   tokenize_and_send(button_prompt)
