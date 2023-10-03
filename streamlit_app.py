@@ -62,7 +62,7 @@ account = st.selectbox("Account", ["Tim Scott", "Steve Scalise"])
 ask_type = st.selectbox("Ask type", ["fundraising hard ask text", "fundraising medium ask text", "fundraising soft ask text", "list building text", "other text"])
 tone = st.multiselect("Tone", tone_indictators_sorted)
 topics = st.multiselect("Topics", ["GOP", "Control", "Dems", "Crime", "Military", "GovOverreach", "Religion"])
-additional_topics = st.text_input("Additional topics (free text entry, separated by commas. Example: China, State of the Race, Match)").split(",")
+additional_topics = [x for x in st.text_input("Additional topics (free text entry, separated by commas. Example: China, State of the Race, Match)").split(",") if x.strip()] #filter out empty strings on split, too.
 generate_button = st.button("Generate a message based on the above by clicking this button!")
 
 # if chat_prompt := st.chat_input("Or, compose a full message here."): #removed as not useful to end-user
