@@ -13,6 +13,7 @@ bespoke_title_element = '<h1><img src="https://targetedvictory.com/wp-content/up
 st.markdown(bespoke_title_element, unsafe_allow_html=True)
 html('<script>//you can include arbitrary html and javascript this way</script>')
 st.caption("It's pronounced ‘Kickero’")
+st.caption( str( pd.read_csv("Candidate_Bios.csv") ) )
 model_uri = 'https://dbc-ca8d208b-aaa9.cloud.databricks.com/serving-endpoints/pythia/invocations'
 databricks_api_token = 'dapi360d025c9e135c809de05abbf3196a06'
 
