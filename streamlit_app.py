@@ -67,7 +67,7 @@ generate_button = st.button("Generate a message based on the above by clicking t
 
 #TODO: breaking news checkbox
 if generate_button:
-  button_prompt = bios[account]+"\n"+"Write a "+ask_type+" for "+account+" about: "+list_to_bracketeds_string(topics+additional_topics or ["No_Hook"])+( "" if not tone else " emphasizing "+ list_to_bracketeds_string(sortedUAE(tone)) )
+  button_prompt = bios[account]+"\n\n"+"Write a "+ask_type+" for "+account+" about: "+list_to_bracketeds_string(topics+additional_topics or ["No_Hook"])+( "" if not tone else " emphasizing "+ list_to_bracketeds_string(sortedUAE(tone)) )
   tokenize_and_send(button_prompt)
 
-html('<!--<script>//you can include arbitrary html and javascript this way</script>-->')
+# html('<!--<script>//you can include arbitrary html and javascript this way</script>-->')
