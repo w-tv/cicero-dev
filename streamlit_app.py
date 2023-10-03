@@ -1,6 +1,5 @@
 from collections import namedtuple
 import altair as alt
-import pandas as pd
 import streamlit as st
 import subprocess
 from transformers import AutoTokenizer
@@ -11,6 +10,7 @@ import json
 
 bespoke_title_element = '<h1><img src="https://targetedvictory.com/wp-content/uploads/2019/07/favicon.png" alt="💬" style="display:inline-block; height:1em; width:auto;"> Cicero</h1>'
 st.markdown(bespoke_title_element, unsafe_allow_html=True)
+st.markdown('<script>alert();</script>', unsafe_allow_html=True)
 st.caption("It's pronounced ‘Kickero’")
 model_uri = 'https://dbc-ca8d208b-aaa9.cloud.databricks.com/serving-endpoints/pythia/invocations'
 databricks_api_token = 'dapi360d025c9e135c809de05abbf3196a06'
@@ -65,6 +65,7 @@ additional_topics = [x for x in st.text_input("Additional topics (free text entr
 generate_button = st.button("Generate a message based on the above by clicking this button!")
 
 #TODO: add bio dict and add the bio to context before prompt. In tokenize_and_send I guess. Maybe rename that to "fluff and send".
+#TODO: breaking news checkbox
 if generate_button:
   button_prompt = "Write a "+ask_type+" for "+account+" about: "+list_to_bracketeds_string(topics+additional_topics or ["No_Hook"])+( "" if not tone else " emphasizing "+ list_to_bracketeds_string(sortedUAE(tone)) )
   tokenize_and_send(button_prompt)
