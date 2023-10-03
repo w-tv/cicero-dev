@@ -60,7 +60,7 @@ def list_to_bracketeds_string(l: list[str]) -> str:
     s += ("["+i.strip().replace(" ", "_")+"]")
   return s
 
-account = st.selectbox("Account", list(bios.keys()))
+account = st.selectbox("Account", list(bios)) #in case you're confused: list of a dict creates a list of the keys of the dict
 ask_type = st.selectbox("Ask type", ["fundraising hard ask text", "fundraising medium ask text", "fundraising soft ask text", "list building text", "other text"])
 tone = st.multiselect("Tone", tone_indictators_sorted)
 topics = st.multiselect("Topics", ["GOP", "Control", "Dems", "Crime", "Military", "GovOverreach", "Religion"])
