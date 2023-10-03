@@ -34,13 +34,11 @@ def score_model(model_uri, databricks_token, data):
 
 def tokenize_and_send(prompt):
   st.write(prompt)
-  prompt = "<|startoftext|> "+prompt+" <|body|>"
+  prompt = bios[account]+" "+"<|startoftext|> "+prompt+" <|body|>"
   tokenizer = AutoTokenizer.from_pretrained("EleutherAI/pythia-160m-deduped")
   text_ids = tokenizer.encode(prompt, return_tensors = 'pt')
   output = str(score_model(model_uri, databricks_api_token, text_ids))
   st.write(output[16:-1]) #I guess we don't like the first 16, and last 1, characters of this for some reason. Note: I have been informed that the first 16 and last 1 characters are, like "Response: { " and "}" or something.
-
-html('<script>//you can include arbitrary html and javascript this way</script>')
 
 tone_indictators_sorted = ["Urgency", "Agency", "Exclusivity"]
 
@@ -67,8 +65,9 @@ topics = st.multiselect("Topics", ["GOP", "Control", "Dems", "Crime", "Military"
 additional_topics = [x for x in st.text_input("Additional topics (free text entry, separated by commas. Example: China, State of the Race, Match)").split(",") if x.strip()] # The list comprehension is to filter out empty strings on split, because otherwise this fails to make a truly empty list in the default case, instead having a list with an empty string in, because split changes its behavior when you give it arguments. Anyway, this also filters out trailing comma edge-cases and such.
 generate_button = st.button("Generate a message based on the above by clicking this button!")
 
-#TODO: add bio dict and add the bio to context before prompt. In tokenize_and_send I guess. Maybe rename that to "fluff and send".
 #TODO: breaking news checkbox
 if generate_button:
-  button_prompt = bios[account]+" Write a "+ask_type+" for "+account+" about: "+list_to_bracketeds_string(topics+additional_topics or ["No_Hook"])+( "" if not tone else " emphasizing "+ list_to_bracketeds_string(sortedUAE(tone)) )
+  button_prompt = "Write a "+ask_type+" for "+account+" about: "+list_to_bracketeds_string(topics+additional_topics or ["No_Hook"])+( "" if not tone else " emphasizing "+ list_to_bracketeds_string(sortedUAE(tone)) )
   tokenize_and_send(button_prompt)
+
+html('<script>//you can include arbitrary html and javascript this way</script>')
