@@ -12,8 +12,7 @@ import json
 bespoke_title_element = '<h1><img src="https://targetedvictory.com/wp-content/uploads/2019/07/favicon.png" alt="💬" style="display:inline-block; height:1em; width:auto;"> Cicero</h1>'
 st.markdown(bespoke_title_element, unsafe_allow_html=True)
 st.caption("It's pronounced ‘Kickero’")
-bios : dict[str, str] = pd.read_csv("Candidate_Bios.csv", index_col="ID").to_dict('split')['data']
-st.caption(str(bios))
+bios : dict[str, str] = dict(pd.read_csv("Candidate_Bios.csv", index_col="ID").to_dict('split')['data'])
 model_uri = 'https://dbc-ca8d208b-aaa9.cloud.databricks.com/serving-endpoints/pythia/invocations'
 databricks_api_token = 'dapi360d025c9e135c809de05abbf3196a06'
 
