@@ -34,7 +34,7 @@ def score_model(model_uri, databricks_token, data):
 
 def tokenize_and_send(prompt):
   st.write(prompt)
-  prompt = bios[account]+" "+"<|startoftext|> "+prompt+" <|body|>"
+  prompt = "<|startoftext|> "+prompt+" <|body|>"
   tokenizer = AutoTokenizer.from_pretrained("EleutherAI/pythia-160m-deduped")
   text_ids = tokenizer.encode(prompt, return_tensors = 'pt')
   output = str(score_model(model_uri, databricks_api_token, text_ids))
@@ -67,7 +67,7 @@ generate_button = st.button("Generate a message based on the above by clicking t
 
 #TODO: breaking news checkbox
 if generate_button:
-  button_prompt = "Write a "+ask_type+" for "+account+" about: "+list_to_bracketeds_string(topics+additional_topics or ["No_Hook"])+( "" if not tone else " emphasizing "+ list_to_bracketeds_string(sortedUAE(tone)) )
+  button_prompt = bios[account]+"\n"+"Write a "+ask_type+" for "+account+" about: "+list_to_bracketeds_string(topics+additional_topics or ["No_Hook"])+( "" if not tone else " emphasizing "+ list_to_bracketeds_string(sortedUAE(tone)) )
   tokenize_and_send(button_prompt)
 
-html('<script>//you can include arbitrary html and javascript this way</script>')
+html('<!--<script>//you can include arbitrary html and javascript this way</script>-->')
