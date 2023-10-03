@@ -11,9 +11,8 @@ import json
 
 bespoke_title_element = '<h1><img src="https://targetedvictory.com/wp-content/uploads/2019/07/favicon.png" alt="💬" style="display:inline-block; height:1em; width:auto;"> Cicero</h1>'
 st.markdown(bespoke_title_element, unsafe_allow_html=True)
-html('<script>//you can include arbitrary html and javascript this way</script>')
 st.caption("It's pronounced ‘Kickero’")
-st.caption( str( pd.read_csv("Candidate_Bios.csv", index_col="ID").to_dict('split') ) )
+bios : dict = pd.read_csv("Candidate_Bios.csv", index_col="ID").to_dict('split')['data']
 model_uri = 'https://dbc-ca8d208b-aaa9.cloud.databricks.com/serving-endpoints/pythia/invocations'
 databricks_api_token = 'dapi360d025c9e135c809de05abbf3196a06'
 
@@ -41,6 +40,8 @@ def tokenize_and_send(prompt):
   output = str(score_model(model_uri, databricks_api_token, text_ids))
   st.write(output[16:-1]) #I guess we don't like the first 16, and last 1, characters of this for some reason. Note: I have been informed that the first 16 and last 1 characters are, like "Response: { " and "}" or something.
 
+html('<script>//you can include arbitrary html and javascript this way</script>')
+
 tone_indictators_sorted = ["Urgency", "Agency", "Exclusivity"]
 
 def sortedUAE(unsorted_tones: list[str]) -> list[str]:
@@ -59,7 +60,7 @@ def list_to_bracketeds_string(l: list[str]) -> str:
     s += ("["+i.strip().replace(" ", "_")+"]")
   return s
 
-account = st.selectbox("Account", ["Tim Scott", "Steve Scalise"])
+account = st.selectbox("Account", list(bios.keys()))
 ask_type = st.selectbox("Ask type", ["fundraising hard ask text", "fundraising medium ask text", "fundraising soft ask text", "list building text", "other text"])
 tone = st.multiselect("Tone", tone_indictators_sorted)
 topics = st.multiselect("Topics", ["GOP", "Control", "Dems", "Crime", "Military", "GovOverreach", "Religion"])
@@ -69,5 +70,5 @@ generate_button = st.button("Generate a message based on the above by clicking t
 #TODO: add bio dict and add the bio to context before prompt. In tokenize_and_send I guess. Maybe rename that to "fluff and send".
 #TODO: breaking news checkbox
 if generate_button:
-  button_prompt = "Write a "+ask_type+" for "+account+" about: "+list_to_bracketeds_string(topics+additional_topics or ["No_Hook"])+( "" if not tone else " emphasizing "+ list_to_bracketeds_string(sortedUAE(tone)) )
+  button_prompt = bios[account]+" Write a "+ask_type+" for "+account+" about: "+list_to_bracketeds_string(topics+additional_topics or ["No_Hook"])+( "" if not tone else " emphasizing "+ list_to_bracketeds_string(sortedUAE(tone)) )
   tokenize_and_send(button_prompt)
