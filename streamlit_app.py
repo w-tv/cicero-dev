@@ -9,6 +9,14 @@ import pandas as pd
 import requests
 import json
 
+with st.sidebar:
+  st.header("Options for the model.")
+  st.caption("These controls can be optionally adjusted to influence the way that the model generates text, such as the length and variety of text the model will attempt to make the text display. Also, none of these controls are hooked up to anything yet, so they don't yet do anything!")
+  st.slider("Textual variety ('temperature')", min_value=0.0, max_value=1.0, value=0.7) #temperature: slider between 0 and 1, defaults to 0.7, pass this value into prompt, float
+  #character count max, min - must be int, cannot be negative or 0, divide by 4 and pass into prompt; integer input?:
+  st.number_input("Target number of characters, minimum:", min_value=1, value=None format='%d', step=1)
+  st.number_input("Target number of characters, maximum:", min_value=1, value=None format='%d', step=1)
+
 bespoke_title_element = '<h1><img src="https://targetedvictory.com/wp-content/uploads/2019/07/favicon.png" alt="💬" style="display:inline-block; height:1em; width:auto;"> CICERO</h1>'
 st.markdown(bespoke_title_element, unsafe_allow_html=True)
 bios : dict[str, str] = dict(pd.read_csv("Candidate_Bios.csv", index_col="ID").to_dict('split')['data'])
@@ -67,9 +75,7 @@ additional_topics = [x for x in st.text_input("Additional Topics (Example: Biden
 generate_button = st.button("Submit")
 
 #TODO: breaking news checkbox
-#TODO:     character count max, min - must be int, cannot be negative or 0, divide by 4 and pass into prompt; integer input? #sidebar from examples?
-#    temperature - slider between 0 and 1, defaults to 0.7, pass this value into prompt, float #sidebar from examples?
-#    show user history of outputs (maybe have advanced mode where they see all metadata associated with prompt)
+#TODO: show user history of outputs (maybe have advanced mode where they see all metadata associated with prompt)
 if generate_button:
   button_prompt = bios[account]+"\n\n"+"Write a "+ask_type.lower()+" text for "+account+" about: "+list_to_bracketeds_string(topics+additional_topics or ["No_Hook"])+( "" if not tone else " emphasizing "+ list_to_bracketeds_string(sortedUAE(tone)) )
   tokenize_and_send(button_prompt)
