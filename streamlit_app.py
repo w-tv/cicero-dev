@@ -27,7 +27,7 @@ databricks_api_token = st.secrets['databricks_api_token']
 def create_tf_serving_json(data):
   return {'inputs': {name: data[name].tolist() for name in data.keys()} if isinstance(data, dict) else data.tolist()}
 
-def score_model(model_uri, databricks_token, data):
+def send(model_uri, databricks_token, data):
   headers = {
     "Authorization": f"Bearer {databricks_token}",
     "Content-Type": "application/json",
@@ -35,7 +35,7 @@ def score_model(model_uri, databricks_token, data):
   data_json = json.dumps({'dataframe_records': data.to_dict(orient='records')}) if isinstance(data, pd.DataFrame) else create_tf_serving_json(data)
   response = requests.request(method='POST', headers=headers, url=model_uri, json=data_json)
   if response.status_code == 504:
-    return score_model(model_uri, databricks_token, data) #we recursively call this until the machine wakes up.
+    return send(model_uri, databricks_token, data) #we recursively call this until the machine wakes up.
   elif response.status_code != 200:
       raise Exception(f"Request failed with status {response.status_code}, {response.text}")
   return response.json()
@@ -45,7 +45,7 @@ def tokenize_and_send(prompt):
   prompt = "<|startoftext|> "+prompt+" <|body|>"
   tokenizer = AutoTokenizer.from_pretrained("EleutherAI/pythia-160m-deduped")
   text_ids = tokenizer.encode(prompt, return_tensors = 'pt')
-  output = str(score_model(model_uri, databricks_api_token, text_ids))
+  output = str(send(model_uri, databricks_api_token, text_ids))
   pure_output = output[16:-1] #I guess we don't like the first 16, and last 1, characters of this for some reason. Note: I have been informed that the first 16 and last 1 characters are, like "Response: { " and "}" or something.
   st.write(pure_output)
   with st.sidebar:
