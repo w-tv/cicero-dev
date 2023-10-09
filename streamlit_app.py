@@ -53,7 +53,7 @@ def tokenize_and_send(prompt):
   st.write(pure_output)
   history.append(pure_output)
   with st.sidebar: st.write(history)
-  st.write("Character count: "+str(len(pure_output))+"\n\n(This character count should usually be accurate, but if your target platform uses a different character encoding than this one, it may consider the text to have a different number of characters.)")
+  st.caption("Character count: "+str(len(pure_output))+"\n\n*(This character count should usually be accurate, but if your target platform uses a different character encoding than this one, it may consider the text to have a different number of characters.)*")
 
 tone_indictators_sorted = ["Urgency", "Agency", "Exclusivity"]
 
