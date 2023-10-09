@@ -9,8 +9,6 @@ import pandas as pd
 import requests
 import json
 
-history = [] # pd.DataFrame([], columns=("reply")) # TODO: this can be extended later if it works, and even made into a dataframe
-
 with st.sidebar:
   st.header("Options for the model:")
   st.caption("These controls can be optionally adjusted to influence the way that the model generates text, such as the length and variety of text the model will attempt to make the text display. Also, none of these controls are hooked up to anything yet, so they don't yet do anything!")
@@ -43,7 +41,6 @@ def score_model(model_uri, databricks_token, data):
   return response.json()
 
 def tokenize_and_send(prompt):
-  global history
   st.write(prompt)
   prompt = "<|startoftext|> "+prompt+" <|body|>"
   tokenizer = AutoTokenizer.from_pretrained("EleutherAI/pythia-160m-deduped")
@@ -51,9 +48,15 @@ def tokenize_and_send(prompt):
   output = str(score_model(model_uri, databricks_api_token, text_ids))
   pure_output = output[16:-1] #I guess we don't like the first 16, and last 1, characters of this for some reason. Note: I have been informed that the first 16 and last 1 characters are, like "Response: { " and "}" or something.
   st.write(pure_output)
-  history.append(pure_output)
   with st.sidebar:
-    st.write(f"({len(history)} entries)")
+    #history bookkeeping, which only really serves to get around the weird way state is tracked in this app (the history widget won't just automatically update as we assign to the history variable)
+    global history
+    try:
+      history
+    except NameError:
+      history=[] #give history a default value if it didn't exist # pd.DataFrame([], columns=("reply")) # TODO: this can be extended later if it works, and even made into a dataframe
+    history.append(pure_output)
+    st.write(f"({len(history)} entry/ies)")
     for h in history: st.write(h)
   st.caption("Character count: "+str(len(pure_output))+"\n\n*(This character count should usually be accurate, but if your target platform uses a different character encoding than this one, it may consider the text to have a different number of characters.)*")
 
