@@ -52,7 +52,7 @@ def tokenize_and_send(prompt):
     # History bookkeeping, which only really serves to get around the weird way state is tracked in this app (the history widget won't just automatically update as we assign to the history variable):
     if 'history' not in st.session_state: st.session_state['history'] = [] # Give history a default value if it didn't exist. # COULD: This can be extended later if it works, and even made into a dataframe.
     st.session_state['history'].append(pure_output)
-    st.write( reversed(st.session_state['history']) ) #this will write as a dataframe, reversed for recent=higher #COULD: maybe should have advanced mode where they see all metadata associated with prompt
+    st.write( list(reversed( st.session_state['history'] )) ) #this will write as a dataframe, reversed for recent=higher #COULD: maybe should have advanced mode where they see all metadata associated with prompt
   st.caption("Character count: "+str(len(pure_output))+"\n\n*(This character count should usually be accurate, but if your target platform uses a different character encoding than this one, it may consider the text to have a different number of characters.)*")
 
 tone_indictators_sorted = ["Urgency", "Agency", "Exclusivity"]
