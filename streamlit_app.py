@@ -41,7 +41,7 @@ def score_model(model_uri, databricks_token, data):
   return response.json()
 
 def tokenize_and_send(prompt):
-  st.write(prompt)
+  st.caption(prompt)
   prompt = "<|startoftext|> "+prompt+" <|body|>"
   tokenizer = AutoTokenizer.from_pretrained("EleutherAI/pythia-160m-deduped")
   text_ids = tokenizer.encode(prompt, return_tensors = 'pt')
@@ -49,13 +49,10 @@ def tokenize_and_send(prompt):
   pure_output = output[16:-1] #I guess we don't like the first 16, and last 1, characters of this for some reason. Note: I have been informed that the first 16 and last 1 characters are, like "Response: { " and "}" or something.
   st.write(pure_output)
   with st.sidebar:
-    #history bookkeeping, which only really serves to get around the weird way state is tracked in this app (the history widget won't just automatically update as we assign to the history variable)
-    if 'history' not in st.session_state:
-        st.session_state['history'] = [] #give history a default value if it didn't exist # pd.DataFrame([], columns=("reply")) # TODO: this can be extended later if it works, and even made into a dataframe
+    # History bookkeeping, which only really serves to get around the weird way state is tracked in this app (the history widget won't just automatically update as we assign to the history variable):
+    if 'history' not in st.session_state: st.session_state['history'] = [] # Give history a default value if it didn't exist. # This can be extended later if it works, and even made into a dataframe.
     st.session_state['history'].append(pure_output)
-    history = st.session_state['history']
-    st.write(f"(entry count: {len(history)})")
-    for h in history: st.write(h)
+    st.write( st.session_state['history'] ) #this will write as a dataframe
   st.caption("Character count: "+str(len(pure_output))+"\n\n*(This character count should usually be accurate, but if your target platform uses a different character encoding than this one, it may consider the text to have a different number of characters.)*")
 
 tone_indictators_sorted = ["Urgency", "Agency", "Exclusivity"]
