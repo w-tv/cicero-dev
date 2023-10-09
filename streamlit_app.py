@@ -37,7 +37,9 @@ def tokenize_and_send(prompt):
   tokenizer = AutoTokenizer.from_pretrained("EleutherAI/pythia-160m-deduped")
   text_ids = tokenizer.encode(prompt, return_tensors = 'pt')
   output = str(score_model(model_uri, databricks_api_token, text_ids))
-  st.write(output[16:-1]) #I guess we don't like the first 16, and last 1, characters of this for some reason. Note: I have been informed that the first 16 and last 1 characters are, like "Response: { " and "}" or something.
+  pure_output = output[16:-1] #I guess we don't like the first 16, and last 1, characters of this for some reason. Note: I have been informed that the first 16 and last 1 characters are, like "Response: { " and "}" or something.
+  st.write(pure_output)
+  st.write("Character count: "+str(len(pure_output))+" (note that this character count should usually be accurate, but if your target platform uses a different character encoding than this one, it may consider the text to have a different number of characters)")
 
 tone_indictators_sorted = ["Urgency", "Agency", "Exclusivity"]
 
@@ -65,6 +67,10 @@ additional_topics = [x for x in st.text_input("Additional Topics (Example: Biden
 generate_button = st.button("Submit")
 
 #TODO: breaking news checkbox
+#TODO:     character count max, min - must be int, cannot be negative or 0, divide by 4 and pass into prompt; integer input? #sidebar from examples?
+#    temperature - slider between 0 and 1, defaults to 0.7, pass this value into prompt, float #sidebar from examples?
+#    show user history of outputs (maybe have advanced mode where they see all metadata associated with prompt)
+#    print character count of output below the output
 if generate_button:
   button_prompt = bios[account]+"\n\n"+"Write a "+ask_type.lower()+" text for "+account+" about: "+list_to_bracketeds_string(topics+additional_topics or ["No_Hook"])+( "" if not tone else " emphasizing "+ list_to_bracketeds_string(sortedUAE(tone)) )
   tokenize_and_send(button_prompt)
