@@ -12,19 +12,21 @@ import json
 bespoke_title_element = '<h1><img src="https://targetedvictory.com/wp-content/uploads/2019/07/favicon.png" alt="💬" style="display:inline-block; height:1em; width:auto;"> CICERO</h1>'
 st.markdown(bespoke_title_element, unsafe_allow_html=True)
 bios : dict[str, str] = dict(pd.read_csv("Candidate_Bios.csv", index_col="ID").to_dict('split')['data'])
+model_uri = st.secrets['model_uri']
+databricks_api_token = st.secrets['databricks_api_token']
 
 def create_tf_serving_json(data):
   return {'inputs': {name: data[name].tolist() for name in data.keys()} if isinstance(data, dict) else data.tolist()}
 
-def score_model(st.secrets['model_uri'], databricks_token, data):
+def score_model(model_uri, databricks_token, data):
   headers = {
     "Authorization": f"Bearer {databricks_token}",
     "Content-Type": "application/json",
   }
   data_json = json.dumps({'dataframe_records': data.to_dict(orient='records')}) if isinstance(data, pd.DataFrame) else create_tf_serving_json(data)
-  response = requests.request(method='POST', headers=headers, url=st.secrets['model_uri'], json=data_json)
+  response = requests.request(method='POST', headers=headers, url=model_uri, json=data_json)
   if response.status_code == 504:
-    return score_model(st.secrets['model_uri'], databricks_token, data) #we recursively call this until the machine wakes up.
+    return score_model(model_uri, databricks_token, data) #we recursively call this until the machine wakes up.
   elif response.status_code != 200:
       raise Exception(f"Request failed with status {response.status_code}, {response.text}")
   return response.json()
@@ -34,7 +36,7 @@ def tokenize_and_send(prompt):
   prompt = "<|startoftext|> "+prompt+" <|body|>"
   tokenizer = AutoTokenizer.from_pretrained("EleutherAI/pythia-160m-deduped")
   text_ids = tokenizer.encode(prompt, return_tensors = 'pt')
-  output = str(score_model(st.secrets['model_uri'], st.secrets['databricks_api_token'], text_ids))
+  output = str(score_model(model_uri, databricks_api_token, text_ids))
   st.write(output[16:-1]) #I guess we don't like the first 16, and last 1, characters of this for some reason. Note: I have been informed that the first 16 and last 1 characters are, like "Response: { " and "}" or something.
 
 tone_indictators_sorted = ["Urgency", "Agency", "Exclusivity"]
