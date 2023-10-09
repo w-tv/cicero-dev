@@ -52,7 +52,8 @@ def tokenize_and_send(prompt):
   pure_output = output[16:-1] #I guess we don't like the first 16, and last 1, characters of this for some reason. Note: I have been informed that the first 16 and last 1 characters are, like "Response: { " and "}" or something.
   st.write(pure_output)
   history.append(pure_output)
-  with st.sidebar: st.write(history)
+  with st.sidebar:
+    for h in history: st.write(h)
   st.caption("Character count: "+str(len(pure_output))+"\n\n*(This character count should usually be accurate, but if your target platform uses a different character encoding than this one, it may consider the text to have a different number of characters.)*")
 
 tone_indictators_sorted = ["Urgency", "Agency", "Exclusivity"]
