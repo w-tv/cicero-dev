@@ -14,10 +14,10 @@ history = [] # pd.DataFrame([], columns=("reply")) # TODO: this can be extended 
 with st.sidebar:
   st.header("Options for the model:")
   st.caption("These controls can be optionally adjusted to influence the way that the model generates text, such as the length and variety of text the model will attempt to make the text display. Also, none of these controls are hooked up to anything yet, so they don't yet do anything!")
-  temperature : float = st.slider("Textual variety (‘temperature’)", min_value=0.0, max_value=1.0, value=0.7) #temperature: slider between 0 and 1, defaults to 0.7, pass this value into prompt, float
+  temperature : float = st.slider("Textual variety (‘temperature’):", min_value=0.0, max_value=1.0, value=0.7) #temperature: slider between 0 and 1, defaults to 0.7, pass this value into prompt, float
   #character count max, min - must be int, cannot be negative or 0, divide by 4 and pass into prompt; integer input?:
-  target_charcount_min : int|None = st.number_input("Target number of characters, minimum:", min_value=1, value=None, format='%d', step=1)
-  target_charcount_max : int|None = st.number_input("Target number of characters, maximum:", min_value=1, value=None, format='%d', step=1)
+  target_charcount_min = st.number_input("Target number of characters, minimum:", min_value=1, value=None, format='%d', step=1)
+  target_charcount_max = st.number_input("Target number of characters, maximum:", min_value=1, value=None, format='%d', step=1)
   st.header("History of replies:")
 
 bespoke_title_element = '<h1><img src="https://targetedvictory.com/wp-content/uploads/2019/07/favicon.png" alt="💬" style="display:inline-block; height:1em; width:auto;"> CICERO</h1>'
