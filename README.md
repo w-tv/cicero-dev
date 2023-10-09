@@ -5,6 +5,8 @@
 
 Cicero (pronounced "KICK arrow") is an app we built using, and currently hosted by, streamlit; it's a frontend that we use to construct and send prompts to our backend. It should hopefully be easy to use for an end-user who doesn't know much about technology but is familiar with this industry. It's currently available on https://cicero.streamlit.app/ although this may not be true later.
 
+To host Cicero, you will need a file, secrets.toml, to be placed in the .streamlit/ folder in this repo. This tells the code what the model_uri and databricks_api_token we're contacting are. Since this is basically a password, it shall not be checked into git. You will have to ask someone with the file, or generate your own (see https://docs.streamlit.io/library/advanced-features/secrets-management for details on the later option). Note that you do NOT need such a file to merely use an instance of Cicero that someone else is running. Also, you don't need to read this readme if you just want to use someone else's Cicero. This readme is about running Cicero.
+
 Edit `streamlit_app.py` to customize this app to your heart's desire. However, it should be pretty much entirely as customized as we need it to be, at this point. Maybe a couple features left.
 
 If you have any questions about streamlit, checkout its [documentation](https://docs.streamlit.io) and [community
