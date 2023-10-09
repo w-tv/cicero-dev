@@ -53,6 +53,7 @@ def tokenize_and_send(prompt):
   st.write(pure_output)
   history.append(pure_output)
   with st.sidebar:
+    st.write(f"({len(history)} entries)")
     for h in history: st.write(h)
   st.caption("Character count: "+str(len(pure_output))+"\n\n*(This character count should usually be accurate, but if your target platform uses a different character encoding than this one, it may consider the text to have a different number of characters.)*")
 
