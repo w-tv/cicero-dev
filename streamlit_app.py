@@ -17,7 +17,7 @@ with st.sidebar:
   temperature : float = st.slider("Textual variety (‘temperature’)", min_value=0.0, max_value=1.0, value=0.7) #temperature: slider between 0 and 1, defaults to 0.7, pass this value into prompt, float
   #character count max, min - must be int, cannot be negative or 0, divide by 4 and pass into prompt; integer input?:
   target_charcount_min : int = int(st.number_input("Target number of characters, minimum:", min_value=1, value=None, format='%d', step=1))
-  target_charcount_max : int = st.number_input("Target number of characters, maximum:", min_value=1, value=None, format='%d', step=1)
+  target_charcount_max : int = int(st.number_input("Target number of characters, maximum:", min_value=1, value=None, format='%d', step=1))
   st.header("History of replies:")
 
 bespoke_title_element = '<h1><img src="https://targetedvictory.com/wp-content/uploads/2019/07/favicon.png" alt="💬" style="display:inline-block; height:1em; width:auto;"> CICERO</h1>'
