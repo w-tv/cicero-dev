@@ -16,7 +16,7 @@ with st.sidebar:
   #character count max, min - must be int, cannot be negative or 0, divide by 4 and pass into prompt; integer input?:
   target_charcount_min = st.number_input("Target number of characters, minimum:", min_value=1, value=None, format='%d', step=1)
   target_charcount_max = st.number_input("Target number of characters, maximum:", min_value=1, value=None, format='%d', step=1)
-  st.header("History of replies:")
+  st.header("History of replies (most recent on top):")
 
 bespoke_title_element = '<h1><img src="https://targetedvictory.com/wp-content/uploads/2019/07/favicon.png" alt="💬" style="display:inline-block; height:1em; width:auto;"> CICERO</h1>'
 st.markdown(bespoke_title_element, unsafe_allow_html=True)
@@ -50,9 +50,9 @@ def tokenize_and_send(prompt):
   st.write(pure_output)
   with st.sidebar:
     # History bookkeeping, which only really serves to get around the weird way state is tracked in this app (the history widget won't just automatically update as we assign to the history variable):
-    if 'history' not in st.session_state: st.session_state['history'] = [] # Give history a default value if it didn't exist. # This can be extended later if it works, and even made into a dataframe.
+    if 'history' not in st.session_state: st.session_state['history'] = [] # Give history a default value if it didn't exist. # COULD: This can be extended later if it works, and even made into a dataframe.
     st.session_state['history'].append(pure_output)
-    st.write( st.session_state['history'] ) #this will write as a dataframe
+    st.write( reversed(st.session_state['history']) ) #this will write as a dataframe, reversed for recent=higher #COULD: maybe should have advanced mode where they see all metadata associated with prompt
   st.caption("Character count: "+str(len(pure_output))+"\n\n*(This character count should usually be accurate, but if your target platform uses a different character encoding than this one, it may consider the text to have a different number of characters.)*")
 
 tone_indictators_sorted = ["Urgency", "Agency", "Exclusivity"]
@@ -81,7 +81,6 @@ additional_topics = [x for x in st.text_input("Additional Topics (Example: Biden
 generate_button = st.button("Submit")
 
 #TODO: breaking news checkbox
-#TODO: show user history of outputs (maybe have advanced mode where they see all metadata associated with prompt)
 if generate_button:
   button_prompt = bios[account]+"\n\n"+"Write a "+ask_type.lower()+" text for "+account+" about: "+list_to_bracketeds_string(topics+additional_topics or ["No_Hook"])+( "" if not tone else " emphasizing "+ list_to_bracketeds_string(sortedUAE(tone)) )
   tokenize_and_send(button_prompt)
