@@ -50,9 +50,9 @@ def tokenize_and_send(prompt):
   st.write(pure_output)
   with st.sidebar:
     # History bookkeeping, which only really serves to get around the weird way state is tracked in this app (the history widget won't just automatically update as we assign to the history variable):
-    if 'history' not in st.session_state: st.session_state['history'] = [] # Give history a default value if it didn't exist. # COULD: This can be extended later if it works, and even made into a dataframe.
+    if 'history' not in st.session_state: st.session_state['history'] = []
     st.session_state['history'].append(pure_output)
-    st.write( list(reversed( st.session_state['history'] )) ) #this will write as a dataframe, reversed for recent=higher #COULD: maybe should have advanced mode where they see all metadata associated with prompt
+    st.write( pd.DataFrame(list(reversed( st.session_state['history'] ))) ) # reversed for recent=higher #COULD: maybe should have advanced mode where they see all metadata associated with prompt. Also, this ui element can be styled in a special pandas way, I think, as described in the st documentation.
   st.caption("Character count: "+str(len(pure_output))+"\n\n*(This character count should usually be accurate, but if your target platform uses a different character encoding than this one, it may consider the text to have a different number of characters.)*")
 
 tone_indictators_sorted = ["Urgency", "Agency", "Exclusivity"]
@@ -80,7 +80,12 @@ topics = st.multiselect("Topics", ["GOP", "Control", "Dems", "Crime", "Military"
 additional_topics = [x for x in st.text_input("Additional Topics (Example: Biden, Survey, Deadline)").split(",") if x.strip()] # The list comprehension is to filter out empty strings on split, because otherwise this fails to make a truly empty list in the default case, instead having a list with an empty string in, because split changes its behavior when you give it arguments. Anyway, this also filters out trailing comma edge-cases and such.
 generate_button = st.button("Submit")
 
-#TODO: breaking news checkbox
+#TODOS: breaking news checkbox
+#     Add reset button to page to clear all parameters, reset to defaults
+#    allow for creation of presets (does not need to last between sessions) (for now)
+#    make it so the Bio text only shows up (and is passed to prompt) if the user selects the Bio topic
+#    see if you can simplify how you show the history of the outputs
+
 if generate_button:
   button_prompt = bios[account]+"\n\n"+"Write a "+ask_type.lower()+" text for "+account+" about: "+list_to_bracketeds_string(topics+additional_topics or ["No_Hook"])+( "" if not tone else " emphasizing "+ list_to_bracketeds_string(sortedUAE(tone)) )
   tokenize_and_send(button_prompt)
