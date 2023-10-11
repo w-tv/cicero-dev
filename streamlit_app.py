@@ -79,7 +79,8 @@ tone = st.multiselect("Tone", tone_indictators_sorted)
 topics = st.multiselect("Topics", ["Bio", "GOP", "Control", "Dems", "Crime", "Military", "GovOverreach", "Religion"])
 additional_topics = [x for x in st.text_input("Additional Topics (Example: Biden, Survey, Deadline)").split(",") if x.strip()] # The list comprehension is to filter out empty strings on split, because otherwise this fails to make a truly empty list in the default case, instead having a list with an empty string in, because split changes its behavior when you give it arguments. Anyway, this also filters out trailing comma edge-cases and such.
 generate_button = st.button("Submit")
-if st.button("Reset all fields"): st.runtime.legacy_caching.clear_cache() #let's see if this works
+st.write(st.session_state)
+if st.button("Reset all fields"): st.runtime.legacy_caching.clear_cache(); st.rerun() #let's see if this works
 
 #TODOS: breaking news checkbox
 #     Add reset button to page to clear all parameters, reset to defaults
