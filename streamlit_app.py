@@ -76,18 +76,16 @@ def list_to_bracketeds_string(l: list[str]) -> str:
 account = st.selectbox("Account", list(bios)) #in case you're confused: list of a dict creates a list of the keys of the dict
 ask_type = st.selectbox("Ask Type", ["Fundraising Hard Ask", "Fundraising Medium Ask", "Fundraising Soft Ask", "List Building"])
 tone = st.multiselect("Tone", tone_indictators_sorted)
-topics = st.multiselect("Topics", ["GOP", "Control", "Dems", "Crime", "Military", "GovOverreach", "Religion"])
+topics = st.multiselect("Topics", ["Bio", "GOP", "Control", "Dems", "Crime", "Military", "GovOverreach", "Religion"])
 additional_topics = [x for x in st.text_input("Additional Topics (Example: Biden, Survey, Deadline)").split(",") if x.strip()] # The list comprehension is to filter out empty strings on split, because otherwise this fails to make a truly empty list in the default case, instead having a list with an empty string in, because split changes its behavior when you give it arguments. Anyway, this also filters out trailing comma edge-cases and such.
 generate_button = st.button("Submit")
 
 #TODOS: breaking news checkbox
 #     Add reset button to page to clear all parameters, reset to defaults
 #    allow for creation of presets (does not need to last between sessions) (for now)
-#    make it so the Bio text only shows up (and is passed to prompt) if the user selects the Bio topic
-#    see if you can simplify how you show the history of the outputs
 
 if generate_button:
-  button_prompt = bios[account]+"\n\n"+"Write a "+ask_type.lower()+" text for "+account+" about: "+list_to_bracketeds_string(topics+additional_topics or ["No_Hook"])+( "" if not tone else " emphasizing "+ list_to_bracketeds_string(sortedUAE(tone)) )
+  button_prompt = ((bios[account]+"\n\n") if "Bio" in topics else "") +"Write a "+ask_type.lower()+" text for "+account+" about: "+list_to_bracketeds_string(topics+additional_topics or ["No_Hook"])+( "" if not tone else " emphasizing "+ list_to_bracketeds_string(sortedUAE(tone)) )
   tokenize_and_send(button_prompt)
 
 # html('<!--<script>//you can include arbitrary html and javascript this way</script>-->')
