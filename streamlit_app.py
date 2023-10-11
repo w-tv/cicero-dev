@@ -11,7 +11,7 @@ import json
 
 with st.sidebar:
   st.header("Options for the model:")
-  st.caption("These controls can be optionally adjusted to influence the way that the model generates text, such as the length and variety of text the model will attempt to make the text display. Also, none of these controls are hooked up to anything yet, so they don't yet do anything!")
+  st.caption("These controls can be optionally adjusted to influence the way that the model generates text, such as the length and variety of text the model will attempt to make the text display. Also, none of these controls are hooked up to anything yet, so they don't yet do anything!") #COULD: actually hook up the controls
   temperature : float = st.slider("Textual variety (‘temperature’):", min_value=0.0, max_value=1.0, value=0.7) #temperature: slider between 0 and 1, defaults to 0.7, pass this value into prompt, float
   #character count max, min - must be int, cannot be negative or 0, divide by 4 and pass into prompt; integer input?:
   target_charcount_min = st.number_input("Target number of characters, minimum:", min_value=1, value=None, format='%d', step=1)
@@ -79,8 +79,7 @@ tone = st.multiselect("Tone", tone_indictators_sorted)
 topics = st.multiselect("Topics", ["Bio", "GOP", "Control", "Dems", "Crime", "Military", "GovOverreach", "Religion"])
 additional_topics = [x for x in st.text_input("Additional Topics (Example: Biden, Survey, Deadline)").split(",") if x.strip()] # The list comprehension is to filter out empty strings on split, because otherwise this fails to make a truly empty list in the default case, instead having a list with an empty string in, because split changes its behavior when you give it arguments. Anyway, this also filters out trailing comma edge-cases and such.
 generate_button = st.button("Submit")
-st.write(st.session_state)
-if st.button("Reset all fields"): st.runtime.legacy_caching.clear_cache(); st.rerun() #let's see if this works
+#if st.button("Reset all fields"): set_preset(None); st.rerun() #COULD: implement later, along with presets. The user currently just has to f5
 
 #TODOS: breaking news checkbox
 #     Add reset button to page to clear all parameters, reset to defaults
