@@ -80,7 +80,7 @@ topics = st.multiselect("Topics", ["Bio", "GOP", "Control", "Dems", "Crime", "Mi
 additional_topics = [x for x in st.text_input("Additional Topics (Example: Biden, Survey, Deadline)").split(",") if x.strip()] # The list comprehension is to filter out empty strings on split, because otherwise this fails to make a truly empty list in the default case, instead having a list with an empty string in, because split changes its behavior when you give it arguments. Anyway, this also filters out trailing comma edge-cases and such.
 generate_button = st.button("Submit")
 st.session_state.ask_type
-if st.button("Reset all fields"): st.session_state.ask_type=None #set_preset(None); st.rerun() #COULD: implement later, along with presets. The user currently just has to f5
+if st.button("Reset all fields"): del st.session_state['ask_type'] #set_preset(None); st.rerun() #COULD: implement later, along with presets. The user currently just has to f5
 
 #TODOS: breaking news checkbox
 #     Add reset button to page to clear all parameters, reset to defaults
