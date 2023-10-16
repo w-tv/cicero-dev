@@ -33,7 +33,9 @@ def send(model_uri, databricks_token, data):
     "Content-Type": "application/json",
   }
   ds_dict = {'dataframe_split': data.to_dict(orient='split')} if isinstance(data, pd.DataFrame) else create_tf_serving_json(data)
+  print(ds_dict, type(ds_dict))
   data_json = json.dumps(ds_dict, allow_nan=True)
+  print(data_json, type(data_json))
   response = requests.request(method='POST', headers=headers, url=model_uri, json=data_json)
   if response.status_code == 504:
     return send(model_uri, databricks_token, data) #we recursively call this until the machine wakes up.
@@ -41,7 +43,7 @@ def send(model_uri, databricks_token, data):
       raise Exception(f"Request failed with status {response.status_code}, {response.text}")
   return response.json()
 
-def tokenize_and_send(prompt):
+def promptify_and_send(prompt):
   st.caption(prompt)
   prompt = "<|startoftext|> "+prompt+" <|body|>"
   dict_prompt = {"prompt" : [prompt],
@@ -49,6 +51,7 @@ def tokenize_and_send(prompt):
                   "max_new_tokens" : [int(target_charcount_max) // 4],
                   "min_new_tokens" : [int(target_charcount_min) // 4]}
   df_prompt = pd.DataFrame(dict_prompt)
+  print(df_prompt)
   output = str(send(model_uri, databricks_api_token, df_prompt))
   pure_output = output[16:-1]
   st.write(pure_output)
@@ -92,6 +95,6 @@ if st.button("Reset all fields"): del st.session_state['ask_type'] #set_preset(N
 
 if generate_button:
   button_prompt = ((bios[account]+"\n\n") if "Bio" in topics else "") +"Write a "+ask_type.lower()+" text for "+account+" about: "+list_to_bracketeds_string(topics+additional_topics or ["No_Hook"])+( "" if not tone else " emphasizing "+ list_to_bracketeds_string(sortedUAE(tone)) )
-  tokenize_and_send(button_prompt)
+  promptify_and_send(button_prompt)
 
 # html('<!--<script>//you can include arbitrary html and javascript this way</script>-->')
