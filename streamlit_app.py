@@ -34,7 +34,7 @@ def send(model_uri, databricks_token, data):
   }
   ds_dict = {'dataframe_split': data.to_dict(orient='split')} if isinstance(data, pd.DataFrame) else create_tf_serving_json(data)
   data_json = json.dumps(ds_dict, allow_nan=True)
-  data_json = data_json[0:21] + data_json[35:]
+  #data_json = data_json[0:21] + data_json[35:]
   st.write(data_json)
   response = requests.request(method='POST', headers=headers, url=model_uri, json=data_json)
   if response.status_code == 504:
