@@ -32,7 +32,8 @@ def send(model_uri, databricks_token, data):
     "Authorization": f"Bearer {databricks_token}",
     "Content-Type": "application/json",
   }
-  data_json = json.dumps({'dataframe_records': data.to_dict(orient='records')}) if isinstance(data, pd.DataFrame) else create_tf_serving_json(data)
+  ds_dict = {'dataframe_split': data.to_dict(orient='split')} if isinstance(data, pd.DataFrame) else create_tf_serving_json(data)
+  data_json = json.dumps(ds_dict, allow_nan=True)
   response = requests.request(method='POST', headers=headers, url=model_uri, json=data_json)
   if response.status_code == 504:
     return send(model_uri, databricks_token, data) #we recursively call this until the machine wakes up.
