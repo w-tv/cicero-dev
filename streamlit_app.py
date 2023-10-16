@@ -74,7 +74,7 @@ def send(model_uri, databricks_token, data):
   st.write(data_json)
   st.write(headers)
   st.write(model_uri)
-  response = requests.request(method='POST', headers=headers, url=model_uri, json=data_json.encode('utf-8'))
+  response = requests.request(method='POST', headers=headers, url=model_uri, data=data_json)
   if response.status_code == 504:
     return send(model_uri, databricks_token, data) #we recursively call this until the machine wakes up.
   elif response.status_code != 200:
