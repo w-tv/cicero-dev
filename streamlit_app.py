@@ -23,7 +23,8 @@ st.markdown(bespoke_title_element, unsafe_allow_html=True)
 bios : dict[str, str] = dict(pd.read_csv("Candidate_Bios.csv", index_col="ID").to_dict('split')['data'])
 model_uri = st.secrets['model_uri']
 databricks_api_token = st.secrets['databricks_api_token']
-data_json = """{
+#data_json =
+"""{
   "dataframe_split": {
     "columns": [
       "prompt",
@@ -69,11 +70,7 @@ def send(model_uri, databricks_token, data):
     "Content-Type": "application/json",
   }
   ds_dict = {'dataframe_split': data.to_dict(orient='split')} if isinstance(data, pd.DataFrame) else create_tf_serving_json(data)
-  #data_json = json.dumps(ds_dict, allow_nan=True)
-  #data_json = data_json[0:21] + data_json[35:]
-  st.write(data_json)
-  st.write(headers)
-  st.write(model_uri)
+  data_json = json.dumps(ds_dict, allow_nan=True)
   response = requests.request(method='POST', headers=headers, url=model_uri, data=data_json)
   if response.status_code == 504:
     return send(model_uri, databricks_token, data) #we recursively call this until the machine wakes up.
