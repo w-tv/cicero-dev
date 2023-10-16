@@ -35,9 +35,11 @@ def send(model_uri, databricks_token, data):
   ds_dict = {'dataframe_split': data.to_dict(orient='split')} if isinstance(data, pd.DataFrame) else create_tf_serving_json(data)
   data_json = json.dumps(ds_dict, allow_nan=True)
   #data_json = data_json[0:21] + data_json[35:]
-  st.write(json.__version__) #TODO: remove this debug print
   st.write(data_json)
   data_json = '{"dataframe_split": {"index": [0], "columns": ["prompt", "temperature", "max_new_tokens", "min_new_tokens"], "data": [["<|startoftext|> Write a fundraising hard ask text for Andy Barr about: [No_Hook] <|body|>", 0.7, 20, 40]]}}' #TODO: Remove hard-coding when can
+  st.write(data_json)
+  st.write(headers)
+  st.write(model_uri)
   response = requests.request(method='POST', headers=headers, url=model_uri, json=data_json)
   if response.status_code == 504:
     return send(model_uri, databricks_token, data) #we recursively call this until the machine wakes up.
