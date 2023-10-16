@@ -1,21 +1,21 @@
-from collections import namedtuple
-import altair as alt
-import streamlit as st
 from streamlit.components.v1 import html
-import subprocess
-from transformers import AutoTokenizer
-import torch
+from collections import namedtuple
+import streamlit as st
+import altair as alt
 import pandas as pd
+import numpy as np
+import subprocess
 import requests
 import json
+import os
 
 with st.sidebar:
   st.header("Options for the model:")
-  st.caption("These controls can be optionally adjusted to influence the way that the model generates text, such as the length and variety of text the model will attempt to make the text display. Also, none of these controls are hooked up to anything yet, so they don't yet do anything!") #COULD: actually hook up the controls
-  temperature : float = st.slider("Textual variety (‘temperature’):", min_value=0.0, max_value=1.0, value=0.7) #temperature: slider between 0 and 1, defaults to 0.7, pass this value into prompt, float
-  #character count max, min - must be int, cannot be negative or 0, divide by 4 and pass into prompt; integer input?:
-  target_charcount_min = st.number_input("Target number of characters, minimum:", min_value=1, value=None, format='%d', step=1)
-  target_charcount_max = st.number_input("Target number of characters, maximum:", min_value=1, value=None, format='%d', step=1)
+  st.caption("These controls can be optionally adjusted to influence the way that the model generates text, such as the length and variety of text the model will attempt to make the text display.")
+  temperature : float = st.slider("Textual variety (‘temperature’):", min_value=0.0, max_value=1.0, value=0.7) #temperature: slider between 0 and 1, defaults to 0.7, float
+  #character count max, min - int, cannot be negative or 0, floor divide by 4:
+  target_charcount_min = st.number_input("Target number of characters, minimum:", min_value=40, value=160, format='%d', step=1)
+  target_charcount_max = st.number_input("Target number of characters, maximum:", min_value=40, value=80, format='%d', step=1)
   st.header("History of replies (higher = more recent):")
 
 bespoke_title_element = '<h1><img src="https://targetedvictory.com/wp-content/uploads/2019/07/favicon.png" alt="💬" style="display:inline-block; height:1em; width:auto;"> CICERO</h1>'
@@ -43,10 +43,13 @@ def send(model_uri, databricks_token, data):
 def tokenize_and_send(prompt):
   st.caption(prompt)
   prompt = "<|startoftext|> "+prompt+" <|body|>"
-  tokenizer = AutoTokenizer.from_pretrained("EleutherAI/pythia-160m-deduped")
-  text_ids = tokenizer.encode(prompt, return_tensors = 'pt')
-  output = str(send(model_uri, databricks_api_token, text_ids))
-  pure_output = output[16:-1] #I guess we don't like the first 16, and last 1, characters of this for some reason. Note: I have been informed that the first 16 and last 1 characters are, like "Response: { " and "}" or something.
+  dict_prompt = {"prompt" : [prompt],
+                  "temperature" : [temperature],
+                  "max_new_tokens" : [int(target_charcount_max) // 4],
+                  "min_new_tokens" : [int(target_charcount_min) // 4]}
+  df_prompt = pd.DataFrame(dict_prompt)
+  output = str(send(model_uri, databricks_api_token, df_prompt))
+  pure_output = output[16:-1]
   st.write(pure_output)
   with st.sidebar:
     # History bookkeeping, which only really serves to get around the weird way state is tracked in this app (the history widget won't just automatically update as we assign to the history variable):
