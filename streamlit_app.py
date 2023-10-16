@@ -23,6 +23,42 @@ st.markdown(bespoke_title_element, unsafe_allow_html=True)
 bios : dict[str, str] = dict(pd.read_csv("Candidate_Bios.csv", index_col="ID").to_dict('split')['data'])
 model_uri = st.secrets['model_uri']
 databricks_api_token = st.secrets['databricks_api_token']
+data_json = """{
+  "dataframe_split": {
+    "columns": [
+      "prompt",
+      "temperature",
+      "max_new_tokens",
+      "min_new_tokens",
+      "num_beams",
+      "top_k",
+      "top_p",
+      "repetition_penalty",
+      "no_repeat_ngram_size",
+      "num_return_sequences",
+      "early_stopping",
+      "do_sample",
+      "output_scores"
+    ],
+    "data": [
+      [
+        "<|startoftext|> Write a fundraising hard ask text for Michael Burgess about: [GOP] [Trump] [Dems] <|body|>",
+        0.7,
+        100,
+        30,
+        1,
+        100,
+        0.9,
+        1.5,
+        4,
+        4,
+        true,
+        true,
+        false
+      ]
+    ]
+  }
+}"""
 
 def create_tf_serving_json(data):
   return {'inputs': {name: data[name].tolist() for name in data.keys()} if isinstance(data, dict) else data.tolist()}
