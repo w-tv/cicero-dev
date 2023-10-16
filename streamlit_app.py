@@ -81,10 +81,20 @@ def send(model_uri, databricks_token, data):
 def promptify_and_send(prompt):
   st.caption(prompt)
   prompt = "<|startoftext|> "+prompt+" <|body|>"
-  dict_prompt = {"prompt" : [prompt],
-                  "temperature" : [temperature],
-                  "max_new_tokens" : [int(target_charcount_max) // 4],
-                  "min_new_tokens" : [int(target_charcount_min) // 4]}
+  dict_prompt = {"prompt": [prompt],
+                  "temperature": [temperature],
+                  "max_new_tokens": [int(target_charcount_max) // 4],
+                  "min_new_tokens": [int(target_charcount_min) // 4],
+                  "num_beams": [1],
+                  "top_k": [100],
+                  "top_p": [0.9],
+                  "repetition_penalty": [1.5],
+                  "no_repeat_ngram_size": [4],
+                  "num_return_sequences": [4],
+                  "early_stopping": [True],
+                  "do_sample": [True],
+                  "output_scores": [False]
+                }
   df_prompt = pd.DataFrame(dict_prompt)
   output = str(send(model_uri, databricks_api_token, df_prompt))
   pure_output = output[16:-1]
