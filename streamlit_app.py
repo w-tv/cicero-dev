@@ -88,7 +88,7 @@ st.session_state.ask_type
 if st.button("Reset all fields"): del st.session_state['ask_type'] #set_preset(None); st.rerun() #COULD: implement later, along with presets. The user currently just has to f5
 
 #TODOS: breaking news checkbox
-#     Add reset button to page to clear all parameters, reset to defaults
+#     Add reset button to page to clear all parameters, reset to defaults #this is how: https://discuss.streamlit.io/t/change-the-state-of-an-item-from-code/1429/4 also https://docs.streamlit.io/library/api-reference/layout/st.container but I'm not sure that has a empty() method on it you can call... I guess vs code autocomplete would know.
 #    allow for creation of presets (does not need to last between sessions) (for now)
 
 if generate_button:
