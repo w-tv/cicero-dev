@@ -16,6 +16,8 @@ with st.sidebar:
   #character count max, min: int, cannot be negative or 0, I guess it has to be above about 40. floor divide by 4 to get token count to pass to model:
   target_charcount_min = st.number_input("Target number of characters, minimum:", min_value=40, value=160, format='%d', step=1)
   target_charcount_max = st.number_input("Target number of characters, maximum:", min_value=40, value=80, format='%d', step=1)
+  with st.expander("Advanced options"):
+    st.write(":)") #could: put all the additional options in here.
   st.header("History of replies (higher = more recent):")
 
 bespoke_title_element = '<h1><img src="https://targetedvictory.com/wp-content/uploads/2019/07/favicon.png" alt="💬" style="display:inline-block; height:1em; width:auto;"> CICERO</h1>'
