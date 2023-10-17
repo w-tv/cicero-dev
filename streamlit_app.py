@@ -13,7 +13,7 @@ with st.sidebar:
   st.header("Options for the model:")
   st.caption("These controls can be optionally adjusted to influence the way that the model generates text, such as the length and variety of text the model will attempt to make the text display.")
   temperature : float = st.slider("Textual variety (‘temperature’):", min_value=0.0, max_value=1.0, value=0.7) #temperature: slider between 0 and 1, defaults to 0.7, float
-  #character count max, min - int, cannot be negative or 0, floor divide by 4:
+  #character count max, min: int, cannot be negative or 0, I guess it has to be above about 40. floor divide by 4 to get token count to pass to model:
   target_charcount_min = st.number_input("Target number of characters, minimum:", min_value=40, value=160, format='%d', step=1)
   target_charcount_max = st.number_input("Target number of characters, maximum:", min_value=40, value=80, format='%d', step=1)
   st.header("History of replies (higher = more recent):")
@@ -23,43 +23,6 @@ st.markdown(bespoke_title_element, unsafe_allow_html=True)
 bios : dict[str, str] = dict(pd.read_csv("Candidate_Bios.csv", index_col="ID").to_dict('split')['data'])
 model_uri = st.secrets['model_uri']
 databricks_api_token = st.secrets['databricks_api_token']
-#data_json =
-"""{
-  "dataframe_split": {
-    "columns": [
-      "prompt",
-      "temperature",
-      "max_new_tokens",
-      "min_new_tokens",
-      "num_beams",
-      "top_k",
-      "top_p",
-      "repetition_penalty",
-      "no_repeat_ngram_size",
-      "num_return_sequences",
-      "early_stopping",
-      "do_sample",
-      "output_scores"
-    ],
-    "data": [
-      [
-        "<|startoftext|> Write a fundraising hard ask text for Michael Burgess about: [GOP] [Trump] [Dems] <|body|>",
-        0.7,
-        100,
-        30,
-        1,
-        100,
-        0.9,
-        1.5,
-        4,
-        4,
-        true,
-        true,
-        false
-      ]
-    ]
-  }
-}""" #TODO: Remove hard-coding when can
 
 def create_tf_serving_json(data):
   return {'inputs': {name: data[name].tolist() for name in data.keys()} if isinstance(data, dict) else data.tolist()}
@@ -130,7 +93,6 @@ tone = st.multiselect("Tone", tone_indictators_sorted)
 topics = st.multiselect("Topics", ["Bio", "GOP", "Control", "Dems", "Crime", "Military", "GovOverreach", "Religion"])
 additional_topics = [x for x in st.text_input("Additional Topics (Example: Biden, Survey, Deadline)").split(",") if x.strip()] # The list comprehension is to filter out empty strings on split, because otherwise this fails to make a truly empty list in the default case, instead having a list with an empty string in, because split changes its behavior when you give it arguments. Anyway, this also filters out trailing comma edge-cases and such.
 generate_button = st.button("Submit")
-st.session_state.ask_type
 if st.button("Reset all fields"): del st.session_state['ask_type'] #set_preset(None); st.rerun() #COULD: implement later, along with presets. The user currently just has to f5
 
 #TODOS: breaking news checkbox
