@@ -10,8 +10,11 @@ import json
 import os
 
 #Make default state, and other presets, so we can manage presets and resets.
-st.session_state.presets = {}
-st.session_state.presets.default = {top_k: 50}
+st.session_state.presets = {
+  default: {
+    {"top_k": 50},
+  },
+}
 st.session_state.current_preset = st.session_state.presets.default
 
 with st.sidebar:
