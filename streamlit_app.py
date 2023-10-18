@@ -18,12 +18,13 @@ with st.sidebar:
   target_charcount_max = st.number_input("Target number of characters, maximum:", min_value=40, value=80, format='%d', step=1)
   with st.expander("Advanced options (not yet hooked up)"):
     #TODO: not hooked up yet
+    #TODO: tooltips
     num_beams = st.number_input("num_beams:", min_value=1, value=1, format='%d', step=1)
     top_k = st.number_input("top_k:", min_value=1, value=50, format='%d', step=1)
     top_p = st.number_input("top_p:", min_value=0.0, value=1.0, format='%f')
     repetition_penalty = st.number_input("repetition_penalty:", min_value=1.0, value=1.5, format='%f')
-    no_repeat_ngram_size = st.number_input("no_repeat_ngram_size:", min_value=0, value=0, format='%d', step=1)
-    num_return_sequences = st.number_input("num_return_sequences", min_value=1, value=4, format='%d', step=1)
+    no_repeat_ngram_size = st.number_input("no_repeat_ngram_size:", min_value=0, value=4, format='%d', step=1)
+    num_return_sequences = st.number_input("num_return_sequences:", min_value=1, value=4, format='%d', step=1)
     early_stopping = st.checkbox("early_stopping", value=True)
     do_sample = st.checkbox("do_sample", value=True)
     output_scores = st.checkbox("output_scores", value=False)
