@@ -9,6 +9,11 @@ import requests
 import json
 import os
 
+#Make default state, and other presets, so we can manage presets and resets.
+st.session_state.presets = {}
+st.session_state.presets.default = {top_k: 50}
+st.session_state.current_preset = st.session_state.presets.default
+
 with st.sidebar:
   st.header("Options for the model:")
   st.caption("These controls can be optionally adjusted to influence the way that the model generates text, such as the length and variety of text the model will attempt to make the text display.")
@@ -19,7 +24,7 @@ with st.sidebar:
   with st.expander("Advanced options (not yet hooked up)"):
     #TODO: not hooked up yet
     num_beams = st.number_input("num_beams:", min_value=1, value=1, format='%d', step=1, help="Number of beams for beam search. 1 means no beam search. Beam search is a particular strategy for generating text that the model can elect to use or not use. It can use more or fewer beams in the beam search, as well. More beams basically means it considers more candidate possibilities.")
-    top_k = st.number_input("top_k:", min_value=1, value=50, format='%d', step=1, help="The number of highest probability vocabulary tokens to keep for top-k-filtering. In other words: how many likely words the model will consider.")
+    top_k = st.number_input("top_k:", min_value=1, value=st.session_state.current_preset, format='%d', step=1, help="The number of highest probability vocabulary tokens to keep for top-k-filtering. In other words: how many likely words the model will consider.")
     top_p = st.number_input("top_p:", min_value=0.0, value=1.0, format='%f', help="A decimal number, not merely an integer. If set to < 1, only the smallest set of most probable tokens with probabilities that add up to top_p or higher are kept for generation. In other words: if you reduce this number below 1, the model will consider fewer possibilities.")
     repetition_penalty = st.number_input("repetition_penalty:", min_value=1.0, value=1.5, format='%f', help="A decimal number, not merely an integer. The parameter for repetition penalty. 1.0 means no penalty. In other words: if you increase this parameter, the model will be less likely to repeat itself.")
     no_repeat_ngram_size = st.number_input("no_repeat_ngram_size:", min_value=0, value=4, format='%d', step=1, help="If set to > 0, all ngrams (essentially, continuous sequences of words or word-parts) of that size can only occur once. In other words: if you set this parameter to a number greater than 0, any string of words can only occur in the output at most that many times.")
@@ -104,7 +109,7 @@ tone = st.multiselect("Tone", tone_indictators_sorted)
 topics = st.multiselect("Topics", ["Bio", "GOP", "Control", "Dems", "Crime", "Military", "GovOverreach", "Religion"])
 additional_topics = [x for x in st.text_input("Additional Topics (Example: Biden, Survey, Deadline)").split(",") if x.strip()] # The list comprehension is to filter out empty strings on split, because otherwise this fails to make a truly empty list in the default case, instead having a list with an empty string in, because split changes its behavior when you give it arguments. Anyway, this also filters out trailing comma edge-cases and such.
 generate_button = st.button("Submit")
-if st.button("Reset all fields"): del st.session_state['ask_type'] #set_preset(None); st.rerun() #COULD: implement later, along with presets. The user currently just has to f5
+if st.button("Reset all fields"): st.rerun() #COULD: implement later, along with presets. The user currently just has to f5
 
 #TODOS: breaking news checkbox
 #     Add reset button to page to clear all parameters, reset to defaults #this is how: https://discuss.streamlit.io/t/change-the-state-of-an-item-from-code/1429/4 also https://docs.streamlit.io/library/api-reference/layout/st.container but I'm not sure that has a empty() method on it you can call... I guess vs code autocomplete would know.
