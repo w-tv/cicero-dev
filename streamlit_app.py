@@ -11,7 +11,7 @@ import os
 
 #Make default state, and other presets, so we can manage presets and resets.
 st.session_state.presets = {
-  default: {
+  "default": {
     {"top_k": 50},
   },
 }
