@@ -9,7 +9,7 @@ import requests
 import json
 import os
 from streamlit.elements.utils import _shown_default_value_warning
-_shown_default_value_warning = True #ahaha! see https://discuss.streamlit.io/t/why-do-default-values-cause-a-session-state-warning/15485/8 for why we do this. We could restructure the entire program, but this trick is easier.
+_shown_default_value_warning = True #ahaha! see https://discuss.streamlit.io/t/why-do-default-values-cause-a-session-state-warning/15485/8 for why we do this. We could restructure the entire program, but this trick is easier. #Actually, this trick doesn't work, and you either have to set a config variable global.disableWidgetStateDuplicationWarning a la https://discuss.streamlit.io/t/why-do-default-values-cause-a-session-state-warning/15485/34 or just, indeed, completely refactor the code.
 
 bios : dict[str, str] = dict(pd.read_csv("Candidate_Bios.csv", index_col="ID").to_dict('split')['data'])
 model_uri = st.secrets['model_uri']
