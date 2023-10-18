@@ -18,16 +18,15 @@ with st.sidebar:
   target_charcount_max = st.number_input("Target number of characters, maximum:", min_value=40, value=80, format='%d', step=1)
   with st.expander("Advanced options (not yet hooked up)"):
     #TODO: not hooked up yet
-    #TODO: tooltips
-    num_beams = st.number_input("num_beams:", min_value=1, value=1, format='%d', step=1, help="Number of beams for beam search. 1 means no beam search.")
-    top_k = st.number_input("top_k:", min_value=1, value=50, format='%d', step=1)
-    top_p = st.number_input("top_p:", min_value=0.0, value=1.0, format='%f')
-    repetition_penalty = st.number_input("repetition_penalty:", min_value=1.0, value=1.5, format='%f')
-    no_repeat_ngram_size = st.number_input("no_repeat_ngram_size:", min_value=0, value=4, format='%d', step=1)
-    num_return_sequences = st.number_input("num_return_sequences:", min_value=1, value=4, format='%d', step=1)
-    early_stopping = st.checkbox("early_stopping", value=True)
-    do_sample = st.checkbox("do_sample", value=True)
-    output_scores = st.checkbox("output_scores", value=False)
+    num_beams = st.number_input("num_beams:", min_value=1, value=1, format='%d', step=1, help="Number of beams for beam search. 1 means no beam search. Beam search is a particular strategy for generating text that the model can elect to use or not use. It can use more or fewer beams in the beam search, as well. More beams basically means it considers more candidate possibilities.")
+    top_k = st.number_input("top_k:", min_value=1, value=50, format='%d', step=1, help="The number of highest probability vocabulary tokens to keep for top-k-filtering. In other words: how many likely words the model will consider.")
+    top_p = st.number_input("top_p:", min_value=0.0, value=1.0, format='%f', help="A decimal number, not merely an integer. If set to < 1, only the smallest set of most probable tokens with probabilities that add up to top_p or higher are kept for generation. In other words: if you reduce this number below 1, the model will consider fewer possibilities.")
+    repetition_penalty = st.number_input("repetition_penalty:", min_value=1.0, value=1.5, format='%f', help="A decimal number, not merely an integer. The parameter for repetition penalty. 1.0 means no penalty. In other words: if you increase this parameter, the model will be less likely to repeat itself.")
+    no_repeat_ngram_size = st.number_input("no_repeat_ngram_size:", min_value=0, value=4, format='%d', step=1, help="If set to > 0, all ngrams (essentially, continuous sequences of words or word-parts) of that size can only occur once. In other words: if you set this parameter to a number greater than 0, any string of words can only occur in the output at most that many times.")
+    num_return_sequences = st.number_input("num_return_sequences:", min_value=1, value=4, format='%d', step=1, help="The number of independently computed returned sequences for each element in the batch. In other words: how many responses you want the model to generate.")
+    early_stopping = st.checkbox("early_stopping", value=True, help="Controls the stopping condition for beam-based methods, like beam-search. It accepts the following values: True, where the generation stops as soon as there are num_beams complete candidates; False, where an heuristic is applied and the generation stops when is it very unlikely to find better candidates; \"never\", where the beam search procedure only stops when there cannot be better candidates (canonical beam search algorithm). In other words: if the model is using beam search (see num_beams, above), then if this box is checked the model will spend less time trying to improve its beams after it generates them.")
+    do_sample = st.checkbox("do_sample", value=True, help="Whether or not to use sampling ; use greedy decoding otherwise. These are two different strategies the model can use to generate text. Greedy is probably much worse, and you should probably always keep this box checked.")
+    output_scores = st.checkbox("output_scores", value=False, help="Whether or not to return the prediction scores. See scores under returned tensors for more details. In other words: This will not only give you back responses, like normal, it will also tell you how likely the model thinks the response is. Usually useless, and there's probably no need to check this box.")
   st.header("History of replies (higher = more recent):")
 
 bespoke_title_element = '<h1><img src="https://targetedvictory.com/wp-content/uploads/2019/07/favicon.png" alt="💬" style="display:inline-block; height:1em; width:auto;"> CICERO</h1>'
