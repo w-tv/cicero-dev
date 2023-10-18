@@ -19,7 +19,7 @@ with st.sidebar:
   with st.expander("Advanced options (not yet hooked up)"):
     #TODO: not hooked up yet
     #TODO: tooltips
-    num_beams = st.number_input("num_beams:", min_value=1, value=1, format='%d', step=1)
+    num_beams = st.number_input("num_beams:", min_value=1, value=1, format='%d', step=1, help="Number of beams for beam search. 1 means no beam search.")
     top_k = st.number_input("top_k:", min_value=1, value=50, format='%d', step=1)
     top_p = st.number_input("top_p:", min_value=0.0, value=1.0, format='%f')
     repetition_penalty = st.number_input("repetition_penalty:", min_value=1.0, value=1.5, format='%f')
