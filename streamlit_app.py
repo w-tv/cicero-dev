@@ -25,6 +25,14 @@ presets = {
 }
 current_preset = presets["default"]
 
+#so, could either do it in the button, maybe, or have an explicit init callback function, which we can (once, using a guard boolean also stored in session_state) also call instead of using defaults.
+st.write(f"You are logged in as {st.experimental_user['email']} .")
+# TODO: make all the preset/reset stuff use `col1, col2 = st.columns(2)` to space it out "inline" (in html parlance). Possibly also put all of that stuff in an st.form because it will be doing form-like stuff, I imagine.
+if st.button("Reset"): #wait, does this just work? #no... I mean, the del doesn't reset it back to value. The assignment still works, though. It still gives the warning, too.
+  st.session_state["target_charcount_min"] = 160
+  del st.session_state["temperature"]
+  st.session_state["temperature"] = 0.7
+
 def create_tf_serving_json(data):
   return {'inputs': {name: data[name].tolist() for name in data.keys()} if isinstance(data, dict) else data.tolist()}
 
@@ -95,7 +103,7 @@ def draw_ui(preset: dict):
     with st.sidebar:
       st.header("Options for the model:")
       st.caption("These controls can be optionally adjusted to influence the way that the model generates text, such as the length and variety of text the model will attempt to make the text display.")
-      temperature : float = st.slider("Textual variety (‘temperature’):", min_value=0.0, max_value=1.0, value=0.7) #temperature: slider between 0 and 1, defaults to 0.7, float
+      temperature : float = st.slider("Textual variety (‘temperature’):", min_value=0.0, max_value=1.0, value=0.7, key="temperature") #temperature: slider between 0 and 1, defaults to 0.7, float
       #character count max, min: int, cannot be negative or 0, I guess it has to be above about 40. floor divide by 4 to get token count to pass to model:
       target_charcount_min = st.number_input("Target number of characters, minimum:", min_value=40, value=preset["target_charcount_min"], format='%d', step=1, key="target_charcount_min")
       target_charcount_max = st.number_input("Target number of characters, maximum:", min_value=40, value=80, format='%d', step=1)
@@ -127,9 +135,7 @@ def draw_ui(preset: dict):
       promptify_and_send(button_prompt)
 
 #TODOS: breaking news checkbox
-#     Add reset button to page to clear all parameters, reset to defaults #this is how: https://discuss.streamlit.io/t/change-the-state-of-an-item-from-code/1429/4 also https://docs.streamlit.io/library/api-reference/layout/st.container but I'm not sure that has a empty() method on it you can call... I guess vs code autocomplete would know.
-#    allow for creation of presets (does not need to last between sessions) (for now)
-#make main and sidebar forms instead?
+#make main and sidebar forms instead? might make juggling state easier https://docs.streamlit.io/library/advanced-features/forms
 st.session_state
 def myfun(): st.session_state["target_charcount_min"] = 160
 st.button("Reset all fields", on_click=myfun)
