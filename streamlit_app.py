@@ -82,33 +82,6 @@ def send(model_uri, databricks_token, data) -> list[str]:
       raise Exception(f"Request failed with status {response.status_code}, {response.text}")
   return response.json()["predictions"][0]["0"]
 
-def promptify_and_send(prompt, temperature, target_charcount_max, target_charcount_min):
-  st.caption(prompt)
-  prompt = "<|startoftext|> "+prompt+" <|body|>"
-  dict_prompt = {"prompt": [prompt],
-                  "temperature": [temperature],
-                  "max_new_tokens": [int(target_charcount_max) // 4],
-                  "min_new_tokens": [int(target_charcount_min) // 4],
-                  "num_beams": [1],
-                  "top_k": [100],
-                  "top_p": [0.9],
-                  "repetition_penalty": [1.5],
-                  "no_repeat_ngram_size": [4],
-                  "num_return_sequences": [4],
-                  "early_stopping": [True],
-                  "do_sample": [True],
-                  "output_scores": [False]
-                }
-  df_prompt = pd.DataFrame(dict_prompt)
-  outputs = send(model_uri, databricks_api_token, df_prompt)
-  st.table(outputs)
-  with st.sidebar:
-    # History bookkeeping, which only really serves to get around the weird way state is tracked in this app (the history widget won't just automatically update as we assign to the history variable):
-    if 'history' not in st.session_state: st.session_state['history'] = []
-    st.session_state['history'] += outputs
-    st.dataframe( pd.DataFrame(reversed( st.session_state['history'] ),columns=(["outputs"])) ) # reversed for recent=higher #COULD: maybe should have advanced mode where they see all metadata associated with prompt. Also, this ui element can be styled in a special pandas way, I think, as described in the st documentation.
-  st.caption("Character counts: "+str([len(o) for o in outputs])+"\n\n*(These character counts should usually be accurate, but if your target platform uses a different character encoding than this one, it may consider the text to have a different number of characters.)*")
-
 tone_indictators_sorted = ["Urgency", "Agency", "Exclusivity"]
 
 def sortedUAE(unsorted_tones: list[str]) -> list[str]:
@@ -159,12 +132,37 @@ generate_button = st.button("Submit")
 
 if generate_button:
   if account:
-    button_prompt = ((bios[account]+"\n\n") if "Bio" in topics else "") +"Write a "+ask_type.lower()+" text for "+account+" about: "+list_to_bracketeds_string(topics+additional_topics or ["No_Hook"])+( "" if not tone else " emphasizing "+ list_to_bracketeds_string(sortedUAE(tone)) )
-    promptify_and_send(button_prompt, temperature, target_charcount_max, target_charcount_min)
-else:
-  st.write("No account name is selected, so I can't send the request.")
+    human_facing_prompt = ((bios[account]+"\n\n") if "Bio" in topics else "") +"Write a "+ask_type.lower()+" text for "+account+" about: "+list_to_bracketeds_string(topics+additional_topics or ["No_Hook"])+( "" if not tone else " emphasizing "+ list_to_bracketeds_string(sortedUAE(tone)) )
+    # The code block formerly known as "promptify_and_send():"
+    st.caption(human_facing_prompt)
+    prompt = "<|startoftext|> "+human_facing_prompt+" <|body|>"
+    dict_prompt = {"prompt": [prompt],
+                    "temperature": [temperature],
+                    "max_new_tokens": [int(target_charcount_max) // 4],
+                    "min_new_tokens": [int(target_charcount_min) // 4],
+                    "num_beams": [num_beams],
+                    "top_k": [top_k],
+                    "top_p": [top_p],
+                    "repetition_penalty": [repetition_penalty],
+                    "no_repeat_ngram_size": [no_repeat_ngram_size],
+                    "num_return_sequences": [num_return_sequences],
+                    "early_stopping": [early_stopping],
+                    "do_sample": [do_sample],
+                    "output_scores": [output_scores]
+                  }
+    df_prompt = pd.DataFrame(dict_prompt)
+    outputs = send(model_uri, databricks_api_token, df_prompt)
+    st.table(outputs)
+    with st.sidebar:
+      # History bookkeeping, which only really serves to get around the weird way state is tracked in this app (the history widget won't just automatically update as we assign to the history variable):
+      if 'history' not in st.session_state: st.session_state['history'] = []
+      st.session_state['history'] += outputs
+      st.dataframe( pd.DataFrame(reversed( st.session_state['history'] ),columns=(["outputs"])) ) # reversed for recent=higher #COULD: maybe should have advanced mode where they see all metadata associated with prompt. Also, this ui element can be styled in a special pandas way, I think, as described in the st documentation.
+    st.caption("Character counts: "+str([len(o) for o in outputs])+"\n\n*(These character counts should usually be accurate, but if your target platform uses a different character encoding than this one, it may consider the text to have a different number of characters.)*")
+  else:
+    st.write("No account name is selected, so I can't send the request.")
 
-#TODO: breaking news checkbox
+#TODO: breaking news checkbox/modal dialogue
 #COULD: make main and sidebar forms instead? might make juggling state easier https://docs.streamlit.io/library/advanced-features/forms
 
 # html('<!--<script>//you can include arbitrary html and javascript this way</script>-->')
