@@ -10,14 +10,21 @@ import json
 import os
 import feedparser
 
-bios : dict[str, str] = dict(pd.read_csv("Candidate_Bios.csv", index_col="ID").to_dict('split')['data'])
 model_uri = st.secrets['model_uri']
 databricks_api_token = st.secrets['databricks_api_token']
 
-#rss nonsense
-rss_dict = feedparser.parse("http://bothell.carpenter.org:21540")
-rss_df = pd.DataFrame( [ (e['title'], e['description'], e['content'][0]['value']) for e in rss_dict['entries'] ] )
+st.cache_data(ttl="1h")
+def load_bios() -> dict[str, str]:
+  bios : dict[str, str] = dict(pd.read_csv("Candidate_Bios.csv", index_col="ID").to_dict('split')['data'])
+  return bios
+bios : dict[str, str] = load_bios()
 
+st.cache_data(ttl="1h")
+def load_rss():
+  rss_dict = feedparser.parse("http://bothell.carpenter.org:21540")
+  rss_df = pd.DataFrame( [ (e['title'], e['description'], e['content'][0]['value']) for e in rss_dict['entries'] ] )
+  return rss_df
+rss_df : pd.DataFrame = load_rss()
 #Make default state, and other presets, so we can manage presets and resets.
 # Ah, finally, I've figured out how you're actually supposed to do it: https://docs.streamlit.io/library/advanced-features/button-behavior-and-examples#option-1-use-a-key-for-the-button-and-put-the-logic-before-the-widget
 #IMPORTANT: these field names are the same field names as what we eventually submit. HOWEVER, these are just the default values, and are only used for that, and are stored in this particular data structure, and do not overwrite the other variables of the same names that represent the returned values.
@@ -54,13 +61,14 @@ if not st.session_state.get("initted"):
 
 st.write(f"You are logged in as {st.experimental_user['email']} .")
 # TODO: make all the preset/reset stuff use `col1, col2 = st.columns(2)` to space it out "inline" (in html parlance). Possibly also put all of that stuff in an st.form because it will be doing form-like stuff, I imagine.
-if st.button("Reset", help="Resets the UI elements to their default values. You can also just press F5 to refresh the page"):
+if st.button("Reset", help="Resets the UI elements to their default values. This button will also trigger cached data like the Candidate Bios and the news RSS feed to refresh. You can also just press F5 to refresh the page."):
+  st.cache_data.clear()
   set_ui_to_preset("default")
 
 def create_tf_serving_json(data):
   return {'inputs': {name: data[name].tolist() for name in data.keys()} if isinstance(data, dict) else data.tolist()}
 
-def send(model_uri, databricks_token, data):
+def send(model_uri, databricks_token, data) -> list[str]:
   headers = {
     "Authorization": f"Bearer {databricks_token}",
     "Content-Type": "application/json",
@@ -72,7 +80,7 @@ def send(model_uri, databricks_token, data):
     return send(model_uri, databricks_token, data) #we recursively call this until the machine wakes up.
   elif response.status_code != 200:
       raise Exception(f"Request failed with status {response.status_code}, {response.text}")
-  return response.json()
+  return response.json()["predictions"][0]["0"]
 
 def promptify_and_send(prompt, temperature, target_charcount_max, target_charcount_min):
   st.caption(prompt)
@@ -92,15 +100,14 @@ def promptify_and_send(prompt, temperature, target_charcount_max, target_charcou
                   "output_scores": [False]
                 }
   df_prompt = pd.DataFrame(dict_prompt)
-  output = str(send(model_uri, databricks_api_token, df_prompt))
-  pure_output = output[16:-1]
-  st.write(pure_output)
+  outputs = send(model_uri, databricks_api_token, df_prompt)
+  st.table(outputs)
   with st.sidebar:
     # History bookkeeping, which only really serves to get around the weird way state is tracked in this app (the history widget won't just automatically update as we assign to the history variable):
     if 'history' not in st.session_state: st.session_state['history'] = []
-    st.session_state['history'].append(pure_output)
+    st.session_state['history'] += outputs
     st.dataframe( pd.DataFrame(reversed( st.session_state['history'] ),columns=(["outputs"])) ) # reversed for recent=higher #COULD: maybe should have advanced mode where they see all metadata associated with prompt. Also, this ui element can be styled in a special pandas way, I think, as described in the st documentation.
-  st.caption("Character count: "+str(len(pure_output))+"\n\n*(This character count should usually be accurate, but if your target platform uses a different character encoding than this one, it may consider the text to have a different number of characters.)*")
+  st.caption("Character counts: "+str([len(o) for o in outputs])+"\n\n*(These character counts should usually be accurate, but if your target platform uses a different character encoding than this one, it may consider the text to have a different number of characters.)*")
 
 tone_indictators_sorted = ["Urgency", "Agency", "Exclusivity"]
 
