@@ -39,7 +39,8 @@ def load_rss():
   except Exception as e:
     rss_df = pd.DataFrame(str(e))
   return rss_df
-rss_df : pd.DataFrame = load_rss()
+if use_experimental_features:
+  rss_df : pd.DataFrame = load_rss()
 #Make default state, and other presets, so we can manage presets and resets.
 # Ah, finally, I've figured out how you're actually supposed to do it: https://docs.streamlit.io/library/advanced-features/button-behavior-and-examples#option-1-use-a-key-for-the-button-and-put-the-logic-before-the-widget
 #IMPORTANT: these field names are the same field names as what we eventually submit. HOWEVER, these are just the default values, and are only used for that, and are stored in this particular data structure, and do not overwrite the other variables of the same names that represent the returned values.
@@ -178,10 +179,11 @@ if generate_button:
   else:
     st.write("No account name is selected, so I can't send the request.")
 
-with st.sidebar: #The history display includes a result of the logic of the script, that has to be updated in the middle of the script where the button press is (when the button is in fact pressed), so the code to display it has to be after all the logic of the script or else it will lag behind the actual state of the history by one time step.
-  st.header("History of replies (higher = more recent):")
-  if 'history' not in st.session_state: st.session_state['history'] = []
-  st.dataframe( pd.DataFrame(reversed( st.session_state['history'] ),columns=(["Outputs"])), hide_index=True)
+if use_experimental_features:
+  with st.sidebar: #The history display includes a result of the logic of the script, that has to be updated in the middle of the script where the button press is (when the button is in fact pressed), so the code to display it has to be after all the logic of the script or else it will lag behind the actual state of the history by one time step.
+    st.header("History of replies (higher = more recent):")
+    if 'history' not in st.session_state: st.session_state['history'] = []
+    st.dataframe( pd.DataFrame(reversed( st.session_state['history'] ),columns=(["Outputs"])), hide_index=True)
 
 #TODO: breaking news checkbox/modal dialogue
 #COULD: make main and sidebar forms instead? might make juggling state easier https://docs.streamlit.io/library/advanced-features/forms
