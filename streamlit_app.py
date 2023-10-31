@@ -15,7 +15,7 @@ from datetime import datetime
 use_experimental_features = False
 
 def write_to_activity_log_table(datetime: str, useremail: str, promptsent: str, responsegiven: str ):
-  with sql.connect(server_hostname=os.getenv("DATABRICKS_SERVER_HOSTNAME"), http_path=os.getenv("DATABRICKS_HTTP_PATH"), access_token=os.getenv("DATABRICKS_TOKEN")) as connection: #These should be in the root level of the .streamlit/secrets.toml
+  with sql.connect(server_hostname=os.getenv("DATABRICKS_SERVER_HOSTNAME"), http_path=os.getenv("DATABRICKS_HTTP_PATH"), access_token=os.getenv("databricks_api_token")) as connection: #These should be in the root level of the .streamlit/secrets.toml
     with connection.cursor() as cursor:
       cursor.execute("CREATE TABLE IF NOT EXISTS activity_log ( datetime string, useremail string, promptsent string, responsegiven string )")
       return cursor.execute(f"INSERT INTO activity_log VALUES ('{datetime}', '{useremail}', '{promptsent}', '{responsegiven}')") #TODO: vlunerable to sql injection attacks and databricks doesn't give you an api to avoid that. I'm doing this way rn just as test code.
