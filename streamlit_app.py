@@ -12,6 +12,8 @@ import feedparser
 from databricks import sql #spooky that this is not the same name as the pypi package databricks-sql-connector, but is the way to refer to the same thing
 from datetime import datetime
 
+use_experimental_features = False
+
 def write_to_activity_log_table(datetime: str, useremail: str, promptsent: str, responsegiven: str ):
   with sql.connect(server_hostname=os.getenv("DATABRICKS_SERVER_HOSTNAME"), http_path=os.getenv("DATABRICKS_HTTP_PATH"), access_token=os.getenv("DATABRICKS_TOKEN")) as connection: #These should be in the root level of the .streamlit/secrets.toml
     with connection.cursor() as cursor:
@@ -132,8 +134,9 @@ with st.sidebar:
     early_stopping = st.checkbox("early_stopping", key="early_stopping" , help="Controls the stopping condition for beam-based methods, like beam-search. It accepts the following values: True, where the generation stops as soon as there are num_beams complete candidates; False, where an heuristic is applied and the generation stops when is it very unlikely to find better candidates; \"never\", where the beam search procedure only stops when there cannot be better candidates (canonical beam search algorithm). In other words: if the model is using beam search (see num_beams, above), then if this box is checked the model will spend less time trying to improve its beams after it generates them. If num_beams = 1, this checkbox does nothing either way. There is no way to select \"never\" using this checkbox, as that setting is just a waste of time.")
     do_sample = st.checkbox("do_sample", key="do_sample" , help="Whether or not to use sampling ; use greedy decoding otherwise. These are two different strategies the model can use to generate text. Greedy is probably much worse, and you should probably always keep this box checked.")
     output_scores = st.checkbox("output_scores", key="output_scores" , help="Whether or not to return the prediction scores. See scores under returned tensors for more details. In other words: This will not only give you back responses, like normal, it will also tell you how likely the model thinks the response is. Usually useless, and there's probably no need to check this box.")
-  st.dataframe(rss_df.head())
-  st.header("History of replies (higher = more recent):")
+  if use_experimental_features:
+    st.dataframe(rss_df.head())
+    st.header("History of replies (higher = more recent):")
 
 bespoke_title_element = '<h1><img src="https://targetedvictory.com/wp-content/uploads/2019/07/favicon.png" alt="💬" style="display:inline-block; height:1em; width:auto;"> CICERO</h1>'
 st.markdown(bespoke_title_element, unsafe_allow_html=True)
@@ -172,9 +175,9 @@ if generate_button:
       # History bookkeeping, which only really serves to get around the weird way state is tracked in this app (the history widget won't just automatically update as we assign to the history variable):
       if 'history' not in st.session_state: st.session_state['history'] = []
       st.session_state['history'] += outputs
-      st.dataframe( pd.DataFrame(reversed( st.session_state['history'] ),columns=(["outputs"])) ) # reversed for recent=higher #COULD: maybe should have advanced mode where they see all metadata associated with prompt. Also, this ui element can be styled in a special pandas way, I think, as described in the st documentation.
+      if use_experimental_features: st.dataframe( pd.DataFrame(reversed( st.session_state['history'] ),columns=(["outputs"])) ) # reversed for recent=higher #COULD: maybe should have advanced mode where they see all metadata associated with prompt. Also, this ui element can be styled in a special pandas way, I think, as described in the st documentation.
     st.caption("Character counts: "+str([len(o) for o in outputs])+"\n\n*(These character counts should usually be accurate, but if your target platform uses a different character encoding than this one, it may consider the text to have a different number of characters.)*")
-    write_to_activity_log_table(datetime=str(datetime.now()), useremail=st.experimental_user['email'], promptsent=json.dumps(prompt), responsegiven=json.dumps(outputs))
+    if use_experimental_features: write_to_activity_log_table(datetime=str(datetime.now()), useremail=st.experimental_user['email'], promptsent=json.dumps(prompt), responsegiven=json.dumps(outputs))
   else:
     st.write("No account name is selected, so I can't send the request.")
 
