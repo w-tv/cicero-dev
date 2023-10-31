@@ -4,3 +4,4 @@ streamlit
 transformers
 torch
 feedparser
+databricks-sql-connector

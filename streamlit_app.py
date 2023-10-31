@@ -9,6 +9,16 @@ import requests
 import json
 import os
 import feedparser
+from databricks import sql #spooky that this is not the same name as the pypi package databricks-sql-connector, but is the way to refer to the same thing
+from datetime import datetime
+
+def write_to_activity_log_table(datetime: str, useremail: str, promptsent: str, responsegiven: str ):
+  with sql.connect(server_hostname=os.getenv("DATABRICKS_SERVER_HOSTNAME"), http_path=os.getenv("DATABRICKS_HTTP_PATH"), access_token=os.getenv("DATABRICKS_TOKEN")) as connection: #These should be in the root level of the .streamlit/secrets.toml
+    with connection.cursor() as cursor:
+      cursor.execute("CREATE TABLE IF NOT EXISTS activity_log ( datetime string, useremail string, promptsent string, responsegiven string )")
+      return cursor.execute(f"INSERT INTO activity_log VALUES ('{datetime}', '{useremail}', '{promptsent}', '{responsegiven}')") #TODO: vlunerable to sql injection attacks and databricks doesn't give you an api to avoid that. I'm doing this way rn just as test code.
+      #  because this is just an fstring this would leave us open to sql injection attacks lmao
+      # Databricks be like "yeah we have a api for the database... format a string and pass it in, dude!"
 
 model_uri = st.secrets['model_uri']
 databricks_api_token = st.secrets['databricks_api_token']
@@ -21,8 +31,11 @@ bios : dict[str, str] = load_bios()
 
 st.cache_data(ttl="1h")
 def load_rss():
-  rss_dict = feedparser.parse("http://bothell.carpenter.org:21540")
-  rss_df = pd.DataFrame( [ (e['title'], e['description'], e['content'][0]['value']) for e in rss_dict['entries'] ] )
+  try:
+    rss_dict = feedparser.parse("http://bothell.carpenter.org:21540")
+    rss_df = pd.DataFrame( [ (e['title'], e['description'], e['content'][0]['value']) for e in rss_dict['entries'] ] )
+  except Exception as e:
+    rss_df = pd.DataFrame(str(e))
   return rss_df
 rss_df : pd.DataFrame = load_rss()
 #Make default state, and other presets, so we can manage presets and resets.
@@ -78,8 +91,10 @@ def send(model_uri, databricks_token, data) -> list[str]:
   response = requests.request(method='POST', headers=headers, url=model_uri, data=data_json)
   if response.status_code == 504:
     return send(model_uri, databricks_token, data) #we recursively call this until the machine wakes up.
+  elif response.status_code == 404 and response.json()["error_code"] == "RESOURCE_DOES_NOT_EXIST":
+    return ["Encountered 404 error \"RESOURCE_DOES_NOT_EXIST\" when trying to query the model. This usually means the model endpoint has been moved. Please contact the team in charge of model serving to rectify the situation."]
   elif response.status_code != 200:
-      raise Exception(f"Request failed with status {response.status_code}, {response.text}")
+    return [f"Request failed with status {response.status_code}, {response.text}"]
   return response.json()["predictions"][0]["0"]
 
 tone_indictators_sorted = ["Urgency", "Agency", "Exclusivity"]
@@ -159,6 +174,7 @@ if generate_button:
       st.session_state['history'] += outputs
       st.dataframe( pd.DataFrame(reversed( st.session_state['history'] ),columns=(["outputs"])) ) # reversed for recent=higher #COULD: maybe should have advanced mode where they see all metadata associated with prompt. Also, this ui element can be styled in a special pandas way, I think, as described in the st documentation.
     st.caption("Character counts: "+str([len(o) for o in outputs])+"\n\n*(These character counts should usually be accurate, but if your target platform uses a different character encoding than this one, it may consider the text to have a different number of characters.)*")
+    write_to_activity_log_table(datetime=str(datetime.now()), useremail=st.experimental_user['email'], promptsent=json.dumps(prompt), responsegiven=json.dumps(outputs))
   else:
     st.write("No account name is selected, so I can't send the request.")
 
