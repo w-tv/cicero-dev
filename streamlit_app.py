@@ -25,13 +25,18 @@ def write_to_activity_log_table(datetime: str, useremail: str, promptsent: str, 
 model_uri = st.secrets['model_uri']
 databricks_api_token = st.secrets['databricks_api_token']
 
-st.cache_data(ttl="1h")
+@st.cache_data(ttl="1h")
 def load_bios() -> dict[str, str]:
   bios : dict[str, str] = dict(pd.read_csv("Candidate_Bios.csv", index_col="ID").to_dict('split')['data'])
   return bios
 bios : dict[str, str] = load_bios()
 
-st.cache_data(ttl="1h")
+@st.cache_data(ttl="1h")
+def load_account_names() -> list[str]:
+  return pd.read_csv("Client_List.csv")['ACCOUNT_NAME']
+account_names = load_account_names()
+
+@st.cache_data(ttl="1h")
 def load_rss():
   try:
     rss_dict = feedparser.parse("http://bothell.carpenter.org:21540")
@@ -140,7 +145,7 @@ with st.sidebar:
 bespoke_title_element = '<h1><img src="https://targetedvictory.com/wp-content/uploads/2019/07/favicon.png" alt="💬" style="display:inline-block; height:1em; width:auto;"> CICERO</h1>'
 st.markdown(bespoke_title_element, unsafe_allow_html=True)
 
-account = st.selectbox("Account", list(bios), key="account" ) #in case you're confused: list of a dict creates a list of the keys of the dict
+account = st.selectbox("Account", [""]+list(account_names), key="account" ) #For some reason, in the current version of streamlit, st.selectbox ends up returning the first value if the index has value is set to None via the key in the session_state, which is a bug, but anyway we work around it using this ridiculous workaround. This does leave a first blank option in there. But whatever.
 ask_type = st.selectbox("Ask Type", ["Fundraising Hard Ask", "Fundraising Medium Ask", "Fundraising Soft Ask", "List Building"], key="ask_type")
 tone = st.multiselect("Tone", tone_indictators_sorted, key="tone")
 topics = st.multiselect("Topics", ["Bio", "GOP", "Control", "Dems", "Crime", "Military", "GovOverreach", "Religion"], key="topics" )
@@ -149,7 +154,13 @@ generate_button = st.button("Submit")
 
 if generate_button:
   if account:
-    human_facing_prompt = ((bios[account]+"\n\n") if "Bio" in topics else "") +"Write a "+ask_type.lower()+" text for "+account+" about: "+list_to_bracketeds_string(topics+additional_topics or ["No_Hook"])+( "" if not tone else " emphasizing "+ list_to_bracketeds_string(sortedUAE(tone)) )
+    human_facing_prompt = (
+      ((bios[account]+"\n\n") if "Bio" in topics and account in bios else "") +
+      "Write a "+ask_type.lower()+
+      " text for "+account+
+      " about: "+list_to_bracketeds_string(topics+additional_topics or ["No_Hook"])+
+      ( "" if not tone else " emphasizing "+ list_to_bracketeds_string(sortedUAE(tone)) )
+    )
     # The code block formerly known as "promptify_and_send():"
     st.caption(human_facing_prompt)
     prompt = "<|startoftext|> "+human_facing_prompt+" <|body|>"
