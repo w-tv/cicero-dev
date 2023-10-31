@@ -135,7 +135,6 @@ with st.sidebar:
     output_scores = st.checkbox("output_scores", key="output_scores" , help="Whether or not to return the prediction scores. See scores under returned tensors for more details. In other words: This will not only give you back responses, like normal, it will also tell you how likely the model thinks the response is. Usually useless, and there's probably no need to check this box.")
   if use_experimental_features:
     st.dataframe(rss_df.head())
-    st.header("History of replies (higher = more recent):")
 
 bespoke_title_element = '<h1><img src="https://targetedvictory.com/wp-content/uploads/2019/07/favicon.png" alt="💬" style="display:inline-block; height:1em; width:auto;"> CICERO</h1>'
 st.markdown(bespoke_title_element, unsafe_allow_html=True)
@@ -172,15 +171,17 @@ if generate_button:
     outputs_df = pd.DataFrame(outputs, columns=["Model outputs"])
     outputs_df.style.hide(axis='columns') #This doesn't seem to work, for some reason. Well, whatever.
     st.dataframe(outputs_df.style.hide(axis='columns'), hide_index=True, use_container_width=True)
-    with st.sidebar:
-      # History bookkeeping, which only really serves to get around the weird way state is tracked in this app (the history widget won't just automatically update as we assign to the history variable):
-      if 'history' not in st.session_state: st.session_state['history'] = []
-      st.session_state['history'] += outputs
-      if use_experimental_features: st.dataframe( pd.DataFrame(reversed( st.session_state['history'] ),columns=(["outputs"])) ) # reversed for recent=higher #COULD: maybe should have advanced mode where they see all metadata associated with prompt. Also, this ui element can be styled in a special pandas way, I think, as described in the st documentation.
+    if 'history' not in st.session_state: st.session_state['history'] = []
+    st.session_state['history'] += outputs
     st.caption("Character count(s): "+str([len(o) for o in outputs])+"\n\n*(These character counts should usually be accurate, but if your target platform uses a different character encoding than this one, it may consider the text to have a different number of characters.)*")
-    if use_experimental_features: write_to_activity_log_table(datetime=str(datetime.now()), useremail=st.experimental_user['email'], promptsent=json.dumps(prompt), responsegiven=json.dumps(outputs))
+    #"This actually generates an SQL syntax error so it's extra disabled now." if use_experimental_features: write_to_activity_log_table(datetime=str(datetime.now()), useremail=st.experimental_user['email'], promptsent=json.dumps(prompt), responsegiven=json.dumps(outputs))
   else:
     st.write("No account name is selected, so I can't send the request.")
+
+with st.sidebar: #The history display includes a result of the logic of the script, that has to be updated in the middle of the script where the button press is (when the button is in fact pressed), so the code to display it has to be after all the logic of the script or else it will lag behind the actual state of the history by one time step.
+  st.header("History of replies (higher = more recent):")
+  if 'history' not in st.session_state: st.session_state['history'] = []
+  st.dataframe( pd.DataFrame(reversed( st.session_state['history'] ),columns=(["Outputs"])), hide_index=True)
 
 #TODO: breaking news checkbox/modal dialogue
 #COULD: make main and sidebar forms instead? might make juggling state easier https://docs.streamlit.io/library/advanced-features/forms
