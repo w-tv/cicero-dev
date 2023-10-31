@@ -55,7 +55,7 @@ presets = {
     "target_charcount_min": 80,
     "target_charcount_max": 160,
     "num_beams" : 1,
-    "top_k": 50,
+    "top_k" : 50,
     "top_p" : 1.0,
     "repetition_penalty" : 1.2,
     "no_repeat_ngram_size" : 4,
@@ -123,14 +123,24 @@ def list_to_bracketeds_string(l: list[str]) -> str:
     s += ("["+i.strip().replace(" ", "_")+"]")
   return s
 
+# setting default values for advanced parameters for our non-developer end-user 
+num_beams=1
+top_k=50
+top_p=1.0
+repetition_penalty=1.2
+no_repeat_ngram_size=4
+num_return_sequences=5
+early_stopping=False
+do_sample=True
+output_scores=False
+
 with st.sidebar:
   st.header("Settings")
   temperature : float = st.slider("Output Variability:", min_value=0.0, max_value=1.0, key="temperature") #temperature: slider between 0 and 1, defaults to 0.7, float
   #character count max, min: int, cannot be negative or 0, starts at 40. floor divide by 4 to get token count to pass to model:
   target_charcount_min = st.number_input("Min Target Characters:", min_value=40, format='%d', step=1, key="target_charcount_min")
   target_charcount_max = st.number_input("Max Target Characters:", min_value=40, format='%d', step=1, key="target_charcount_max")
-  dev_mode = st.checkbox('Developer Mode')
-  if st.experimental_user['email'] == "achang@targetedvictory.com" and dev_mode:
+  if st.experimental_user['email'] == "achang@targetedvictory.com":
     with st.expander("Advanced Parameters"):
       num_beams = st.number_input("num_beams:", min_value=1, format='%d', step=1, key="num_beams", help="Number of beams for beam search. 1 means no beam search. Beam search is a particular strategy for generating text that the model can elect to use or not use. It can use more or fewer beams in the beam search, as well. More beams basically means it considers more candidate possibilities.")
       top_k = st.number_input("top_k:", min_value=1, format='%d', step=1, key="top_k" , help="The number of highest probability vocabulary tokens to keep for top-k-filtering. In other words: how many likely words the model will consider.")
