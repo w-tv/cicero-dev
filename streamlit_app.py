@@ -53,7 +53,7 @@ presets = {
     "top_p" : 1.0,
     "repetition_penalty" : 1.5,
     "no_repeat_ngram_size" : 4,
-    "num_return_sequences" : 4,
+    "num_return_sequences" : 5,
     "early_stopping" : False,
     "do_sample" : True,
     "output_scores" : False,
@@ -118,13 +118,12 @@ def list_to_bracketeds_string(l: list[str]) -> str:
   return s
 
 with st.sidebar:
-  st.header("Options for the model:")
-  st.caption("These controls can be optionally adjusted to influence the way that the model generates text, such as the length and variety of text the model will attempt to make the text display.")
-  temperature : float = st.slider("Textual variety (‘temperature’):", min_value=0.0, max_value=1.0, key="temperature") #temperature: slider between 0 and 1, defaults to 0.7, float
+  st.header("Advanced Settings")
+  temperature : float = st.slider("Output Variability:", min_value=0.0, max_value=1.0, key="temperature") #temperature: slider between 0 and 1, defaults to 0.7, float
   #character count max, min: int, cannot be negative or 0, starts at 40. floor divide by 4 to get token count to pass to model:
-  target_charcount_min = st.number_input("Target number of characters, minimum:", min_value=40, format='%d', step=1, key="target_charcount_min")
-  target_charcount_max = st.number_input("Target number of characters, maximum:", min_value=40, format='%d', step=1, key="target_charcount_max")
-  with st.expander("Advanced options"):
+  target_charcount_min = st.number_input("Min Target Characters:", min_value=40, format='%d', step=1, key="target_charcount_min")
+  target_charcount_max = st.number_input("Max Target Characters:", min_value=40, format='%d', step=1, key="target_charcount_max")
+  with st.expander("Advanced Parameters"):
     num_beams = st.number_input("num_beams:", min_value=1, format='%d', step=1, key="num_beams", help="Number of beams for beam search. 1 means no beam search. Beam search is a particular strategy for generating text that the model can elect to use or not use. It can use more or fewer beams in the beam search, as well. More beams basically means it considers more candidate possibilities.")
     top_k = st.number_input("top_k:", min_value=1, format='%d', step=1, key="top_k" , help="The number of highest probability vocabulary tokens to keep for top-k-filtering. In other words: how many likely words the model will consider.")
     top_p = st.number_input("top_p:", min_value=0.0, format='%f', key="top_p" , help="A decimal number, not merely an integer. If set to < 1, only the smallest set of most probable tokens with probabilities that add up to top_p or higher are kept for generation. In other words: if you reduce this number below 1, the model will consider fewer possibilities.")
@@ -170,13 +169,15 @@ if generate_button:
                   }
     df_prompt = pd.DataFrame(dict_prompt)
     outputs = send(model_uri, databricks_api_token, df_prompt)
-    st.table(outputs)
+    outputs_df = pd.DataFrame(outputs, columns=["Model outputs"])
+    outputs_df.style.hide(axis='columns') #This doesn't seem to work, for some reason. Well, whatever.
+    st.dataframe(outputs_df.style.hide(axis='columns'), hide_index=True, use_container_width=True)
     with st.sidebar:
       # History bookkeeping, which only really serves to get around the weird way state is tracked in this app (the history widget won't just automatically update as we assign to the history variable):
       if 'history' not in st.session_state: st.session_state['history'] = []
       st.session_state['history'] += outputs
       if use_experimental_features: st.dataframe( pd.DataFrame(reversed( st.session_state['history'] ),columns=(["outputs"])) ) # reversed for recent=higher #COULD: maybe should have advanced mode where they see all metadata associated with prompt. Also, this ui element can be styled in a special pandas way, I think, as described in the st documentation.
-    st.caption("Character counts: "+str([len(o) for o in outputs])+"\n\n*(These character counts should usually be accurate, but if your target platform uses a different character encoding than this one, it may consider the text to have a different number of characters.)*")
+    st.caption("Character count(s): "+str([len(o) for o in outputs])+"\n\n*(These character counts should usually be accurate, but if your target platform uses a different character encoding than this one, it may consider the text to have a different number of characters.)*")
     if use_experimental_features: write_to_activity_log_table(datetime=str(datetime.now()), useremail=st.experimental_user['email'], promptsent=json.dumps(prompt), responsegiven=json.dumps(outputs))
   else:
     st.write("No account name is selected, so I can't send the request.")
