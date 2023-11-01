@@ -10,9 +10,23 @@ import json
 import os
 import feedparser
 from databricks import sql #spooky that this is not the same name as the pypi package databricks-sql-connector, but is the way to refer to the same thing
-from datetime import datetime
+from datetime import datetime, date
 
 use_experimental_features = False
+
+def count_from_activity_log_times_used_today() -> int: #this goes by whatever the datetime default timezone is because we don't expect the exact boundary to matter much.
+  with sql.connect(server_hostname=os.getenv("DATABRICKS_SERVER_HOSTNAME"), http_path=os.getenv("DATABRICKS_HTTP_PATH"), access_token=os.getenv("databricks_api_token")) as connection: #These secrets should be in the root level of the .streamlit/secrets.toml
+    with connection.cursor() as cursor:
+      return cursor.execute(
+        f"SELECT COUNT(*) FROM activity_log WHERE useremail = %(useremail)s AND datetime LIKE '{date.today()}%%'",
+        {'useremail': st.experimental_user['email']}
+      ).fetchone()[0]
+
+use_count = count_from_activity_log_times_used_today() # I thought this function would be slow, but so far it's actually fast enough to just run it every input cycle.
+use_count_limit = 100 #arbitrary but reasonable choice of limit
+if use_count >= use_count_limit:
+  st.write("You cannot use this service more than 100 times a day, and you have reached that limit. Please contact the team if this is in error or if you wish to expand the limit.")
+  exit() # When a user hits the limit it completely locks them out of the ui using an error message. This wasn't a requirement, but it seems fine.
 
 def write_to_activity_log_table(datetime: str, useremail: str, promptsent: str, responsegiven: str):
   with sql.connect(server_hostname=os.getenv("DATABRICKS_SERVER_HOSTNAME"), http_path=os.getenv("DATABRICKS_HTTP_PATH"), access_token=os.getenv("databricks_api_token")) as connection: #These should be in the root level of the .streamlit/secrets.toml
@@ -81,7 +95,7 @@ if not st.session_state.get("initted"):
   set_ui_to_preset("default")
   st.session_state["initted"] = True
 
-st.write(f"You are logged in as {st.experimental_user['email']} .")
+st.write(f"You are logged in as {st.experimental_user['email']} . You have queried {use_count} times today, out of a limit of {use_count_limit}.")
 # TODO: make all the preset/reset ui elements use `col1, col2 = st.columns(2)` to space it out "inline" (in html parlance). Possibly also put all of that stuff in an st.form because it will be doing form-like stuff, I imagine.
 if st.button("Reset", help="Resets the UI elements to their default values. This button will also trigger cached data like the Candidate Bios and the news RSS feed to refresh. You can also just press F5 to refresh the page."):
   st.cache_data.clear()
