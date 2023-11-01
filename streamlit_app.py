@@ -14,13 +14,14 @@ from datetime import datetime
 
 use_experimental_features = False
 
-def write_to_activity_log_table(datetime: str, useremail: str, promptsent: str, responsegiven: str ):
+def write_to_activity_log_table(datetime: str, useremail: str, promptsent: str, responsegiven: str):
   with sql.connect(server_hostname=os.getenv("DATABRICKS_SERVER_HOSTNAME"), http_path=os.getenv("DATABRICKS_HTTP_PATH"), access_token=os.getenv("databricks_api_token")) as connection: #These should be in the root level of the .streamlit/secrets.toml
     with connection.cursor() as cursor:
       cursor.execute("CREATE TABLE IF NOT EXISTS activity_log ( datetime string, useremail string, promptsent string, responsegiven string )")
-      return cursor.execute(f"INSERT INTO activity_log VALUES ('{datetime}', '{useremail}', '{promptsent}', '{responsegiven}')") #TODO: vlunerable to sql injection attacks and databricks doesn't give you an api to avoid that. I'm doing this way rn just as test code.
-      #  because this is just an fstring this would leave us open to sql injection attacks lmao
-      # Databricks be like "yeah we have a api for the database... format a string and pass it in, dude!"
+      return cursor.execute( #I'm not even sure what this returns but you're welcome to that, I guess.
+        "INSERT INTO activity_log VALUES (%(datetime)s, %(useremail)s, %(promptsent)s, %(responsegiven)s)",
+        {'datetime': datetime, 'useremail': useremail, 'promptsent': promptsent, 'responsegiven': responsegiven} #this probably could be a kwargs, but I couldn't figure out how to do that neatly the particular way I wanted so whatever, you just have to change this 'signature' three different places in this function if you want to change it.
+      )
 
 model_uri = st.secrets['model_uri']
 databricks_api_token = st.secrets['databricks_api_token']
@@ -81,7 +82,7 @@ if not st.session_state.get("initted"):
   st.session_state["initted"] = True
 
 st.write(f"You are logged in as {st.experimental_user['email']} .")
-# TODO: make all the preset/reset stuff use `col1, col2 = st.columns(2)` to space it out "inline" (in html parlance). Possibly also put all of that stuff in an st.form because it will be doing form-like stuff, I imagine.
+# TODO: make all the preset/reset ui elements use `col1, col2 = st.columns(2)` to space it out "inline" (in html parlance). Possibly also put all of that stuff in an st.form because it will be doing form-like stuff, I imagine.
 if st.button("Reset", help="Resets the UI elements to their default values. This button will also trigger cached data like the Candidate Bios and the news RSS feed to refresh. You can also just press F5 to refresh the page."):
   st.cache_data.clear()
   set_ui_to_preset("default")
@@ -164,16 +165,18 @@ additional_topics = [x for x in st.text_input("Additional Topics (Example: Biden
 tone = st.multiselect("Tone", tone_indictators_sorted, key="tone")
 generate_button = st.button("Submit")
 
+did_button = False
 if generate_button:
   if account:
-    st.session_state['human_facing_prompt'] = (
+    did_button = True
+    st.session_state['human-facing_prompt'] = (
       ((bios[account]+"\n\n") if "Bio" in topics and account in bios else "") +
       "Write a "+ask_type.lower()+
       " text for "+account+
       " about: "+list_to_bracketeds_string(topics+additional_topics or ["No_Hook"])+
       ( "" if not tone else " emphasizing "+ list_to_bracketeds_string(sortedUAE(tone)) )
     )
-    prompt = "<|startoftext|> "+st.session_state['human_facing_prompt']+" <|body|>"
+    prompt = "<|startoftext|> "+st.session_state['human-facing_prompt']+" <|body|>"
     dict_prompt = {"prompt": [prompt],
                     "temperature": [temperature],
                     "max_new_tokens": [int(target_charcount_max) // 4],
@@ -194,12 +197,12 @@ if generate_button:
     if 'history' not in st.session_state: st.session_state['history'] = []
     st.session_state['history'] += outputs
     st.session_state['character_counts_caption'] = "Character counts: "+str([len(o) for o in outputs])
-    #"This actually generates an SQL syntax error so it's extra disabled now." if use_experimental_features: write_to_activity_log_table(datetime=str(datetime.now()), useremail=st.experimental_user['email'], promptsent=json.dumps(prompt), responsegiven=json.dumps(outputs))
+
   else:
-    st.write("No account name is selected, so I can't send the request.")
+    st.write("**No account name is selected, so I can't send the request.**")
 
 # The idea is for these output elements to persist after one query button, until overwritten by the results of the next query.
-if 'human_facing_prompt' in st.session_state: st.caption(st.session_state['human_facing_prompt'])
+if 'human-facing_prompt' in st.session_state: st.caption(st.session_state['human-facing_prompt'])
 if 'outputs_df' in st.session_state: st.dataframe(st.session_state['outputs_df'], hide_index=True, use_container_width=True)
 if 'character_counts_caption' in st.session_state: st.caption(st.session_state['character_counts_caption'])
 
@@ -208,6 +211,10 @@ if use_experimental_features:
     st.header("History of replies (higher = more recent):")
     if 'history' not in st.session_state: st.session_state['history'] = []
     st.dataframe( pd.DataFrame(reversed( st.session_state['history'] ),columns=(["Outputs"])), hide_index=True)
+
+#activity logging takes a bit, so I've put it last to preserve immediate-feeling performance and responses for the user making a query
+if did_button:
+  write_to_activity_log_table(datetime=str(datetime.now()), useremail=st.experimental_user['email'], promptsent=prompt, responsegiven=json.dumps(outputs))
 
 #TODO: breaking news checkbox/modal dialogue
 #COULD: make main and sidebar forms instead? might make juggling state easier https://docs.streamlit.io/library/advanced-features/forms
