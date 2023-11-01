@@ -123,7 +123,7 @@ def list_to_bracketeds_string(l: list[str]) -> str:
     s += ("["+i.strip().replace(" ", "_")+"]")
   return s
 
-# setting default values for advanced parameters for our non-developer end-user 
+# setting default values for advanced parameters for our non-developer end-user
 num_beams=1
 top_k=50
 top_p=1.0
@@ -166,16 +166,14 @@ generate_button = st.button("Submit")
 
 if generate_button:
   if account:
-    human_facing_prompt = (
+    st.session_state['human_facing_prompt'] = (
       ((bios[account]+"\n\n") if "Bio" in topics and account in bios else "") +
       "Write a "+ask_type.lower()+
       " text for "+account+
       " about: "+list_to_bracketeds_string(topics+additional_topics or ["No_Hook"])+
       ( "" if not tone else " emphasizing "+ list_to_bracketeds_string(sortedUAE(tone)) )
     )
-    # The code block formerly known as "promptify_and_send():"
-    st.caption(human_facing_prompt)
-    prompt = "<|startoftext|> "+human_facing_prompt+" <|body|>"
+    prompt = "<|startoftext|> "+st.session_state['human_facing_prompt']+" <|body|>"
     dict_prompt = {"prompt": [prompt],
                     "temperature": [temperature],
                     "max_new_tokens": [int(target_charcount_max) // 4],
@@ -192,15 +190,18 @@ if generate_button:
                   }
     df_prompt = pd.DataFrame(dict_prompt)
     outputs = send(model_uri, databricks_api_token, df_prompt)
-    outputs_df = pd.DataFrame(outputs, columns=["Model outputs"])
-    outputs_df.style.hide(axis='columns') #This doesn't seem to work, for some reason. Well, whatever.
-    st.dataframe(outputs_df.style.hide(axis='columns'), hide_index=True, use_container_width=True)
+    st.session_state['outputs_df'] = pd.DataFrame(outputs, columns=["Model outputs (double click any output to expand it)"]) #Styling this doesn't seem to work, for some reason. Well, whatever.
     if 'history' not in st.session_state: st.session_state['history'] = []
     st.session_state['history'] += outputs
-    st.caption("Character counts: "+str([len(o) for o in outputs])+"\n\n") # These character counts should usually be accurate, but if your target platform uses a different character encoding than this one, it may consider the text to have a different number of characters
+    st.session_state['character_counts_caption'] = "Character counts: "+str([len(o) for o in outputs])
     #"This actually generates an SQL syntax error so it's extra disabled now." if use_experimental_features: write_to_activity_log_table(datetime=str(datetime.now()), useremail=st.experimental_user['email'], promptsent=json.dumps(prompt), responsegiven=json.dumps(outputs))
   else:
     st.write("No account name is selected, so I can't send the request.")
+
+# The idea is for these output elements to persist after one query button, until overwritten by the results of the next query.
+if 'human_facing_prompt' in st.session_state: st.caption(st.session_state['human_facing_prompt'])
+if 'outputs_df' in st.session_state: st.dataframe(st.session_state['outputs_df'], hide_index=True, use_container_width=True)
+if 'character_counts_caption' in st.session_state: st.caption(st.session_state['character_counts_caption'])
 
 if use_experimental_features:
   with st.sidebar: #The history display includes a result of the logic of the script, that has to be updated in the middle of the script where the button press is (when the button is in fact pressed), so the code to display it has to be after all the logic of the script or else it will lag behind the actual state of the history by one time step.
