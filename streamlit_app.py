@@ -95,8 +95,9 @@ if not st.session_state.get("initted"):
   set_ui_to_preset("default")
   st.session_state["initted"] = True
 
-st.write(f"You are logged in as {st.experimental_user['email']} . You have queried {use_count} times today, out of a limit of {use_count_limit}.")
-# TODO: make all the preset/reset ui elements use `col1, col2 = st.columns(2)` to space it out "inline" (in html parlance). Possibly also put all of that stuff in an st.form because it will be doing form-like stuff, I imagine.
+login_activity_counter_container = st.container()
+
+# COULD: make all the preset/reset ui elements use `col1, col2 = st.columns(2)` to space it out "inline" (in html parlance). Possibly also put all of that stuff in an st.form because it will be doing form-like stuff, I imagine.
 if st.button("Reset", help="Resets the UI elements to their default values. This button will also trigger cached data like the Candidate Bios and the news RSS feed to refresh. You can also just press F5 to refresh the page."):
   st.cache_data.clear()
   set_ui_to_preset("default")
@@ -179,10 +180,11 @@ additional_topics = [x for x in st.text_input("Additional Topics (Example: Biden
 tone = st.multiselect("Tone", tone_indictators_sorted, key="tone")
 generate_button = st.button("Submit")
 
-did_button = False
+did_a_query = False
 if generate_button:
   if account:
-    did_button = True
+    did_a_query = True
+    use_count+=1 #this is just an optimization for the front-end display of the query count
     st.session_state['human-facing_prompt'] = (
       ((bios[account]+"\n\n") if "Bio" in topics and account in bios else "") +
       "Write a "+ask_type.lower()+
@@ -225,11 +227,13 @@ with st.sidebar: #The history display includes a result of the logic of the scri
   if 'history' not in st.session_state: st.session_state['history'] = []
   st.dataframe( pd.DataFrame(reversed( st.session_state['history'] ),columns=(["Outputs"])), hide_index=True)
 
+login_activity_counter_container.write(f"You are logged in as {st.experimental_user['email']} . You have queried {use_count} {'time' if use_count == 1 else 'times'} today, out of a limit of {use_count_limit}.")
+
 #activity logging takes a bit, so I've put it last to preserve immediate-feeling performance and responses for the user making a query
-if did_button:
+if did_a_query:
   write_to_activity_log_table(datetime=str(datetime.now()), useremail=st.experimental_user['email'], promptsent=prompt, responsegiven=json.dumps(outputs))
 
 #TODO: breaking news checkbox/modal dialogue
-#COULD: make main and sidebar forms instead? might make juggling state easier https://docs.streamlit.io/library/advanced-features/forms
+#COULD: make main and sidebar forms instead? might make juggling state easier https://docs.streamlit.io/library/advanced-features/forms. And the ui more responsive.
 
 # html('<!--<script>//you can include arbitrary html and javascript this way</script>-->')
