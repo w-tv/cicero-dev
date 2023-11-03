@@ -213,18 +213,17 @@ if generate_button:
     st.session_state['character_counts_caption'] = "Character counts: "+str([len(o) for o in outputs])
 
   else:
-    st.write("**No account name is selected, so I can't send the request.**")
+    st.write("***No account name is selected, so I can't send the request!***")
 
 # The idea is for these output elements to persist after one query button, until overwritten by the results of the next query.
 if 'human-facing_prompt' in st.session_state: st.caption(st.session_state['human-facing_prompt'])
 if 'outputs_df' in st.session_state: st.dataframe(st.session_state['outputs_df'], hide_index=True, use_container_width=True)
 if 'character_counts_caption' in st.session_state: st.caption(st.session_state['character_counts_caption'])
 
-if use_experimental_features:
-  with st.sidebar: #The history display includes a result of the logic of the script, that has to be updated in the middle of the script where the button press is (when the button is in fact pressed), so the code to display it has to be after all the logic of the script or else it will lag behind the actual state of the history by one time step.
-    st.header("History of replies (higher = more recent):")
-    if 'history' not in st.session_state: st.session_state['history'] = []
-    st.dataframe( pd.DataFrame(reversed( st.session_state['history'] ),columns=(["Outputs"])), hide_index=True)
+with st.sidebar: #The history display includes a result of the logic of the script, that has to be updated in the middle of the script where the button press is (when the button is in fact pressed), so the code to display it has to be after all the logic of the script or else it will lag behind the actual state of the history by one time step.
+  st.header("History of replies (higher = more recent):")
+  if 'history' not in st.session_state: st.session_state['history'] = []
+  st.dataframe( pd.DataFrame(reversed( st.session_state['history'] ),columns=(["Outputs"])), hide_index=True)
 
 #activity logging takes a bit, so I've put it last to preserve immediate-feeling performance and responses for the user making a query
 if did_button:
