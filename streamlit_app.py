@@ -27,9 +27,9 @@ def count_from_activity_log_times_used_today() -> int: #this goes by whatever th
 def write_to_activity_log_table(datetime: str, useremail: str, promptsent: str, responsegiven: str):
   with sql.connect(server_hostname=os.getenv("DATABRICKS_SERVER_HOSTNAME"), http_path=os.getenv("DATABRICKS_HTTP_PATH"), access_token=os.getenv("databricks_api_token")) as connection: #These should be in the root level of the .streamlit/secrets.toml
     with connection.cursor() as cursor:
-      cursor.execute("CREATE TABLE IF NOT EXISTS activity_log ( datetime string, useremail string, promptsent string, responsegiven string )")
+      cursor.execute("CREATE TABLE IF NOT EXISTS main.default.activity_log ( datetime string, useremail string, promptsent string, responsegiven string )")
       return cursor.execute( #I'm not even sure what this returns but you're welcome to that, I guess.
-        "INSERT INTO activity_log VALUES (%(datetime)s, %(useremail)s, %(promptsent)s, %(responsegiven)s)",
+        "INSERT INTO main.default.activity_log VALUES (%(datetime)s, %(useremail)s, %(promptsent)s, %(responsegiven)s)",
         {'datetime': datetime, 'useremail': useremail, 'promptsent': promptsent, 'responsegiven': responsegiven} #this probably could be a kwargs, but I couldn't figure out how to do that neatly the particular way I wanted so whatever, you just have to change this 'signature' three different places in this function if you want to change it.
       )
 
