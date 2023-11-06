@@ -24,13 +24,13 @@ def count_from_activity_log_times_used_today() -> int: #this goes by whatever th
         {'useremail': st.experimental_user['email']}
       ).fetchone()[0]
 
-def write_to_activity_log_table(datetime: str, useremail: str, promptsent: str, responsegiven: str):
+def write_to_activity_log_table(datetime: str, useremail: str, promptsent: str, responsegiven: str, modelparams: str):
   with sql.connect(server_hostname=os.getenv("DATABRICKS_SERVER_HOSTNAME"), http_path=os.getenv("DATABRICKS_HTTP_PATH"), access_token=os.getenv("databricks_api_token")) as connection: #These should be in the root level of the .streamlit/secrets.toml
     with connection.cursor() as cursor:
       cursor.execute("CREATE TABLE IF NOT EXISTS main.default.activity_log ( datetime string, useremail string, promptsent string, responsegiven string )")
       return cursor.execute( #I'm not even sure what this returns but you're welcome to that, I guess.
-        "INSERT INTO main.default.activity_log VALUES (%(datetime)s, %(useremail)s, %(promptsent)s, %(responsegiven)s)",
-        {'datetime': datetime, 'useremail': useremail, 'promptsent': promptsent, 'responsegiven': responsegiven} #this probably could be a kwargs, but I couldn't figure out how to do that neatly the particular way I wanted so whatever, you just have to change this 'signature' three different places in this function if you want to change it.
+        "INSERT INTO main.default.activity_log VALUES (%(datetime)s, %(useremail)s, %(promptsent)s, %(responsegiven)s, %(modelparams)s)",
+        {'datetime': datetime, 'useremail': useremail, 'promptsent': promptsent, 'responsegiven': responsegiven, 'modelparams': modelparams} #this probably could be a kwargs, but I couldn't figure out how to do that neatly the particular way I wanted so whatever, you just have to change this 'signature' three different places in this function if you want to change it.
       )
 
 use_count = count_from_activity_log_times_used_today() # I thought this function would be slow, but so far it's actually fast enough to just run it every input cycle.
@@ -230,6 +230,7 @@ login_activity_counter_container.write(f"You are logged in as {st.experimental_u
 
 #activity logging takes a bit, so I've put it last to preserve immediate-feeling performance and responses for the user making a query
 if did_a_query:
-  write_to_activity_log_table(datetime=str(datetime.now()), useremail=st.experimental_user['email'], promptsent=prompt, responsegiven=json.dumps(outputs))
+  no_prompt_dict = str(dict_prompt.pop('prompt'))
+  write_to_activity_log_table(datetime=str(datetime.now()), useremail=st.experimental_user['email'], promptsent=prompt, responsegiven=json.dumps(outputs), modelparams=no_prompt_dict)
 
 # html('<!--<script>//you can include arbitrary html and javascript this way</script>-->')
