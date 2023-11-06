@@ -230,7 +230,8 @@ login_activity_counter_container.write(f"You are logged in as {st.experimental_u
 
 #activity logging takes a bit, so I've put it last to preserve immediate-feeling performance and responses for the user making a query
 if did_a_query:
-  no_prompt_dict = str(dict_prompt.pop('prompt'))
+  dict_prompt.pop('prompt')
+  no_prompt_dict = str(dict_prompt)
   write_to_activity_log_table(datetime=str(datetime.now()), useremail=st.experimental_user['email'], promptsent=prompt, responsegiven=json.dumps(outputs), modelparams=no_prompt_dict)
 
 # html('<!--<script>//you can include arbitrary html and javascript this way</script>-->')
