@@ -17,20 +17,23 @@ model_uri = st.secrets['model_uri']
 databricks_api_token = st.secrets['databricks_api_token']
 
 def count_from_activity_log_times_used_today() -> int: #this goes by whatever the datetime default timezone is because we don't expect the exact boundary to matter much.
-  with sql.connect(server_hostname=os.getenv("DATABRICKS_SERVER_HOSTNAME"), http_path=os.getenv("DATABRICKS_HTTP_PATH"), access_token=os.getenv("databricks_api_token")) as connection: #These secrets should be in the root level of the .streamlit/secrets.toml
-    with connection.cursor() as cursor:
-      return cursor.execute(
-        f"SELECT COUNT(*) FROM activity_log WHERE useremail = %(useremail)s AND datetime LIKE '{date.today()}%%'",
-        {'useremail': st.experimental_user['email']}
-      ).fetchone()[0]
+  try: # This can fail if the table doesn't exist (at least not yet, as we create it on insert if it doesn't exist), so it's nice to have a default
+    with sql.connect(server_hostname=os.getenv("DATABRICKS_SERVER_HOSTNAME"), http_path=os.getenv("DATABRICKS_HTTP_PATH"), access_token=os.getenv("databricks_api_token")) as connection: #These secrets should be in the root level of the .streamlit/secrets.toml
+      with connection.cursor() as cursor:
+        return cursor.execute(
+          f"SELECT COUNT(*) FROM activity_log WHERE useremail = %(useremail)s AND datetime LIKE '{date.today()}%%'",
+          {'useremail': st.experimental_user['email']}
+        ).fetchone()[0]
+  except:
+    return 0
 
 def write_to_activity_log_table(datetime: str, useremail: str, promptsent: str, responsegiven: str, modelparams: str):
   with sql.connect(server_hostname=os.getenv("DATABRICKS_SERVER_HOSTNAME"), http_path=os.getenv("DATABRICKS_HTTP_PATH"), access_token=os.getenv("databricks_api_token")) as connection: #These should be in the root level of the .streamlit/secrets.toml
     with connection.cursor() as cursor:
-      cursor.execute("CREATE TABLE IF NOT EXISTS main.default.activity_log ( datetime string, useremail string, promptsent string, responsegiven string )")
+      cursor.execute("CREATE TABLE IF NOT EXISTS main.default.activity_log (datetime string, useremail string, promptsent string, responsegiven string, modelparams string)")
       return cursor.execute( #I'm not even sure what this returns but you're welcome to that, I guess.
         "INSERT INTO main.default.activity_log VALUES (%(datetime)s, %(useremail)s, %(promptsent)s, %(responsegiven)s, %(modelparams)s)",
-        {'datetime': datetime, 'useremail': useremail, 'promptsent': promptsent, 'responsegiven': responsegiven, 'modelparams': modelparams} #this probably could be a kwargs, but I couldn't figure out how to do that neatly the particular way I wanted so whatever, you just have to change this 'signature' three different places in this function if you want to change it.
+        {'datetime': datetime, 'useremail': useremail, 'promptsent': promptsent, 'responsegiven': responsegiven, 'modelparams': modelparams} #this probably could be a kwargs, but I couldn't figure out how to do that neatly the particular way I wanted so whatever, you just have to change this 'signature' four times in this function if you want to change it.
       )
 
 use_count = count_from_activity_log_times_used_today() # I thought this function would be slow, but so far it's actually fast enough to just run it every input cycle.
@@ -158,7 +161,7 @@ with st.form('query_builder'):
     #character count max, min: int, cannot be negative or 0, starts at 40. floor divide by 4 to get token count to pass to model:
     target_charcount_min = st.number_input("Min Target Characters:", min_value=40, format='%d', step=1, key="target_charcount_min")
     target_charcount_max = st.number_input("Max Target Characters:", min_value=40, format='%d', step=1, key="target_charcount_max")
-    if st.experimental_user['email'] == "achang@targetedvictory.com":
+    if st.experimental_user['email'] in ["achang@targetedvictory.com", "test@example.com"]:
       with st.expander("Advanced Parameters"):
         num_beams = st.number_input("num_beams:", min_value=1, format='%d', step=1, key="num_beams", help="Number of beams for beam search. 1 means no beam search. Beam search is a particular strategy for generating text that the model can elect to use or not use. It can use more or fewer beams in the beam search, as well. More beams basically means it considers more candidate possibilities.")
         top_k = st.number_input("top_k:", min_value=1, format='%d', step=1, key="top_k" , help="The number of highest probability vocabulary tokens to keep for top-k-filtering. In other words: how many likely words the model will consider.")
@@ -231,7 +234,7 @@ login_activity_counter_container.write(f"You are logged in as {st.experimental_u
 #activity logging takes a bit, so I've put it last to preserve immediate-feeling performance and responses for the user making a query
 if did_a_query:
   dict_prompt.pop('prompt')
-  no_prompt_dict = str(dict_prompt)
-  write_to_activity_log_table(datetime=str(datetime.now()), useremail=st.experimental_user['email'], promptsent=prompt, responsegiven=json.dumps(outputs), modelparams=no_prompt_dict)
+  no_prompt_dict_str = str(dict_prompt)
+  write_to_activity_log_table(datetime=str(datetime.now()), useremail=st.experimental_user['email'], promptsent=prompt, responsegiven=json.dumps(outputs), modelparams=no_prompt_dict_str)
 
 # html('<!--<script>//you can include arbitrary html and javascript this way</script>-->')
