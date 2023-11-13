@@ -16,6 +16,9 @@ use_experimental_features = False
 model_uri = st.secrets['model_uri']
 databricks_api_token = st.secrets['databricks_api_token']
 
+loading_message = st.empty()
+loading_message.write("Loading Cicero. This may take several minutes...")
+
 def count_from_activity_log_times_used_today() -> int: #this goes by whatever the datetime default timezone is because we don't expect the exact boundary to matter much.
   try: # This can fail if the table doesn't exist (at least not yet, as we create it on insert if it doesn't exist), so it's nice to have a default
     with sql.connect(server_hostname=os.getenv("DATABRICKS_SERVER_HOSTNAME"), http_path=os.getenv("DATABRICKS_HTTP_PATH"), access_token=os.getenv("databricks_api_token")) as connection: #These secrets should be in the root level of the .streamlit/secrets.toml
@@ -153,6 +156,8 @@ num_return_sequences=5
 early_stopping=False
 do_sample=True
 output_scores=False
+
+loading_message.empty() # At this point, we no longer need to display a loading message.
 
 with st.form('query_builder'):
   with st.sidebar:
