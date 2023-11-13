@@ -162,7 +162,7 @@ loading_message.empty() # At this point, we no longer need to display a loading 
 with st.form('query_builder'):
   with st.sidebar:
     st.header("Settings")
-    temperature : float = st.slider("Output Variability:", min_value=0.0, max_value=1.0, key="temperature") #temperature: slider between 0 and 1, defaults to 0.7, float
+    temperature : float = st.slider("Output Variance:", min_value=0.0, max_value=1.0, key="temperature") #temperature: slider between 0 and 1, defaults to 0.7, float
     #character count max, min: int, cannot be negative or 0, starts at 40. floor divide by 4 to get token count to pass to model:
     target_charcount_min = st.number_input("Min Target Characters:", min_value=40, format='%d', step=1, key="target_charcount_min")
     target_charcount_max = st.number_input("Max Target Characters:", min_value=40, format='%d', step=1, key="target_charcount_max")
@@ -230,7 +230,7 @@ if 'outputs_df' in st.session_state: st.dataframe(st.session_state['outputs_df']
 if 'character_counts_caption' in st.session_state: st.caption(st.session_state['character_counts_caption'])
 
 with st.sidebar: #The history display includes a result of the logic of the script, that has to be updated in the middle of the script where the button press is (when the button is in fact pressed), so the code to display it has to be after all the logic of the script or else it will lag behind the actual state of the history by one time step.
-  st.header("History of replies (higher = more recent):")
+  st.header("History of replies:")
   if 'history' not in st.session_state: st.session_state['history'] = []
   st.dataframe( pd.DataFrame(reversed( st.session_state['history'] ),columns=(["Outputs"])), hide_index=True, use_container_width=True)
 
