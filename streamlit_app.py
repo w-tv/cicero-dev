@@ -182,7 +182,7 @@ with st.form('query_builder'):
 
   account = st.selectbox("Account", [""]+list(account_names), key="account" ) #For some reason, in the current version of streamlit, st.selectbox ends up returning the first value if the index has value is set to None via the key in the session_state, which is a bug, but anyway we work around it using this ridiculous workaround. This does leave a first blank option in there. But whatever.
   ask_type = st.selectbox("Ask Type", ["Fundraising Hard Ask", "Fundraising Medium Ask", "Fundraising Soft Ask", "List Building"], key="ask_type")
-  topics = st.multiselect("Topics", ["Bio", "GOP", "Control", "Dems", "Crime", "Military", "GovOverreach", "Religion"], key="topics" )
+  topics = st.multiselect("Topics", ["Announce", "Bio", "Border", "China", "Contest", "Control", "Covid", "Crime", "DC", "Debate", "Dems", "Election", "GOP", "GovOverreach", "Judiciary", "Match", "Merch", "Military", "Opponents", "Raid", "Religion", "Roe", "Runoff", "Schools", "Second_Amd", "State_of_the_Race", "Trump"], key="topics" )
   additional_topics = [x for x in st.text_input("Additional Topics (Example: Biden, Survey, Deadline)", key="additional_topics" ).split(",") if x.strip()] # The list comprehension is to filter out empty strings on split, because otherwise this fails to make a truly empty list in the default case, instead having a list with an empty string in, because split changes its behavior when you give it arguments. Anyway, this also filters out trailing comma edge-cases and such.
   tone = st.multiselect("Tone", tone_indictators_sorted, key="tone")
   generate_button = st.form_submit_button("Submit")
