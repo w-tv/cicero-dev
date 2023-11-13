@@ -12,6 +12,7 @@ import feedparser
 from databricks import sql #spooky that this is not the same name as the pypi package databricks-sql-connector, but is the way to refer to the same thing
 from datetime import datetime, date
 from threading import Thread
+from typing import Optional
 
 use_experimental_features = False
 model_uri = st.secrets['model_uri']
@@ -44,7 +45,7 @@ def write_to_activity_log_table(datetime: str, useremail: str, promptsent: str, 
       )
 
 #Incredible multi-threaded activity counter! #We use this just to have a timeout.
-use_count: int|None = None #default value
+use_count: Optional[int] = None #default value
 def set_use_count(useremail: str):
   global use_count
   use_count = count_from_activity_log_times_used_today_for_user(useremail)
