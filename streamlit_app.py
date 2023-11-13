@@ -11,21 +11,24 @@ import os
 import feedparser
 from databricks import sql #spooky that this is not the same name as the pypi package databricks-sql-connector, but is the way to refer to the same thing
 from datetime import datetime, date
+from threading import Thread
 
 use_experimental_features = False
 model_uri = st.secrets['model_uri']
 databricks_api_token = st.secrets['databricks_api_token']
 
 loading_message = st.empty()
-loading_message.write("Loading Cicero. This may take about a second or up to several minutes...")
+# loading_message.write("Loading Cicero. This may take about a second or up to several minutes...") #This loading message is unnecessary because we just decided to load faster!
 
 def count_from_activity_log_times_used_today() -> int: #this goes by whatever the datetime default timezone is because we don't expect the exact boundary to matter much.
+  return count_from_activity_log_times_used_today_for_user(st.experimental_user['email'])
+def count_from_activity_log_times_used_today_for_user(useremail: str) -> int:
   try: # This can fail if the table doesn't exist (at least not yet, as we create it on insert if it doesn't exist), so it's nice to have a default
     with sql.connect(server_hostname=os.getenv("DATABRICKS_SERVER_HOSTNAME"), http_path=os.getenv("DATABRICKS_HTTP_PATH"), access_token=os.getenv("databricks_api_token")) as connection: #These secrets should be in the root level of the .streamlit/secrets.toml
       with connection.cursor() as cursor:
         return cursor.execute(
           f"SELECT COUNT(*) FROM main.default.activity_log WHERE useremail = %(useremail)s AND datetime LIKE '{date.today()}%%'",
-          {'useremail': st.experimental_user['email']}
+          {'useremail': useremail}
         ).fetchone()[0]
   except Exception as e:
     print("There was an exception in count_from_activity_log_times_used_today, so I'm just returning a value of 0. Here's the exception:", str(e))
@@ -40,9 +43,16 @@ def write_to_activity_log_table(datetime: str, useremail: str, promptsent: str, 
         {'datetime': datetime, 'useremail': useremail, 'promptsent': promptsent, 'responsegiven': responsegiven, 'modelparams': modelparams} #this probably could be a kwargs, but I couldn't figure out how to do that neatly the particular way I wanted so whatever, you just have to change this 'signature' four times in this function if you want to change it.
       )
 
-use_count = count_from_activity_log_times_used_today() # I thought this function would be slow, but so far it's actually fast enough to just run it every input cycle.
+#Incredible multi-threaded activity counter! #We use this just to have a timeout.
+use_count: int|None = None #default value
+def set_use_count(useremail: str):
+  global use_count
+  use_count = count_from_activity_log_times_used_today_for_user(useremail)
+t = Thread(target=set_use_count, args=[st.experimental_user['email']])
+t.start()
+t.join(2.0) #either we wait for it to succeed, or we proceed without it!
 use_count_limit = 100 #arbitrary but reasonable choice of limit
-if use_count >= use_count_limit:
+if use_count!=None and use_count >= use_count_limit:
   st.write("You cannot use this service more than 100 times a day, and you have reached that limit. Please contact the team if this is in error or if you wish to expand the limit.")
   exit() # When a user hits the limit it completely locks them out of the ui using an error message. This wasn't a requirement, but it seems fine.
 
@@ -192,7 +202,7 @@ did_a_query = False
 if generate_button:
   if account:
     did_a_query = True
-    use_count+=1 #this is just an optimization for the front-end display of the query count
+    if use_count!=None: use_count+=1 #this is just an optimization for the front-end display of the query count
     st.session_state['human-facing_prompt'] = (
       ((bios[account]+"\n\n") if "Bio" in topics and account in bios else "") +
       "Write a "+ask_type.lower()+
@@ -235,7 +245,7 @@ with st.sidebar: #The history display includes a result of the logic of the scri
   if 'history' not in st.session_state: st.session_state['history'] = []
   st.dataframe( pd.DataFrame(reversed( st.session_state['history'] ),columns=(["Outputs"])), hide_index=True, use_container_width=True)
 
-login_activity_counter_container.write(f"You are logged in as {st.experimental_user['email']} . You have queried {use_count} {'time' if use_count == 1 else 'times'} today, out of a limit of {use_count_limit}.")
+login_activity_counter_container.write(f"You are logged in as {st.experimental_user['email']} ." + (f" You have queried {use_count} {'time' if use_count == 1 else 'times'} today, out of a limit of {use_count_limit}." if use_count!=None else f" The server has not returned your query count yet, but the daily limit is {use_count_limit}."))
 
 #activity logging takes a bit, so I've put it last to preserve immediate-feeling performance and responses for the user making a query
 if did_a_query:
