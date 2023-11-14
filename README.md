@@ -10,6 +10,8 @@ To host Cicero, you will need a file, secrets.toml, to be placed in the .streaml
 
 Access to the version of Cicero hosted on the Streamlit Community Cloud on https://cicero.streamlit.app/ is controlled through a whitelist of emails that you can ask to be added to.
 
+The python version Cicero currently uses in production is 3.9. The production app is up at https://cicero.streamlit.app/ . There is also a staging/active-development version up at https://cicero-dev.streamlit.app/ . This also has its own repo that development is done in, instead of developing directly in prod. This would be a branch, and for that matter we would be using a later version of python, but ehhhh streamlit community cloud has weird constraints ehhhh don't worry about it.
+
 Edit `streamlit_app.py` to customize this app to your heart's desire. However, it should be pretty much entirely as customized as we need it to be, at this point. Maybe a couple features left.
 
 If you have any questions about streamlit, checkout its [documentation](https://docs.streamlit.io) and [community
