@@ -5,3 +5,4 @@ transformers
 torch
 feedparser
 databricks-sql-connector
+faiss-cpu==1.7.4
