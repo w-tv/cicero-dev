@@ -42,11 +42,21 @@ def count_from_activity_log_times_used_today_for_user(useremail: str) -> int:
 def write_to_activity_log_table(datetime: str, useremail: str, promptsent: str, responsegiven: str, modelparams: str):
   with sql.connect(server_hostname=os.getenv("DATABRICKS_SERVER_HOSTNAME"), http_path=os.getenv("DATABRICKS_HTTP_PATH"), access_token=os.getenv("databricks_api_token")) as connection: #These should be in the root level of the .streamlit/secrets.toml
     with connection.cursor() as cursor:
-      cursor.execute("CREATE TABLE IF NOT EXISTS main.default.activity_log (datetime string, useremail string, promptsent string, responsegiven string, modelparams string)")
+      cursor.execute("CREATE TABLE IF NOT EXISTS main.default.activity_log (datetime string PRIMARY KEY, useremail string, promptsent string, responsegiven string, modelparams string)")
       return cursor.execute( #I'm not even sure what this returns but you're welcome to that, I guess.
         "INSERT INTO main.default.activity_log VALUES (%(datetime)s, %(useremail)s, %(promptsent)s, %(responsegiven)s, %(modelparams)s)",
         {'datetime': datetime, 'useremail': useremail, 'promptsent': promptsent, 'responsegiven': responsegiven, 'modelparams': modelparams} #this probably could be a kwargs, but I couldn't figure out how to do that neatly the particular way I wanted so whatever, you just have to change this 'signature' four times in this function if you want to change it.
       )
+
+def write_to_headline_log_table(datetime: str, headlines: list[str]):
+  with sql.connect(server_hostname=os.getenv("DATABRICKS_SERVER_HOSTNAME"), http_path=os.getenv("DATABRICKS_HTTP_PATH"), access_token=os.getenv("databricks_api_token")) as connection: #These should be in the root level of the .streamlit/secrets.toml
+    with connection.cursor() as cursor:
+      cursor.execute("CREATE TABLE IF NOT EXISTS main.default.headline_log (datetime string, headline string PRIMARY KEY)")
+      for headline in headlines:
+        cursor.execute(
+          "INSERT INTO main.default.headline_log VALUES (%(datetime)s, %(headline)s)",
+          {'datetime': datetime, 'headline': headline}  # Databricks does not enforce primary key uniqueness, so if you want to see a listing of unique headlines you'll have to enforce that in the display query, or in the insertion query. I've tried insertion-side enforcement, (just because I know the simplest and most non-technical way to view this table, which both I and other will use, won't allow you do to filtering easily) but it didn't work, so just query using distinct in the end, I guess.
+        )
 
 #Incredible multi-threaded activity counter! #We use this just to have a timeout.
 use_count: Optional[int] = None #default value
@@ -84,6 +94,8 @@ def load_rss():
     rss_df = pd.DataFrame(str(e))
   return rss_df
 rss_df : pd.DataFrame = load_rss()
+write_to_headline_log_table(str(datetime.now()), rss_df[0])
+
 #@st.cache_data(ttl="1h") #the following returns a function, which unfortunately can't be pickled I guess. #TODO: could manually cache in session state? hmm...
 def embed_into_vector(rss_df) -> Callable[[str, int], pd.DataFrame]:
   """This does a bunch of gobbledygook no one understands. But the important thing is that it returns to you a function that will return to you the top k news results for a given query."""
@@ -226,7 +238,7 @@ with st.form('query_builder'):
         early_stopping = st.checkbox("early_stopping", key="early_stopping" , help="Controls the stopping condition for beam-based methods, like beam-search. It accepts the following values: True, where the generation stops as soon as there are num_beams complete candidates; False, where an heuristic is applied and the generation stops when is it very unlikely to find better candidates; \"never\", where the beam search procedure only stops when there cannot be better candidates (canonical beam search algorithm). In other words: if the model is using beam search (see num_beams, above), then if this box is checked the model will spend less time trying to improve its beams after it generates them. If num_beams = 1, this checkbox does nothing either way. There is no way to select \"never\" using this checkbox, as that setting is just a waste of time.")
         do_sample = st.checkbox("do_sample", key="do_sample" , help="Whether or not to use sampling ; use greedy decoding otherwise. These are two different strategies the model can use to generate text. Greedy is probably much worse, and you should probably always keep this box checked.")
         output_scores = st.checkbox("output_scores", key="output_scores" , help="Whether or not to return the prediction scores. See scores under returned tensors for more details. In other words: This will not only give you back responses, like normal, it will also tell you how likely the model thinks the response is. Usually useless, and there's probably no need to check this box.")
-    st.dataframe(rss_df.head())
+    st.dataframe(rss_df[0].head())
 
   account = st.selectbox("Account", [""]+list(account_names), key="account" ) #For some reason, in the current version of streamlit, st.selectbox ends up returning the first value if the index has value is set to None via the key in the session_state, which is a bug, but anyway we work around it using this ridiculous workaround. This does leave a first blank option in there. But whatever.
   ask_type = st.selectbox("Ask Type", ["Fundraising Hard Ask", "Fundraising Medium Ask", "Fundraising Soft Ask", "List Building"], key="ask_type")
