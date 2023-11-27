@@ -56,7 +56,7 @@ t = Thread(target=set_use_count, args=[st.experimental_user['email']])
 t.start()
 t.join(2.0) #either we wait for it to succeed, or we proceed without it!
 use_count_limit = 100 #arbitrary but reasonable choice of limit
-if st.experimental_user['email'] in ["abrady@targetedvictory.com", "test@example.com"]: #give a certain user nigh-unlimited uses
+if st.experimental_user['email'] in ["abrady@targetedvictory.com", "thall@targetedvictory.com" "test@example.com"]: # Give certain users nigh-unlimited uses.
   use_count_limit = 100_000_000
 if use_count!=None and use_count >= use_count_limit:
   st.write("You cannot use this service more than 100 times a day, and you have reached that limit. Please contact the team if this is in error or if you wish to expand the limit.")
