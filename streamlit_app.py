@@ -8,13 +8,12 @@ import subprocess
 import requests
 import json
 import os
-import feedparser
-from databricks import sql #spooky that this is not the same name as the pypi package databricks-sql-connector, but is the way to refer to the same thing
+from databricks import sql # Spooky that this is not the same name as the pypi package databricks-sql-connector, but is the way to refer to the same thing.
 from datetime import datetime, date
 from threading import Thread
 from typing import Optional, Callable
 import faiss
-from sentence_transformers import SentenceTransformer
+from sentence_transformers import SentenceTransformer # Weird that this is how you reference the sentence-transformers package on pypi, too. Well, whatever.
 
 st.set_page_config(layout="wide") # Use wide mode in Cicero, mostly so that results display more of their text by default.
 
@@ -76,31 +75,21 @@ def load_account_names() -> list[str]:
 account_names = load_account_names()
 
 @st.cache_data(ttl="1h")
-def load_rss():
-  try:
-    rss_dict = feedparser.parse("http://bothell.carpenter.org:21540")
-    rss_df = pd.DataFrame( [ (e['title'], e['description'], e['content'][0]['value']) for e in rss_dict['entries'] ] )
-  except Exception as e:
-    rss_df = pd.DataFrame(str(e))
-  return rss_df
-rss_df : pd.DataFrame = load_rss()
-#@st.cache_data(ttl="1h") #the following returns a function, which unfortunately can't be pickled I guess. #TODO: could manually cache in session state? hmm...
-def embed_into_vector(rss_df) -> Callable[[str, int], pd.DataFrame]:
-  """This does a bunch of gobbledygook no one understands. But the important thing is that it returns to you a function that will return to you the top k news results for a given query."""
-  model = SentenceTransformer(
-      "all-MiniLM-L6-v2",
-      # cache_folder=DA.paths.datasets
-  )  # Use a pre-cached model
-  faiss_title_embedding = model.encode(rss_df.values.tolist())
-  id_index = np.array(rss_df.index).flatten().astype("int")
+def load_headlines() -> list[str]: #TODO: move the load into a modal dialogue (to save time for a user who doesn't use it) and also uhh actually load the headlines, from the headlines log, based on date.
+  return ["Headlines are not yet implemented.", "Biden our time."]
+headlines : list[str] = load_headlines()
 
+#@st.cache_data(ttl="1h") # The following embed_into_vector returns a function, which unfortunately can't be pickled I guess, and therefore can't be st.cache_data'd. #COULD: manually cache in session state? hmm...
+def embed_into_vector(headlines: list[str]) -> Callable[[str, int], pd.DataFrame]:
+  """This does a bunch of gobbledygook no one understands. But the important thing is that it returns to you a function that will return to you the top k news results for a given query."""
+  model = SentenceTransformer("all-MiniLM-L6-v2")
+  faiss_title_embedding = model.encode(headlines)
   content_encoded_normalized = faiss_title_embedding.copy()
   faiss.normalize_L2(content_encoded_normalized)
-
-  # Index1DMap translates search results to IDs: https://faiss.ai/cpp_api/file/IndexIDMap_8h.html#_CPPv4I0EN5faiss18IndexIDMapTemplateE
-  # The IndexFlatIP below builds index
+  # Index1DMap translates search results to IDs: https://faiss.ai/cpp_api/file/IndexIDMap_8h.html#_CPPv4I0EN5faiss18IndexIDMapTemplateE ; The IndexFlatIP below builds index.
   index_content = faiss.IndexIDMap(faiss.IndexFlatIP(len(faiss_title_embedding[0])))
-  index_content.add_with_ids(content_encoded_normalized, id_index)
+  index_content.add_with_ids(content_encoded_normalized, range(len(headlines)))
+
   def search_content(query, k=1):
     query_vector = model.encode([query])
     faiss.normalize_L2(query_vector)
@@ -109,14 +98,15 @@ def embed_into_vector(rss_df) -> Callable[[str, int], pd.DataFrame]:
     top_k = index_content.search(query_vector, k)
     ids = top_k[1][0].tolist()
     similarities = top_k[0][0].tolist()
-    results = rss_df.loc[ids]
+    results = pd.DataFrame([headlines[i] for i in ids])
     results["similarities"] = similarities
     return results
+
   return search_content
 
-headline_query = embed_into_vector(rss_df)
+headline_query = embed_into_vector(headlines)
 
-st.write(headline_query("Biden", k=6))
+#st.write(headline_query("Biden", k=6))
 
 #Make default state, and other presets, so we can manage presets and resets.
 # Ah, finally, I've figured out how you're actually supposed to do it: https://docs.streamlit.io/library/advanced-features/button-behavior-and-examples#option-1-use-a-key-for-the-button-and-put-the-logic-before-the-widget
@@ -226,7 +216,7 @@ with st.form('query_builder'):
         early_stopping = st.checkbox("early_stopping", key="early_stopping" , help="Controls the stopping condition for beam-based methods, like beam-search. It accepts the following values: True, where the generation stops as soon as there are num_beams complete candidates; False, where an heuristic is applied and the generation stops when is it very unlikely to find better candidates; \"never\", where the beam search procedure only stops when there cannot be better candidates (canonical beam search algorithm). In other words: if the model is using beam search (see num_beams, above), then if this box is checked the model will spend less time trying to improve its beams after it generates them. If num_beams = 1, this checkbox does nothing either way. There is no way to select \"never\" using this checkbox, as that setting is just a waste of time.")
         do_sample = st.checkbox("do_sample", key="do_sample" , help="Whether or not to use sampling ; use greedy decoding otherwise. These are two different strategies the model can use to generate text. Greedy is probably much worse, and you should probably always keep this box checked.")
         output_scores = st.checkbox("output_scores", key="output_scores" , help="Whether or not to return the prediction scores. See scores under returned tensors for more details. In other words: This will not only give you back responses, like normal, it will also tell you how likely the model thinks the response is. Usually useless, and there's probably no need to check this box.")
-    st.dataframe(rss_df.head())
+    #TODO: button to trigger headline-picking modal
 
   account = st.selectbox("Account", [""]+list(account_names), key="account" ) #For some reason, in the current version of streamlit, st.selectbox ends up returning the first value if the index has value is set to None via the key in the session_state, which is a bug, but anyway we work around it using this ridiculous workaround. This does leave a first blank option in there. But whatever.
   ask_type = st.selectbox("Ask Type", ["Fundraising Hard Ask", "Fundraising Medium Ask", "Fundraising Soft Ask", "List Building"], key="ask_type")
