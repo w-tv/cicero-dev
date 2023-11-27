@@ -9,9 +9,9 @@ import requests
 import json
 import os
 from databricks import sql # Spooky that this is not the same name as the pypi package databricks-sql-connector, but is the way to refer to the same thing.
-from datetime import datetime, date
+from datetime import datetime, date, timedelta
 from threading import Thread
-from typing import Optional, Callable
+from typing import Optional, Callable, Union
 import faiss
 from sentence_transformers import SentenceTransformer # Weird that this is how you reference the sentence-transformers package on pypi, too. Well, whatever.
 
@@ -64,7 +64,7 @@ if use_count!=None and use_count >= use_count_limit:
 
 bespoke_title_element = '<h1><img src="https://targetedvictory.com/wp-content/uploads/2019/07/favicon.png" alt="💬" style="display:inline-block; height:1em; width:auto;"> CICERO</h1>'
 st.markdown(bespoke_title_element, unsafe_allow_html=True)
-
+st.write('Reminder: tag all the outputs with "optimization test" in the labels field in Salesforce')
 @st.cache_data(ttl="1h")
 def load_bios() -> dict[str, str]:
   bios : dict[str, str] = dict(pd.read_csv("Candidate_Bios.csv", index_col="ID").to_dict('split')['data'])
@@ -77,12 +77,30 @@ def load_account_names() -> list[str]:
 account_names = load_account_names()
 
 @st.cache_data(ttl="1h")
-def load_headlines() -> list[str]: #TODO: move the load into a modal dialogue (to save time for a user who doesn't use it) and also uhh actually load the headlines, from the headlines log, based on date.
-  return ["Headlines are not yet implemented.", "Biden our time."]
-headlines : list[str] = load_headlines()
-
+def load_headlines(get_all:bool=False) -> list[str]: 
+  try: # This can fail if the table doesn't exist (at least not yet, as we create it on insert if it doesn't exist), so it's nice to have a default
+    with sql.connect(server_hostname=os.getenv("DATABRICKS_SERVER_HOSTNAME"), http_path=os.getenv("DATABRICKS_HTTP_PATH"), access_token=os.getenv("databricks_api_token")) as connection: #These secrets should be in the root level of the .streamlit/secrets.toml
+      with connection.cursor() as cursor:
+        results = cursor.execute(
+          "SELECT DISTINCT headline FROM main.default.headline_log" if get_all else
+          f"""SELECT DISTINCT headline FROM main.default.headline_log
+            WHERE datetime LIKE '{date.today()}%%'
+            OR datetime LIKE '{date.today() - timedelta(days=1)}%%'
+            OR datetime LIKE '{date.today() - timedelta(days=2)}%%'
+            OR datetime LIKE '{date.today() - timedelta(days=3)}%%'
+            OR datetime LIKE '{date.today() - timedelta(days=4)}%%'
+            OR datetime LIKE '{date.today() - timedelta(days=5)}%%'
+            OR datetime LIKE '{date.today() - timedelta(days=6)}%%'
+            OR datetime LIKE '{date.today() - timedelta(days=7)}%%'
+          """ # The (arbitrary) requirement is that we return results from the last 7 days, and this is the easiest way to do it considering that BETWEEN ... AND doesn't work for us (only works on dates not datetimes?). Also, I didn't want to use a loop in our program because that's (probably) much less efficient than simply doing on query and letting the SQL compiler sort it all out.
+        ).fetchall()
+        return [result[0] for result in results]
+  except Exception as e:
+    print("There was an exception in load_headlines, so I'm just returning a value of 0. Here's the exception:", str(e))
+    return ["There was an exception in load_headlines, so I'm just returning a value of 0. Here's the exception: "+str(e)]
+headlines : list[str] = load_headlines(get_all=True)
 #@st.cache_data(ttl="1h") # The following embed_into_vector returns a function, which unfortunately can't be pickled I guess, and therefore can't be st.cache_data'd. #COULD: manually cache in session state? hmm...
-def embed_into_vector(headlines: list[str]) -> Callable[[str, int], pd.DataFrame]:
+def embed_into_vector(headlines: list[str]) -> Union[Callable[[str], list], Callable[[str, int], list]]:
   """This does a bunch of gobbledygook no one understands. But the important thing is that it returns to you a function that will return to you the top k news results for a given query."""
   model = SentenceTransformer("all-MiniLM-L6-v2")
   faiss_title_embedding = model.encode(headlines)
@@ -92,23 +110,17 @@ def embed_into_vector(headlines: list[str]) -> Callable[[str, int], pd.DataFrame
   index_content = faiss.IndexIDMap(faiss.IndexFlatIP(len(faiss_title_embedding[0])))
   index_content.add_with_ids(content_encoded_normalized, range(len(headlines)))
 
-  def search_content(query, k=1):
+  #@st.cache_data(ttl="1h")
+  def search_content(query, number_of_results_to_return=1):
     query_vector = model.encode([query])
     faiss.normalize_L2(query_vector)
-
-    # We set k to limit the number of vectors we want to return
-    top_k = index_content.search(query_vector, k)
-    ids = top_k[1][0].tolist()
-    similarities = top_k[0][0].tolist()
-    results = pd.DataFrame([headlines[i] for i in ids])
-    results["similarities"] = similarities
+    top_results = index_content.search(query_vector, number_of_results_to_return)
+    ids = top_results[1][0].tolist()
+    similarities = top_results[0][0].tolist() # COULD: return this, for whatever we want.
+    results = [headlines[i] for i in ids]
     return results
 
   return search_content
-
-headline_query = embed_into_vector(headlines)
-
-#st.write(headline_query("Biden", k=6))
 
 #Make default state, and other presets, so we can manage presets and resets.
 # Ah, finally, I've figured out how you're actually supposed to do it: https://docs.streamlit.io/library/advanced-features/button-behavior-and-examples#option-1-use-a-key-for-the-button-and-put-the-logic-before-the-widget
@@ -132,6 +144,8 @@ presets = {
     "tone" : [],
     "topics" : [],
     "additional_topics" : "",
+    "semantic_query": "",
+    "headline": None
   },
 }
 
@@ -200,6 +214,16 @@ output_scores=False
 
 loading_message.empty() # At this point, we no longer need to display a loading message.
 
+#For technical reasons this can't go within the st.form
+with st.expander("Headline inclusion"):
+      semantic_query = st.text_input("Type in this box to sort the headlines by similarity to a query, using semantic closeness (for example, 'dirt' will also suggest results about 'gravel'). You must press enter after typing to re-sort the headlines.", key="semantic_query")
+      if semantic_query:
+        headline_query = embed_into_vector(headlines)
+        headlines_sorted = headline_query(semantic_query, 6) # The limit of 6 is arbitrary.
+      else:
+        headlines_sorted = headlines
+      headline = st.selectbox("If one of the headlines in this box is selected, it will be added to the prompt.", [""]+list(headlines_sorted), key="headline") #TODO: add to preset/reset, which will also make the default option None (must use dumb workaround here as well, presumably)
+
 with st.form('query_builder'):
   with st.sidebar:
     st.header("Settings")
@@ -218,8 +242,7 @@ with st.form('query_builder'):
         early_stopping = st.checkbox("early_stopping", key="early_stopping" , help="Controls the stopping condition for beam-based methods, like beam-search. It accepts the following values: True, where the generation stops as soon as there are num_beams complete candidates; False, where an heuristic is applied and the generation stops when is it very unlikely to find better candidates; \"never\", where the beam search procedure only stops when there cannot be better candidates (canonical beam search algorithm). In other words: if the model is using beam search (see num_beams, above), then if this box is checked the model will spend less time trying to improve its beams after it generates them. If num_beams = 1, this checkbox does nothing either way. There is no way to select \"never\" using this checkbox, as that setting is just a waste of time.")
         do_sample = st.checkbox("do_sample", key="do_sample" , help="Whether or not to use sampling ; use greedy decoding otherwise. These are two different strategies the model can use to generate text. Greedy is probably much worse, and you should probably always keep this box checked.")
         output_scores = st.checkbox("output_scores", key="output_scores" , help="Whether or not to return the prediction scores. See scores under returned tensors for more details. In other words: This will not only give you back responses, like normal, it will also tell you how likely the model thinks the response is. Usually useless, and there's probably no need to check this box.")
-    #TODO: button to trigger headline-picking modal
-
+      
   account = st.selectbox("Account", [""]+list(account_names), key="account" ) #For some reason, in the current version of streamlit, st.selectbox ends up returning the first value if the index has value is set to None via the key in the session_state, which is a bug, but anyway we work around it using this ridiculous workaround. This does leave a first blank option in there. But whatever.
   ask_type = st.selectbox("Ask Type", ["Fundraising Hard Ask", "Fundraising Medium Ask", "Fundraising Soft Ask", "List Building"], key="ask_type")
   topics = st.multiselect("Topics", ["Announce", "Bio", "Border", "China", "Contest", "Control", "Covid", "Crime", "DC", "Debate", "Dems", "Election", "GOP", "GovOverreach", "Judiciary", "Match", "Merch", "Military", "Opponents", "Raid", "Religion", "Roe", "Runoff", "Schools", "Second_Amd", "State_of_the_Race", "Trump"], key="topics" )
@@ -233,6 +256,7 @@ if generate_button:
     did_a_query = True
     if use_count!=None: use_count+=1 #this is just an optimization for the front-end display of the query count
     st.session_state['human-facing_prompt'] = (
+      ("{"+headline+"} " if headline else "")+
       ((bios[account]+"\n\n") if "Bio" in topics and account in bios else "") +
       "Write a "+ask_type.lower()+
       " text for "+account+
@@ -266,6 +290,7 @@ if generate_button:
 
 # The idea is for these output elements to persist after one query button, until overwritten by the results of the next query.
 if 'human-facing_prompt' in st.session_state: st.caption(st.session_state['human-facing_prompt'])
+st.write("Warning: the AI does not fact-check any assertions, and often makes stuff up.")
 if 'outputs_df' in st.session_state: st.dataframe(st.session_state['outputs_df'], hide_index=True, use_container_width=True)
 if 'character_counts_caption' in st.session_state: st.caption(st.session_state['character_counts_caption'])
 
