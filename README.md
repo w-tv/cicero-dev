@@ -12,6 +12,13 @@ Access to the version of Cicero hosted on the Streamlit Community Cloud on https
 
 The python version Cicero currently uses in production is 3.9. The production app is up at https://cicero.streamlit.app/ . There is also a staging/active-development version up at https://cicero-dev.streamlit.app/ . This also has its own repo that development is done in, instead of developing directly in prod. This would be a branch, and for that matter we would be using a later version of python, but ehhhh streamlit community cloud has weird constraints ehhhh don't worry about it.
 
+The current development workflow for this project is that changes are made in the dev(elopment) repo, and then once OK'd, that entire history is pushed to the prod(uction) repo. Patch notes may be created. If you are in dev, have to OK, and want to do the push to prod, here are the steps:
+
+```
+git remote add prod https://github.com/achangtv/cicero # Set prod as an additional upstream in my local-machine version of dev. Only have to do this once.
+git push prod # This will push the current history to prod (instead of the default `git push`, which will still push to dev)
+```
+
 Edit `streamlit_app.py` to customize this app to your heart's desire. However, it should be pretty much entirely as customized as we need it to be, at this point. Maybe a couple features left.
 
 If you have any questions about streamlit, checkout its [documentation](https://docs.streamlit.io) and [community
