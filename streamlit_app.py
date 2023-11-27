@@ -64,7 +64,7 @@ if use_count!=None and use_count >= use_count_limit:
 
 bespoke_title_element = '<h1><img src="https://targetedvictory.com/wp-content/uploads/2019/07/favicon.png" alt="💬" style="display:inline-block; height:1em; width:auto;"> CICERO</h1>'
 st.markdown(bespoke_title_element, unsafe_allow_html=True)
-st.write('Reminder: tag all the outputs with "optimization test" in the labels field in Salesforce')
+st.info('Reminder: tag all the outputs with "optimization test" in the labels field in Salesforce.')
 @st.cache_data(ttl="1h")
 def load_bios() -> dict[str, str]:
   bios : dict[str, str] = dict(pd.read_csv("Candidate_Bios.csv", index_col="ID").to_dict('split')['data'])
@@ -290,7 +290,7 @@ if generate_button:
 
 # The idea is for these output elements to persist after one query button, until overwritten by the results of the next query.
 if 'human-facing_prompt' in st.session_state: st.caption(st.session_state['human-facing_prompt'])
-st.write("Warning: the AI does not fact-check any assertions, and often makes stuff up.")
+st.warning("Warning: the AI does not fact-check any assertions, and often makes stuff up.", icon="❗")
 if 'outputs_df' in st.session_state: st.dataframe(st.session_state['outputs_df'], hide_index=True, use_container_width=True)
 if 'character_counts_caption' in st.session_state: st.caption(st.session_state['character_counts_caption'])
 
