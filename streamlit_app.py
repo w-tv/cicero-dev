@@ -222,6 +222,8 @@ with st.expander("Headline inclusion"):
         headlines_sorted = headlines
       headline = st.selectbox("If one of the headlines in this box is selected, it will be added to the prompt.", [""]+list(headlines_sorted), key="headline") #TODO: add to preset/reset, which will also make the default option None (must use dumb workaround here as well, presumably)
 
+st.text("") # Just for vertical spacing.
+
 with st.form('query_builder'):
   with st.sidebar:
     st.header("Settings")
