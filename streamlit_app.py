@@ -104,11 +104,10 @@ def embed_into_vector(headlines: list[str]) -> Union[Callable[[str], list], Call
   """This does a bunch of gobbledygook no one understands. But the important thing is that it returns to you a function that will return to you the top k news results for a given query."""
   model = SentenceTransformer("all-MiniLM-L6-v2")
   faiss_title_embedding = model.encode(headlines)
-  content_encoded_normalized = faiss_title_embedding.copy()
-  faiss.normalize_L2(content_encoded_normalized)
+  faiss.normalize_L2(faiss_title_embedding)
   # Index1DMap translates search results to IDs: https://faiss.ai/cpp_api/file/IndexIDMap_8h.html#_CPPv4I0EN5faiss18IndexIDMapTemplateE ; The IndexFlatIP below builds index.
   index_content = faiss.IndexIDMap(faiss.IndexFlatIP(len(faiss_title_embedding[0])))
-  index_content.add_with_ids(content_encoded_normalized, range(len(headlines)))
+  index_content.add_with_ids(faiss_title_embedding, range(len(headlines)))
 
   #@st.cache_data(ttl="1h")
   def search_content(query, number_of_results_to_return=1):
