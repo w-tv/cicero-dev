@@ -17,7 +17,6 @@ from sentence_transformers import SentenceTransformer # Weird that this is how y
 
 st.set_page_config(layout="wide") # Use wide mode in Cicero, mostly so that results display more of their text by default.
 
-use_experimental_features = False
 model_uri = st.secrets['model_uri']
 databricks_api_token = st.secrets['databricks_api_token']
 
