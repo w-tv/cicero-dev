@@ -256,12 +256,12 @@ if generate_button:
     did_a_query = True
     if use_count!=None: use_count+=1 #this is just an optimization for the front-end display of the query count
     st.session_state['human-facing_prompt'] = (
-      ("{"+headline+"} " if headline else "")+
       ((bios[account]+"\n\n") if "Bio" in topics and account in bios else "") +
       "Write a "+ask_type.lower()+
       " text for "+account+
       " about: "+list_to_bracketeds_string(topics+additional_topics or ["No_Hook"])+
-      ( "" if not tone else " emphasizing "+ list_to_bracketeds_string(sortedUAE(tone)) )
+      ( "" if not tone else " emphasizing "+ list_to_bracketeds_string(sortedUAE(tone)) ) +
+      (" {"+headline+"} " if headline else "")
     )
     prompt = "<|startoftext|> "+st.session_state['human-facing_prompt']+" <|body|>"
     dict_prompt = {"prompt": [prompt],
