@@ -1,10 +1,7 @@
 from streamlit.components.v1 import html
 from collections import namedtuple
 import streamlit as st
-import altair as alt
 import pandas as pd
-import numpy as np
-import subprocess
 import requests
 import json
 import os
@@ -14,6 +11,7 @@ from threading import Thread
 from typing import Optional, Callable, Union
 import faiss
 from sentence_transformers import SentenceTransformer # Weird that this is how you reference the sentence-transformers package on pypi, too. Well, whatever.
+#COULD: use https://pypi.org/project/streamlit-profiler/ for profiling
 
 st.set_page_config(layout="wide") # Use wide mode in Cicero, mostly so that results display more of their text by default.
 
