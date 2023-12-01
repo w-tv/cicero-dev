@@ -13,6 +13,7 @@ import faiss
 from sentence_transformers import SentenceTransformer # Weird that this is how you reference the sentence-transformers package on pypi, too. Well, whatever.
 #COULD: use https://pypi.org/project/streamlit-profiler/ for profiling
 
+chang_mode = st.experimental_user['email'] in ["achang@targetedvictory.com", "test@example.com"]
 st.set_page_config(layout="wide") # Use wide mode in Cicero, mostly so that results display more of their text by default.
 
 model_uri = st.secrets['model_uri']
@@ -62,7 +63,7 @@ if use_count!=None and use_count >= use_count_limit:
 
 bespoke_title_element = '<h1><img src="https://targetedvictory.com/wp-content/uploads/2019/07/favicon.png" alt="💬" style="display:inline-block; height:1em; width:auto;"> CICERO</h1>'
 st.markdown(bespoke_title_element, unsafe_allow_html=True)
-st.info('Reminder: tag all the outputs with "optimization test" in the labels field in Salesforce.')
+st.info('Reminder: Tag all projects with "optimization" in the Labels field in Salesforce.')
 @st.cache_data(ttl="1h")
 def load_bios() -> dict[str, str]:
   bios : dict[str, str] = dict(pd.read_csv("Candidate_Bios.csv", index_col="ID").to_dict('split')['data'])
@@ -96,7 +97,7 @@ def load_headlines(get_all:bool=False) -> list[str]:
   except Exception as e:
     print("There was an exception in load_headlines, so I'm just returning a value of 0. Here's the exception:", str(e))
     return ["There was an exception in load_headlines, so I'm just returning a value of 0. Here's the exception: "+str(e)]
-headlines : list[str] = load_headlines(get_all=False) #COULD: if we don't need to allow the user this list all the time, we could move this line to the expander, in some kind of if statement, to save on app load times. #COULD: also use the process logic to kill this on a timeout
+headlines : list[str] = load_headlines(get_all=False) #COULD: if we don't need to allow the user this list all the time, we could move this line to the expander, in some kind of if statement, possibly a checkbox, to save on app load times. #COULD: also use the process logic to kill this on a timeout
 
 #embed_into_vector returns a function, which can't be pickled, so it can't be cached via annotation, so we manually "cache" it instead using the
 def embed_into_vector(headlines: list[str]) -> Union[ Callable[[str], list[str]], Callable[[str, int], list[str]] ]:
@@ -217,16 +218,17 @@ output_scores=False
 loading_message.empty() # At this point, we no longer need to display a loading message.
 
 #For technical reasons this can't go within the st.form
-with st.expander("Headline inclusion"):
-  semantic_query = st.text_input("Type in this box to sort the headlines by similarity to a query, using semantic closeness (for example, 'dirt' will also suggest results about 'gravel'). You must press enter after typing to re-sort the headlines.", key="semantic_query")
-  if semantic_query:
-    headline_query = embed_into_vector(headlines)
-    headlines_sorted = headline_query(semantic_query, 6) # The limit of 6 is arbitrary.
-  else:
-    headlines_sorted = headlines
-  headline = st.selectbox("If one of the headlines in this box is selected, it will be added to the prompt.", [""]+list(headlines_sorted), key="headline")
+if chang_mode:
+  with st.expander("Headline inclusion"):
+    semantic_query = st.text_input("Type in this box to sort the headlines by similarity to a query, using semantic closeness (for example, 'dirt' will also suggest results about 'gravel'). You must press enter after typing to re-sort the headlines.", key="semantic_query")
+    if semantic_query:
+      headline_query = embed_into_vector(headlines)
+      headlines_sorted = headline_query(semantic_query, 6) # The limit of 6 is arbitrary.
+    else:
+      headlines_sorted = headlines
+    headline = st.selectbox("If one of the headlines in this box is selected, it will be added to the prompt.", [""]+list(headlines_sorted), key="headline")
 
-st.text("") # Just for vertical spacing.
+  st.text("") # Just for vertical spacing.
 
 with st.form('query_builder'):
   with st.sidebar:
@@ -235,7 +237,7 @@ with st.form('query_builder'):
     #character count max, min: int, cannot be negative or 0, starts at 40. floor divide by 4 to get token count to pass to model:
     target_charcount_min = st.number_input("Min Target Characters:", min_value=40, format='%d', step=1, key="target_charcount_min")
     target_charcount_max = st.number_input("Max Target Characters:", min_value=40, format='%d', step=1, key="target_charcount_max")
-    if st.experimental_user['email'] in ["achang@targetedvictory.com", "test@example.com"]:
+    if chang_mode:
       with st.expander("Advanced Parameters"):
         num_beams = st.number_input("num_beams:", min_value=1, format='%d', step=1, key="num_beams", help="Number of beams for beam search. 1 means no beam search. Beam search is a particular strategy for generating text that the model can elect to use or not use. It can use more or fewer beams in the beam search, as well. More beams basically means it considers more candidate possibilities.")
         top_k = st.number_input("top_k:", min_value=1, format='%d', step=1, key="top_k" , help="The number of highest probability vocabulary tokens to keep for top-k-filtering. In other words: how many likely words the model will consider.")
@@ -294,7 +296,7 @@ if generate_button:
 
 # The idea is for these output elements to persist after one query button, until overwritten by the results of the next query.
 if 'human-facing_prompt' in st.session_state: st.caption(st.session_state['human-facing_prompt'])
-st.warning("Warning: the AI does not fact-check any assertions, and often makes stuff up.", icon="❗")
+if chang_mode: st.warning("Warning: the AI does not fact-check any assertions, and often makes stuff up.", icon="❗")
 if 'outputs_df' in st.session_state: st.dataframe(st.session_state['outputs_df'], hide_index=True, use_container_width=True)
 if 'character_counts_caption' in st.session_state: st.caption(st.session_state['character_counts_caption'])
 
