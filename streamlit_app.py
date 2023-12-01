@@ -7,7 +7,7 @@ import json
 import os
 from databricks import sql # Spooky that this is not the same name as the pypi package databricks-sql-connector, but is the way to refer to the same thing.
 from datetime import datetime, date, timedelta
-from threading import Thread
+from multiprocessing import Process
 from typing import Optional, Callable, Union
 import faiss
 from sentence_transformers import SentenceTransformer # Weird that this is how you reference the sentence-transformers package on pypi, too. Well, whatever.
@@ -44,14 +44,15 @@ def write_to_activity_log_table(datetime: str, useremail: str, promptsent: str, 
         {'datetime': datetime, 'useremail': useremail, 'promptsent': promptsent, 'responsegiven': responsegiven, 'modelparams': modelparams} #this probably could be a kwargs, but I couldn't figure out how to do that neatly the particular way I wanted so whatever, you just have to change this 'signature' four times in this function if you want to change it.
       )
 
-#Incredible multi-threaded activity counter! #We use this just to have a timeout.
+#Incredible multi-threaded activity counter! We use this just to have a timeout on this database-access, which can otherwise several minutes. Unfortunately, you can't kill a thread, so I had to rewrite this as a process, so we can kill it, to possibly prevent a reactjs error this probably caused. (It's fine to use a process, it's just that a thread is more light-weight so it's probably faster, etc)
 use_count: Optional[int] = None #default value
 def set_use_count(useremail: str):
   global use_count
   use_count = count_from_activity_log_times_used_today_for_user(useremail)
-t = Thread(target=set_use_count, args=[st.experimental_user['email']])
+t = Process(target=set_use_count, args=[st.experimental_user['email']])
 t.start()
 t.join(2.0) #either we wait for it to succeed, or we proceed without it!
+t.terminate()
 use_count_limit = 100 #arbitrary but reasonable choice of limit
 if st.experimental_user['email'] in ["abrady@targetedvictory.com", "thall@targetedvictory.com" "test@example.com"]: # Give certain users nigh-unlimited uses.
   use_count_limit = 100_000_000
@@ -95,7 +96,7 @@ def load_headlines(get_all:bool=False) -> list[str]:
   except Exception as e:
     print("There was an exception in load_headlines, so I'm just returning a value of 0. Here's the exception:", str(e))
     return ["There was an exception in load_headlines, so I'm just returning a value of 0. Here's the exception: "+str(e)]
-headlines : list[str] = load_headlines(get_all=False) #COULD: if we don't need to allow the user this list all the time, we could move this line to the expander, in some kind of if statement, to save on app load times.
+headlines : list[str] = load_headlines(get_all=False) #COULD: if we don't need to allow the user this list all the time, we could move this line to the expander, in some kind of if statement, to save on app load times. #COULD: also use the process logic to kill this on a timeout
 
 #embed_into_vector returns a function, which can't be pickled, so it can't be cached via annotation, so we manually "cache" it instead using the
 def embed_into_vector(headlines: list[str]) -> Union[ Callable[[str], list[str]], Callable[[str, int], list[str]] ]:
