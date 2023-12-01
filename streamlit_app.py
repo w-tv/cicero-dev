@@ -11,7 +11,7 @@ import os
 from databricks import sql # Spooky that this is not the same name as the pypi package databricks-sql-connector, but is the way to refer to the same thing.
 from datetime import datetime, date
 from threading import Thread
-from typing import Optional, Callable
+from typing import Optional, Callable, Union
 import faiss
 from sentence_transformers import SentenceTransformer # Weird that this is how you reference the sentence-transformers package on pypi, too. Well, whatever.
 
