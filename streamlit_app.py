@@ -95,7 +95,7 @@ def load_headlines(get_all:bool=False) -> list[str]:
   except Exception as e:
     print("There was an exception in load_headlines, so I'm just returning a value of 0. Here's the exception:", str(e))
     return ["There was an exception in load_headlines, so I'm just returning a value of 0. Here's the exception: "+str(e)]
-headlines : list[str] = load_headlines(get_all=True)
+headlines : list[str] = load_headlines(get_all=False) #COULD: if we don't need to allow the user this list all the time, we could move this line to the expander, in some kind of if statement, to save on app load times.
 
 #embed_into_vector returns a function, which can't be pickled, so it can't be cached via annotation, so we manually "cache" it instead using the
 def embed_into_vector(headlines: list[str]) -> Union[ Callable[[str], list[str]], Callable[[str, int], list[str]] ]:
@@ -217,13 +217,13 @@ loading_message.empty() # At this point, we no longer need to display a loading 
 
 #For technical reasons this can't go within the st.form
 with st.expander("Headline inclusion"):
-      semantic_query = st.text_input("Type in this box to sort the headlines by similarity to a query, using semantic closeness (for example, 'dirt' will also suggest results about 'gravel'). You must press enter after typing to re-sort the headlines.", key="semantic_query")
-      if semantic_query:
-        headline_query = embed_into_vector(headlines)
-        headlines_sorted = headline_query(semantic_query, 6) # The limit of 6 is arbitrary.
-      else:
-        headlines_sorted = headlines
-      headline = st.selectbox("If one of the headlines in this box is selected, it will be added to the prompt.", [""]+list(headlines_sorted), key="headline") #TODO: add to preset/reset, which will also make the default option None (must use dumb workaround here as well, presumably)
+  semantic_query = st.text_input("Type in this box to sort the headlines by similarity to a query, using semantic closeness (for example, 'dirt' will also suggest results about 'gravel'). You must press enter after typing to re-sort the headlines.", key="semantic_query")
+  if semantic_query:
+    headline_query = embed_into_vector(headlines)
+    headlines_sorted = headline_query(semantic_query, 6) # The limit of 6 is arbitrary.
+  else:
+    headlines_sorted = headlines
+  headline = st.selectbox("If one of the headlines in this box is selected, it will be added to the prompt.", [""]+list(headlines_sorted), key="headline")
 
 st.text("") # Just for vertical spacing.
 
