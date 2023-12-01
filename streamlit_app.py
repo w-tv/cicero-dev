@@ -81,9 +81,11 @@ def load_headlines() -> list[str]: #TODO: move the load into a modal dialogue (t
   return ["Headlines are not yet implemented.", "Biden our time."]
 headlines : list[str] = load_headlines()
 
-#@st.cache_data(ttl="1h") # The following embed_into_vector returns a function, which unfortunately can't be pickled I guess, and therefore can't be st.cache_data'd. #COULD: manually cache in session state? hmm...
-def embed_into_vector(headlines: list[str]) -> Callable[[str, int], pd.DataFrame]:
+#@st.cache_data(ttl="1h") # The following embed_into_vector returns a function, which unfortunately can't be pickled I guess, and therefore can't be st.cache_data'd, so we manually cache in session state
+def embed_into_vector(headlines: list[str]) -> Union[ Callable[[str], list[str]], Callable[[str, int], list[str]] ]:
   """This does a bunch of gobbledygook no one understands. But the important thing is that it returns to you a function that will return to you the top k news results for a given query."""
+  if st.session_state.get("headline_search_function"): #manual cache, early out
+    return st.session_state["headline_search_function"]
   model = SentenceTransformer("all-MiniLM-L6-v2")
   faiss_title_embedding = model.encode(headlines)
   content_encoded_normalized = faiss_title_embedding.copy()
@@ -92,7 +94,9 @@ def embed_into_vector(headlines: list[str]) -> Callable[[str, int], pd.DataFrame
   index_content = faiss.IndexIDMap(faiss.IndexFlatIP(len(faiss_title_embedding[0])))
   index_content.add_with_ids(content_encoded_normalized, range(len(headlines)))
 
-  def search_content(query, k=1):
+  #This particular cache annotation might be useless or counter-productive but whatever.
+  @st.cache_data(ttl="1h")
+  def search_content(query: str, number_of_results_to_return:int=1) -> list[str]:
     query_vector = model.encode([query])
     faiss.normalize_L2(query_vector)
 
@@ -103,7 +107,7 @@ def embed_into_vector(headlines: list[str]) -> Callable[[str, int], pd.DataFrame
     results = pd.DataFrame([headlines[i] for i in ids])
     results["similarities"] = similarities
     return results
-
+  st.session_state["headline_search_function"] = search_content
   return search_content
 
 headline_query = embed_into_vector(headlines)
@@ -148,6 +152,7 @@ login_activity_counter_container = st.container()
 
 if st.button("Reset", help="Resets the UI elements to their default values. This button will also trigger cached data like the Candidate Bios and the news RSS feed to refresh. You can also just press F5 to refresh the page."):
   st.cache_data.clear()
+  st.session_state["headline_search_function"] = None
   set_ui_to_preset("default")
 
 def create_tf_serving_json(data):
