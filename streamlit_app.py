@@ -12,6 +12,7 @@ from typing import Optional, Callable, Union
 import faiss
 from sentence_transformers import SentenceTransformer # Weird that this is how you reference the sentence-transformers package on pypi, too. Well, whatever.
 #COULD: use https://pypi.org/project/streamlit-profiler/ for profiling
+import psutil
 
 chang_mode = st.experimental_user['email'] in ["achang@targetedvictory.com", "test@example.com"]
 st.set_page_config(layout="wide") # Use wide mode in Cicero, mostly so that results display more of their text by default.
@@ -304,6 +305,7 @@ with st.sidebar: #The history display includes a result of the logic of the scri
   st.header("History of replies:")
   if 'history' not in st.session_state: st.session_state['history'] = []
   st.dataframe( pd.DataFrame(reversed( st.session_state['history'] ),columns=(["Outputs"])), hide_index=True, use_container_width=True)
+  st.caption(f"Streamlit app memory usage: {psutil.Process(os.getpid()).memory_info().rss // 1024 ** 2} MiB.") #This is unrelated to the concept of history, but for formatting reasons it works best here.
 
 login_activity_counter_container.write(f"You are logged in as {st.experimental_user['email']} ." + (f" You have queried {use_count} {'time' if use_count == 1 else 'times'} today, out of a limit of {use_count_limit}." if use_count!=None else f" The server has not returned your query count yet, but the daily limit is {use_count_limit}."))
 
