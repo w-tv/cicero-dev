@@ -218,6 +218,7 @@ output_scores=False
 
 loading_message.empty() # At this point, we no longer need to display a loading message.
 
+headline = None #default for non-chang_mode users
 #For technical reasons this can't go within the st.form
 if chang_mode:
   with st.expander("Headline inclusion"):
