@@ -14,7 +14,7 @@ from sentence_transformers import SentenceTransformer # Weird that this is how y
 #COULD: use https://pypi.org/project/streamlit-profiler/ for profiling
 import psutil
 
-chang_mode = st.experimental_user['email'] in ["achang@targetedvictory.com", "test@example.com", "abrady@targetedvictory.com", "thalltargetedvictory.com", "afuhrertargetedvictory.com"]
+chang_mode = st.experimental_user['email'] in ["achang@targetedvictory.com", "test@example.com", "abrady@targetedvictory.com", "thall@targetedvictory.com", "afuhrer@targetedvictory.com"]
 st.set_page_config(layout="wide") # Use wide mode in Cicero, mostly so that results display more of their text by default.
 
 model_uri = st.secrets['model_uri']
