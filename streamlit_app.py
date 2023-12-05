@@ -100,7 +100,7 @@ def load_headlines(get_all:bool=False) -> list[str]:
                 AND datetime >= NOW() - INTERVAL 7 DAY
               ORDER BY
                 datetime DESC, headline;
-          """ # The (arbitrary) requirement is that we return results from the last 7 days, and this is the easiest way to do it considering that BETWEEN ... AND doesn't work for us (only works on dates not datetimes?). Also, I didn't want to use a loop in our program because that's (probably) much less efficient than simply doing on query and letting the SQL compiler sort it all out.
+          """ # The (arbitrary) requirement is that we return results from the last 7 days, and this is the easiest way to do it. Might not be the most performant query, but it works. TODO: review performance, see if there are any alternative queries that could be faster.
         ).fetchall()
         return [result[0] for result in results]
   except Exception as e:
@@ -233,7 +233,7 @@ if chang_mode:
     semantic_query = st.text_input("Type in this box to sort the headlines by similarity to a query, using semantic closeness (for example, 'dirt' will also suggest results about 'gravel'). You must press enter after typing to re-sort the headlines.", key="semantic_query")
     if semantic_query:
       headline_query = embed_into_vector(headlines)
-      headlines_sorted = headline_query(semantic_query, 6) # The limit of 6 is arbitrary.
+      headlines_sorted = headline_query(semantic_query, 10) # The limit of 10 is arbitrary. No need to let the user change it.
     else:
       headlines_sorted = headlines
     headline = st.selectbox("If one of the headlines in this box is selected, it will be added to the prompt.", [""]+list(headlines_sorted), key="headline")
