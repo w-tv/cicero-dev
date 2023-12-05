@@ -83,16 +83,23 @@ def load_headlines(get_all:bool=False) -> list[str]:
       with connection.cursor() as cursor:
         results = cursor.execute(
           "SELECT DISTINCT headline FROM main.default.headline_log" if get_all else
-          f"""SELECT DISTINCT headline FROM main.default.headline_log
-            WHERE datetime LIKE '{date.today()}%%'
-            OR datetime LIKE '{date.today() - timedelta(days=1)}%%'
-            OR datetime LIKE '{date.today() - timedelta(days=2)}%%'
-            OR datetime LIKE '{date.today() - timedelta(days=3)}%%'
-            OR datetime LIKE '{date.today() - timedelta(days=4)}%%'
-            OR datetime LIKE '{date.today() - timedelta(days=5)}%%'
-            OR datetime LIKE '{date.today() - timedelta(days=6)}%%'
-            OR datetime LIKE '{date.today() - timedelta(days=7)}%%'
-            order by datetime desc, headline
+          f"""WITH SortedHeadlines AS (
+                SELECT
+                    datetime,
+                    headline,
+                    ROW_NUMBER() OVER (PARTITION BY headline ORDER BY datetime DESC, headline) AS row_num
+                FROM
+                    main.default.headline_log
+                )
+              SELECT
+                headline
+              FROM
+                SortedHeadlines
+              WHERE
+                row_num = 1
+                AND datetime >= NOW() - INTERVAL 7 DAY
+              ORDER BY
+                datetime DESC, headline;
           """ # The (arbitrary) requirement is that we return results from the last 7 days, and this is the easiest way to do it considering that BETWEEN ... AND doesn't work for us (only works on dates not datetimes?). Also, I didn't want to use a loop in our program because that's (probably) much less efficient than simply doing on query and letting the SQL compiler sort it all out.
         ).fetchall()
         return [result[0] for result in results]
