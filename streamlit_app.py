@@ -9,7 +9,6 @@ import json
 import os
 from databricks import sql # Spooky that this is not the same name as the pypi package databricks-sql-connector, but is the way to refer to the same thing.
 from datetime import datetime, date, timedelta
-from multiprocessing import Process
 from typing import Optional, Callable, Union, Protocol
 import faiss
 from sentence_transformers import SentenceTransformer # Weird that this is how you reference the sentence-transformers package on pypi, too. Well, whatever.
@@ -29,11 +28,9 @@ model_uri = st.secrets['model_uri']
 databricks_api_token = st.secrets['databricks_api_token']
 
 loading_message = st.empty()
-# loading_message.write("Loading Cicero. This may take about a second or up to several minutes...") #This loading message is unnecessary because we just decided to load faster!
+loading_message.write("Loading Cicero. This may take about a second or up to a minute...")
 
-def count_from_activity_log_times_used_today() -> int: #this goes by whatever the datetime default timezone is because we don't expect the exact boundary to matter much.
-  return count_from_activity_log_times_used_today_for_user(email)
-def count_from_activity_log_times_used_today_for_user(useremail: str) -> int:
+def count_from_activity_log_times_used_today(useremail: str = email) -> int: #this goes by whatever the datetime default timezone is because we don't expect the exact boundary to matter much.
   try: # This can fail if the table doesn't exist (at least not yet, as we create it on insert if it doesn't exist), so it's nice to have a default
     with sql.connect(server_hostname=os.getenv("DATABRICKS_SERVER_HOSTNAME"), http_path=os.getenv("DATABRICKS_HTTP_PATH"), access_token=os.getenv("databricks_api_token")) as connection: #These secrets should be in the root level of the .streamlit/secrets.toml
       with connection.cursor() as cursor:
@@ -54,20 +51,12 @@ def write_to_activity_log_table(datetime: str, useremail: str, promptsent: str, 
         {'datetime': datetime, 'useremail': useremail, 'promptsent': promptsent, 'responsegiven': responsegiven, 'modelparams': modelparams} #this probably could be a kwargs, but I couldn't figure out how to do that neatly the particular way I wanted so whatever, you just have to change this 'signature' four times in this function if you want to change it.
       )
 
-#Incredible multi-threaded activity counter! We use this just to have a timeout on this database-access, which can otherwise several minutes. Unfortunately, you can't kill a thread, so I had to rewrite this as a process, so we can kill it, to possibly prevent a reactjs error this probably caused. (It's fine to use a process, it's just that a thread is more light-weight so it's probably faster, etc)
-use_count: Optional[int] = None #default value
-def set_use_count(useremail: str):
-  global use_count
-  use_count = count_from_activity_log_times_used_today_for_user(useremail)
-t = Process(target=set_use_count, args=[email])
-t.start()
-t.join(2.0) #either we wait for it to succeed, or we proceed without it!
-t.terminate()
+use_count = count_from_activity_log_times_used_today()
 use_count_limit = 100 #arbitrary but reasonable choice of limit
 if email in ["abrady@targetedvictory.com", "thall@targetedvictory.com" "test@example.com"]: # Give certain users nigh-unlimited uses.
   use_count_limit = 100_000_000
 if use_count is not None and use_count >= use_count_limit:
-  st.write("You cannot use this service more than 100 times a day, and you have reached that limit. Please contact the team if this is in error or if you wish to expand the limit.")
+  st.write(f"You cannot use this service more than {use_count_limit} times a day, and you have reached that limit. Please contact the team if this is in error or if you wish to expand the limit.")
   exit() # When a user hits the limit it completely locks them out of the ui using an error message. This wasn't a requirement, but it seems fine.
 
 bespoke_title_element = '<h1><img src="https://targetedvictory.com/wp-content/uploads/2019/07/favicon.png" alt="💬" style="display:inline-block; height:1em; width:auto;"> CICERO</h1>'
@@ -240,8 +229,6 @@ early_stopping=False
 do_sample=True
 output_scores=False
 
-loading_message.empty() # At this point, we no longer need to display a loading message.
-
 headline = None #default for non-chang_mode users
 #For technical reasons this can't go within the st.form
 if chang_mode:
@@ -282,11 +269,14 @@ with st.form('query_builder'):
   tone = st.multiselect("Tone", tone_indictators_sorted, key="tone")
   generate_button = st.form_submit_button("Submit")
 
+loading_message.empty() # At this point, we no longer need to display a loading message, once we've gotten here and displayed everything above.
+
+#Composition and sending a request:
 did_a_query = False
 if generate_button:
   if account:
     did_a_query = True
-    if use_count is not None: use_count+=1 #this is just an optimization for the front-end display of the query count
+    use_count+=1 #this is just an optimization for the front-end display of the query count
     st.session_state['human-facing_prompt'] = (
       ((bios[account]+"\n\n") if "Bio" in topics and account in bios else "") +
       "Write a "+ask_type.lower()+
@@ -339,7 +329,7 @@ with st.sidebar: #The history display includes a result of the logic of the scri
   st.caption(f"""Streamlit app memory usage: {psutil.Process(os.getpid()).memory_info().rss // 1024 ** 2} MiB.<br>
 Time to display: {(perf_counter_ns()-nanoseconds_base)/1000/1000/1000} seconds.""", unsafe_allow_html=True)
 
-login_activity_counter_container.write(f"You are logged in as {email} ." + (f" You have queried {use_count} {'time' if use_count == 1 else 'times'} today, out of a limit of {use_count_limit}." if use_count is not None else f" The server has not returned your query count yet, but the daily limit is {use_count_limit}."))
+login_activity_counter_container.write(f"You are logged in as {email} . You have queried {use_count} {'time' if use_count == 1 else 'times'} today, out of a limit of {use_count_limit}.")
 
 #activity logging takes a bit, so I've put it last to preserve immediate-feeling performance and responses for the user making a query
 if did_a_query:
