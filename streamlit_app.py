@@ -110,8 +110,8 @@ def load_headlines(get_all:bool=False) -> list[str]:
         ).fetchall()
         return [result[0] for result in results]
   except Exception as e:
-    print("There was an exception in load_headlines, so I'm just returning a value of 0. Here's the exception:", str(e))
-    return ["There was an exception in load_headlines, so I'm just returning a value of 0. Here's the exception: "+str(e)]
+    print("There was an exception in load_headlines, so I'm just returning this. Here's the exception:", str(e))
+    return ["There was an exception in load_headlines, so I'm just returning this. Here's the exception: "+str(e)]
 headlines : list[str] = load_headlines(get_all=False) #COULD: if we don't need to allow the user this list all the time, we could move this line to the expander, in some kind of if statement, possibly a checkbox, to save on app load times. #COULD: also use the process logic to kill this on a timeout
 
 class Search_Content_Function_Type_Class(Protocol): # This very roundabout-seeming way of writing this is the only standard way of expressing a default argument in python type annotations(!) https://mypy.readthedocs.io/en/stable/protocols.html#callback-protocols
@@ -201,9 +201,12 @@ def send(model_uri, databricks_token, data) -> list[str]:
   if response.status_code == 504:
     return send(model_uri, databricks_token, data) #we recursively call this until the machine wakes up.
   elif response.status_code == 404 and response.json()["error_code"] == "RESOURCE_DOES_NOT_EXIST":
-    return ["Encountered 404 error \"RESOURCE_DOES_NOT_EXIST\" when trying to query the model. This usually means the model endpoint has been moved. Please contact the team in charge of model serving to rectify the situation."]
+    raise Exception("Encountered 404 error \"RESOURCE_DOES_NOT_EXIST\" when trying to query the model. This usually means the model endpoint has been moved. Please contact the team in charge of model serving to rectify the situation.")
   elif response.status_code != 200:
-    return [f"Request failed with status {response.status_code}, {response.text}"]
+    if response.json()["error_code"] == "BAD_REQUEST":
+      raise Exception(response.json()["message"])
+    else:
+      raise Exception(f"Request failed with status {response.status_code}, {response.text}")
   return response.json()["predictions"][0]["0"]
 
 tone_indictators_sorted = ["Urgency", "Agency", "Exclusivity"]
