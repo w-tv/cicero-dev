@@ -30,6 +30,7 @@ databricks_api_token = st.secrets['databricks_api_token']
 loading_message = st.empty()
 loading_message.write("Loading Cicero. This may take about a second or up to a minute...")
 
+#We could throw a cache annotation on this, but since logic demands we do a manual cache of it anyway in the one place we call it, I guess we don't have to.
 def count_from_activity_log_times_used_today(useremail: str = email) -> int: #this goes by whatever the datetime default timezone is because we don't expect the exact boundary to matter much.
   try: # This can fail if the table doesn't exist (at least not yet, as we create it on insert if it doesn't exist), so it's nice to have a default
     with sql.connect(server_hostname=os.getenv("DATABRICKS_SERVER_HOSTNAME"), http_path=os.getenv("DATABRICKS_HTTP_PATH"), access_token=os.getenv("databricks_api_token")) as connection: #These secrets should be in the root level of the .streamlit/secrets.toml
@@ -51,11 +52,12 @@ def write_to_activity_log_table(datetime: str, useremail: str, promptsent: str, 
         {'datetime': datetime, 'useremail': useremail, 'promptsent': promptsent, 'responsegiven': responsegiven, 'modelparams': modelparams} #this probably could be a kwargs, but I couldn't figure out how to do that neatly the particular way I wanted so whatever, you just have to change this 'signature' four times in this function if you want to change it.
       )
 
-use_count = count_from_activity_log_times_used_today()
+if 'use_count' not in st.session_state:
+  st.session_state['use_count'] = count_from_activity_log_times_used_today()
 use_count_limit = 100 #arbitrary but reasonable choice of limit
 if email in ["abrady@targetedvictory.com", "thall@targetedvictory.com" "test@example.com"]: # Give certain users nigh-unlimited uses.
   use_count_limit = 100_000_000
-if use_count is not None and use_count >= use_count_limit:
+if st.session_state['use_count'] >= use_count_limit:
   st.write(f"You cannot use this service more than {use_count_limit} times a day, and you have reached that limit. Please contact the team if this is in error or if you wish to expand the limit.")
   exit() # When a user hits the limit it completely locks them out of the ui using an error message. This wasn't a requirement, but it seems fine.
 
@@ -276,7 +278,7 @@ did_a_query = False
 if generate_button:
   if account:
     did_a_query = True
-    use_count+=1 #this is just an optimization for the front-end display of the query count
+    st.session_state['use_count']+=1 #this is just an optimization for the front-end display of the query count
     st.session_state['human-facing_prompt'] = (
       ((bios[account]+"\n\n") if "Bio" in topics and account in bios else "") +
       "Write a "+ask_type.lower()+
@@ -329,7 +331,7 @@ with st.sidebar: #The history display includes a result of the logic of the scri
   st.caption(f"""Streamlit app memory usage: {psutil.Process(os.getpid()).memory_info().rss // 1024 ** 2} MiB.<br>
 Time to display: {(perf_counter_ns()-nanoseconds_base)/1000/1000/1000} seconds.""", unsafe_allow_html=True)
 
-login_activity_counter_container.write(f"You are logged in as {email} . You have queried {use_count} {'time' if use_count == 1 else 'times'} today, out of a limit of {use_count_limit}.")
+login_activity_counter_container.write(f"You are logged in as {email} . You have queried {st.session_state['use_count']} {'time' if st.session_state['use_count'] == 1 else 'times'} today, out of a limit of {use_count_limit}.")
 
 #activity logging takes a bit, so I've put it last to preserve immediate-feeling performance and responses for the user making a query
 if did_a_query:
