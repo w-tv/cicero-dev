@@ -1,3 +1,5 @@
+from time import perf_counter_ns
+nanoseconds_base : int = perf_counter_ns()
 from streamlit.components.v1 import html
 from collections import namedtuple
 import streamlit as st
@@ -333,7 +335,9 @@ with st.sidebar: #The history display includes a result of the logic of the scri
   st.header("History of replies:")
   if 'history' not in st.session_state: st.session_state['history'] = []
   st.dataframe( pd.DataFrame(reversed( st.session_state['history'] ),columns=(["Outputs"])), hide_index=True, use_container_width=True)
-  st.caption(f"Streamlit app memory usage: {psutil.Process(os.getpid()).memory_info().rss // 1024 ** 2} MiB.") #This is unrelated to the concept of history, but for formatting reasons it works best here.
+  #These stats are unrelated to the concept of history, but for formatting reasons it works best here:
+  st.caption(f"""Streamlit app memory usage: {psutil.Process(os.getpid()).memory_info().rss // 1024 ** 2} MiB.<br>
+Time to display: {(perf_counter_ns()-nanoseconds_base)/1000/1000/1000} seconds.""", unsafe_allow_html=True)
 
 login_activity_counter_container.write(f"You are logged in as {email} ." + (f" You have queried {use_count} {'time' if use_count == 1 else 'times'} today, out of a limit of {use_count_limit}." if use_count is not None else f" The server has not returned your query count yet, but the daily limit is {use_count_limit}."))
 
