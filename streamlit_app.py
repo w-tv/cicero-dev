@@ -13,6 +13,7 @@ import faiss
 from sentence_transformers import SentenceTransformer # Weird that this is how you reference the sentence-transformers package on pypi, too. Well, whatever.
 #COULD: use https://pypi.org/project/streamlit-profiler/ for profiling
 import psutil
+from transformers import GenerationConfig
 
 if st.experimental_user['email'] is None:
   st.write("Your user email is None, which implies we are currently running publicly on Streamlit Community Cloud. https://docs.streamlit.io/library/api-reference/personalization/st.experimental_user#public-app-on-streamlit-community-cloud. This app is configured to function only privately and permissionedly, so we will now exit. Good day.")
@@ -192,8 +193,10 @@ def send(model_uri, databricks_token, data) -> list[str]:
     "Authorization": f"Bearer {databricks_token}",
     "Content-Type": "application/json",
   }
+  # As we were flailing around trying to get the model to work, we made the parameter format logic needlessly complicated.
   ds_dict = {'dataframe_split': data.to_dict(orient='split')} if isinstance(data, pd.DataFrame) else create_tf_serving_json(data)
   data_json = json.dumps(ds_dict, allow_nan=True)
+
   response = requests.request(method='POST', headers=headers, url=model_uri, data=data_json)
   if response.status_code == 504:
     return send(model_uri, databricks_token, data) #we recursively call this until the machine wakes up.
@@ -302,15 +305,20 @@ if generate_button:
                     "do_sample": [do_sample],
                     "output_scores": [output_scores]
                   }
-    df_prompt = pd.DataFrame(dict_prompt)
-    outputs = send(model_uri, databricks_api_token, df_prompt)
-    st.session_state['outputs_df'] = pd.DataFrame(outputs, columns=["Model outputs (double click any output to expand it)"]) #Styling this doesn't seem to work, for some reason. Well, whatever.
-    if 'history' not in st.session_state: st.session_state['history'] = []
-    st.session_state['history'] += outputs
-    st.session_state['character_counts_caption'] = "Character counts: "+str([len(o) for o in outputs])
-
+    unpsycho_dict_prompt = {k:v[0] for (k,v) in dict_prompt.items()}
+    try:
+      GenerationConfig(**unpsycho_dict_prompt)# This validates the parameters, throwing an exception that displays to the user and explains the problem if the parameters are wrong.
+      df_prompt = pd.DataFrame(dict_prompt)
+      outputs = send(model_uri, databricks_api_token, df_prompt)
+      st.session_state['outputs_df'] = pd.DataFrame(outputs, columns=["Model outputs (double click any output to expand it)"]) #Styling this doesn't seem to work, for some reason. Well, whatever.
+      if 'history' not in st.session_state: st.session_state['history'] = []
+      st.session_state['history'] += outputs
+      st.session_state['character_counts_caption'] = "Character counts: "+str([len(o) for o in outputs])
+    except Exception as e:
+      st.error(e)
+      did_a_query = False
   else:
-    st.write("***No account name is selected, so I can't send the request!***")
+    st.error("***No account name is selected, so I can't send the request!***")
 
 # The idea is for these output elements to persist after one query button, until overwritten by the results of the next query.
 if 'human-facing_prompt' in st.session_state: st.caption(st.session_state['human-facing_prompt'])
