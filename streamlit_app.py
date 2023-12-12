@@ -9,7 +9,7 @@ import json
 import os
 from databricks import sql # Spooky that this is not the same name as the pypi package databricks-sql-connector, but is the way to refer to the same thing.
 from datetime import datetime, date, timedelta
-from typing import Optional, Callable, Union, Protocol
+from typing import Optional, Callable, Union, Protocol, runtime_checkable
 import faiss
 from sentence_transformers import SentenceTransformer # Weird that this is how you reference the sentence-transformers package on pypi, too. Well, whatever.
 #COULD: use https://pypi.org/project/streamlit-profiler/ for profiling
@@ -43,14 +43,15 @@ def count_from_activity_log_times_used_today(useremail: str = email) -> int: #th
     print("There was an exception in count_from_activity_log_times_used_today, so I'm just returning a value of 0. Here's the exception:", str(e))
     return 0
 
-def write_to_activity_log_table(datetime: str, useremail: str, promptsent: str, responsegiven: str, modelparams: str):
+def write_to_activity_log_table(datetime: str, useremail: str, promptsent: str, responsegiven: str, modelparams: str) -> int:
+  """The most sensical thing for this function to return is the closest thing to a result value that an insert command produces: the .rowcount variable of the cursor, which is "the number of rows that the last .execute*() [...] affected (for DML statements like UPDATE or INSERT)." <https://peps.python.org/pep-0249/#rowcount>. However, that PEP also states that "The attribute is -1 in case no .execute*() has been performed on the cursor or the rowcount of the last operation is cannot be determined by the interface." And the implementation of databricks-sql-connector seems to have taken this liberty to, indeed, always return -1. So this return value is useless."""
   with sql.connect(server_hostname=os.getenv("DATABRICKS_SERVER_HOSTNAME"), http_path=os.getenv("DATABRICKS_HTTP_PATH"), access_token=os.getenv("databricks_api_token")) as connection: #These should be in the root level of the .streamlit/secrets.toml
     with connection.cursor() as cursor:
       cursor.execute("CREATE TABLE IF NOT EXISTS main.default.activity_log (datetime string, useremail string, promptsent string, responsegiven string, modelparams string)")
-      return cursor.execute( #I'm not even sure what this returns but you're welcome to that, I guess.
+      return cursor.execute(
         "INSERT INTO main.default.activity_log VALUES (%(datetime)s, %(useremail)s, %(promptsent)s, %(responsegiven)s, %(modelparams)s)",
         {'datetime': datetime, 'useremail': useremail, 'promptsent': promptsent, 'responsegiven': responsegiven, 'modelparams': modelparams} #this probably could be a kwargs, but I couldn't figure out how to do that neatly the particular way I wanted so whatever, you just have to change this 'signature' four times in this function if you want to change it.
-      )
+      ).rowcount
 
 if 'use_count' not in st.session_state:
   st.session_state['use_count'] = count_from_activity_log_times_used_today()
@@ -107,14 +108,15 @@ def load_headlines(get_all:bool=False) -> list[str]:
     return ["There was an exception in load_headlines, so I'm just returning this. Here's the exception: "+str(e)]
 headlines : list[str] = load_headlines(get_all=False) #COULD: if we don't need to allow the user this list all the time, we could move this line to the expander, in some kind of if statement, possibly a checkbox, to save on app load times. #COULD: also use the process logic to kill this on a timeout
 
+@runtime_checkable
 class Search_Content_Function_Type_Class(Protocol): # This very roundabout-seeming way of writing this is the only standard way of expressing a default argument in python type annotations(!) https://mypy.readthedocs.io/en/stable/protocols.html#callback-protocols
   def __call__(self, query: str, number_of_results_to_return: int=1) -> list[str]: ... #TIL Ellipsis is a real part of python syntax.
 
 #embed_into_vector returns a function, which can't be pickled, so it can't be cached via annotation, so we manually "cache" it instead using the st.session_state.
 def embed_into_vector(headlines: list[str]) -> Search_Content_Function_Type_Class:
   """This does a bunch of gobbledygook no one understands. But the important thing is that it returns to you a function that will return to you the top k news results for a given query."""
-  if st.session_state.get("headline_search_function"): #manual cache, early out
-    return st.session_state["headline_search_function"]
+  if isinstance(s:=st.session_state.get("headline_search_function"),Search_Content_Function_Type_Class): #manual cache, early out; also, typed for extra type-strictness!
+    return s
   model = SentenceTransformer("all-MiniLM-L6-v2")
   faiss_title_embedding = model.encode(headlines)
   faiss.normalize_L2(faiss_title_embedding)
@@ -138,7 +140,7 @@ def embed_into_vector(headlines: list[str]) -> Search_Content_Function_Type_Clas
 #Make default state, and other presets, so we can manage presets and resets.
 # Ah, finally, I've figured out how you're actually supposed to do it: https://docs.streamlit.io/library/advanced-features/button-behavior-and-examples#option-1-use-a-key-for-the-button-and-put-the-logic-before-the-widget
 #IMPORTANT: these field names are the same field names as what we eventually submit. HOWEVER, these are just the default values, and are only used for that, and are stored in this particular data structure, and do not overwrite the other variables of the same names that represent the returned values.
-presets: dict[str, dict] = {
+presets: dict[str, dict[str, float|int|bool|str|list[str]|None]] = {
   "default": {
     "temperature": 0.7,
     "target_charcount_min": 80,
@@ -162,7 +164,7 @@ presets: dict[str, dict] = {
   },
 }
 
-def set_ui_to_preset(preset_name: str):
+def set_ui_to_preset(preset_name: str) -> None:
   preset = presets[preset_name]
   for i in preset: #this iterates over the keys
     st.session_state[i] = preset[i]
@@ -178,16 +180,13 @@ if st.button("Reset", help="Resets the UI elements to their default values. This
   st.session_state["headline_search_function"] = None
   set_ui_to_preset("default")
 
-def create_tf_serving_json(data):
-  return {'inputs': {name: data[name].tolist() for name in data.keys()} if isinstance(data, dict) else data.tolist()}
-
-def send(model_uri, databricks_token, data) -> list[str]:
+def send(model_uri: str, databricks_token: str, data: pd.DataFrame) -> list[str]:
   headers = {
     "Authorization": f"Bearer {databricks_token}",
     "Content-Type": "application/json",
   }
   # As we were flailing around trying to get the model to work, we made the parameter format logic needlessly complicated.
-  ds_dict = {'dataframe_split': data.to_dict(orient='split')} if isinstance(data, pd.DataFrame) else create_tf_serving_json(data)
+  ds_dict = {'dataframe_split': data.to_dict(orient='split')}
   data_json = json.dumps(ds_dict, allow_nan=True)
 
   response = requests.request(method='POST', headers=headers, url=model_uri, data=data_json)

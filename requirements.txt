@@ -1,6 +1,6 @@
 streamlit
 pandas
-databricks-sql-connector
+databricks-sql-connector==3.0.1
 faiss-cpu==1.7.4
 sentence-transformers
 psutil
