@@ -139,7 +139,7 @@ def embed_into_vector(headlines: list[str]) -> Search_Content_Function_Type_Clas
 #Make default state, and other presets, so we can manage presets and resets.
 # Ah, finally, I've figured out how you're actually supposed to do it: https://docs.streamlit.io/library/advanced-features/button-behavior-and-examples#option-1-use-a-key-for-the-button-and-put-the-logic-before-the-widget
 #IMPORTANT: these field names are the same field names as what we eventually submit. HOWEVER, these are just the default values, and are only used for that, and are stored in this particular data structure, and do not overwrite the other variables of the same names that represent the returned values.
-presets: dict[str, dict[str, float|int|bool|str|list[str]|None]] = {
+presets: dict[str, dict[str, Union[float, int, bool, str, list[str], None]]] = {
   "default": {
     "temperature": 0.7,
     "target_charcount_min": 80,
@@ -328,7 +328,7 @@ with st.sidebar: #The history display includes a result of the logic of the scri
   #These stats are unrelated to the concept of history, but for formatting reasons it works best here:
   st.caption(f"""Streamlit app memory usage: {psutil.Process(os.getpid()).memory_info().rss // 1024 ** 2} MiB.<br>
 Time to display: {(perf_counter_ns()-nanoseconds_base)/1000/1000/1000} seconds.<br>
-Python version: {platform.python_version())}"""", unsafe_allow_html=True)
+Python version: {platform.python_version()}""", unsafe_allow_html=True)
 
 login_activity_counter_container.write(f"You are logged in as {email} . You have queried {st.session_state['use_count']} {'time' if st.session_state['use_count'] == 1 else 'times'} today, out of a limit of {use_count_limit}.")
 
