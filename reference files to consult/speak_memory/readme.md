@@ -40,7 +40,7 @@ If two sessions are both using a semantic query:
 
 > Streamlit app memory usage: 600 MiB.
 
-Interestingly, if those two tabs are closed and a new tab that isn't using any vector embedding is opened, the memory usage is still 600MiB. If the browser is closed and reopened, the memory usage goes down. This may be a limitation because I am testing from the same computer/ip (I tested it with a different concurrent browser, instead of just two  and got the same behavior as the current browser — or at least it takes a many minutes, it seems) — so maybe I register as "the same session" and it doesn't garbage-collect the old embeddings until all my connections are closed.
+Interestingly, if those two tabs are closed and a new tab that isn't using any vector embedding is opened, the memory usage is still 600MiB. If the browser is closed and reopened, the memory usage goes down. This may be a limitation because I am testing from the same computer/ip (I tested it with a different concurrent browser, instead of just two and got the same behavior as the current browser — or at least it takes a many minutes, it seems) — so maybe I register as "the same session" and it doesn't garbage-collect the old embeddings until all my connections are closed. OK on 2023-12-13 I tested it with two different computers from two different networks and got the same results: it takes like 10 minutes for the resources to be collected.
 
 Other than that, the memory usage fluctuates up and down by about 20MiB. This is just the garbage collector doing its thing, but might ask a more subtle memory leak. Also, the program slowly consumes in tiny increments more memory as it used, to track past prompts.
 
@@ -48,7 +48,7 @@ Other than that, the memory usage fluctuates up and down by about 20MiB. This is
 
 since the production version of Cicero was silently calling embed_into_vector (prod is derived from a time when we were testing out that feature), we were spending 100MiB on that each time someone loaded the page. So, certainly, if 6 people were using the app, it would crash. In the dev version as of 2023-12-12, a vector-embedding is generated only if the user explicitly does a semantic query, so 6 users would have to do that for it to crash.
 
-Even if the memory-leak-type problem was solved (test later?), probably more than 6 people will have a session open with a vector embedding in, if this product is successful, so the current behavior is unacceptable anyway.
+Even if the memory-leak-type problem was solved (test later? (tested later: mostly solved, in dev), probably more than 6 people will have a session open with a vector embedding in, if this product is successful, so the current behavior is unacceptable anyway.
 
 ## Possible solutions
 
@@ -60,6 +60,6 @@ Even if the memory-leak-type problem was solved (test later?), probably more tha
 
 ## Suggested solution
 
-Perhaps "don't cache the vector embedding" is the best choice, if it works. I will try that as soon as we can run a couple tests in the current version.
+Perhaps "don't cache the vector embedding" is the best choice, if it works. I will try that as soon as we can run a couple tests in the current version. (OK I did those tests.)
 
 It's interesting to consider if we expect any 6 users of Cicero to do a semantic query *at the same time*.
