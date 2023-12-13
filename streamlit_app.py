@@ -6,14 +6,13 @@ import streamlit as st
 import pandas as pd
 import requests
 import json
-import os
+import os, psutil, platform
 from databricks import sql # Spooky that this is not the same name as the pypi package databricks-sql-connector, but is the way to refer to the same thing.
 from datetime import datetime, date, timedelta
 from typing import Optional, Callable, Union, Protocol, runtime_checkable
 import faiss
 from sentence_transformers import SentenceTransformer # Weird that this is how you reference the sentence-transformers package on pypi, too. Well, whatever.
 #COULD: use https://pypi.org/project/streamlit-profiler/ for profiling
-import psutil
 from transformers import GenerationConfig
 
 if st.experimental_user['email'] is None:
@@ -328,7 +327,8 @@ with st.sidebar: #The history display includes a result of the logic of the scri
   st.dataframe( pd.DataFrame(reversed( st.session_state['history'] ),columns=(["Outputs"])), hide_index=True, use_container_width=True)
   #These stats are unrelated to the concept of history, but for formatting reasons it works best here:
   st.caption(f"""Streamlit app memory usage: {psutil.Process(os.getpid()).memory_info().rss // 1024 ** 2} MiB.<br>
-Time to display: {(perf_counter_ns()-nanoseconds_base)/1000/1000/1000} seconds.""", unsafe_allow_html=True)
+Time to display: {(perf_counter_ns()-nanoseconds_base)/1000/1000/1000} seconds.<br>
+Python version: {platform.python_version())}"""", unsafe_allow_html=True)
 
 login_activity_counter_container.write(f"You are logged in as {email} . You have queried {st.session_state['use_count']} {'time' if st.session_state['use_count'] == 1 else 'times'} today, out of a limit of {use_count_limit}.")
 
