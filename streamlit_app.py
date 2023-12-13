@@ -110,7 +110,7 @@ def embed_into_vector(headlines: list[str]) -> Union[ Callable[[str], list[str]]
   st.session_state["headline_search_function"] = search_content
   return search_content
 
-headline_query = embed_into_vector(headlines)
+# headline_query = embed_into_vector(headlines)
 
 #st.write(headline_query("Biden", k=6))
 
