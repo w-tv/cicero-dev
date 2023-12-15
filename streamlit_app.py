@@ -23,7 +23,7 @@ email = st.experimental_user['email']
 chang_mode = email in ["achang@targetedvictory.com", "test@example.com", "abrady@targetedvictory.com", "thall@targetedvictory.com", "afuhrer@targetedvictory.com"]
 st.set_page_config(layout="wide") # Use wide mode in Cicero, mostly so that results display more of their text by default.
 
-model_uri = st.secrets['model_uri']
+models: dict[str,str] = {"Default": st.secrets['model_uri']} #COULD: these URIs don't necessarily have to be loaded in this way, nor be secret.
 databricks_api_token = st.secrets['databricks_api_token']
 
 loading_message = st.empty()
@@ -153,6 +153,7 @@ presets: dict[str, dict[str, Union[float, int, bool, str, list[str], None]]] = {
     "early_stopping" : False,
     "do_sample" : True,
     "output_scores" : False,
+    "model": "Default",
     "account" : None,
     "ask_type": "Fundraising Hard Ask",
     "tone" : [],
@@ -261,7 +262,8 @@ with st.form('query_builder'):
         early_stopping = st.checkbox("early_stopping", key="early_stopping" , help="Controls the stopping condition for beam-based methods, like beam-search. It accepts the following values: True, where the generation stops as soon as there are num_beams complete candidates; False, where an heuristic is applied and the generation stops when is it very unlikely to find better candidates; \"never\", where the beam search procedure only stops when there cannot be better candidates (canonical beam search algorithm). In other words: if the model is using beam search (see num_beams, above), then if this box is checked the model will spend less time trying to improve its beams after it generates them. If num_beams = 1, this checkbox does nothing either way. There is no way to select \"never\" using this checkbox, as that setting is just a waste of time.")
         do_sample = st.checkbox("do_sample", key="do_sample" , help="Whether or not to use sampling ; use greedy decoding otherwise. These are two different strategies the model can use to generate text. Greedy is probably much worse, and you should probably always keep this box checked.")
         output_scores = st.checkbox("output_scores", key="output_scores" , help="Whether or not to return the prediction scores. See scores under returned tensors for more details. In other words: This will not only give you back responses, like normal, it will also tell you how likely the model thinks the response is. Usually useless, and there's probably no need to check this box.")
-
+  model_name = st.selectbox("Model (required)", models, key="model")
+  model_uri = models[model_name]
   account = st.selectbox("Account (required)", [""]+list(account_names), key="account" ) #For some reason, in the current version of streamlit, st.selectbox ends up returning the first value if the index has value is set to None via the key in the session_state, which is a bug, but anyway we work around it using this ridiculous workaround. This does leave a first blank option in there. But whatever.
   ask_type = str( st.selectbox("Ask Type", ["Fundraising Hard Ask", "Fundraising Medium Ask", "Fundraising Soft Ask", "List Building"], key="ask_type") )
   topics = st.multiselect("Topics", ["Announce", "Bio", "Border", "China", "Contest", "Control", "Covid", "Crime", "DC", "Debate", "Dems", "Election", "GOP", "GovOverreach", "Judiciary", "Match", "Merch", "Military", "Opponents", "Raid", "Religion", "Roe", "Runoff", "Schools", "Second_Amd", "State_of_the_Race", "Trump"], key="topics" )
