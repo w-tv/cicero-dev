@@ -35,7 +35,7 @@ def load_model_permissions(useremail: str) -> list[str]:
       results = cursor.execute(
         "SELECT DISTINCT modelname FROM models.default.permissions WHERE useremail = %(useremail)s", {'useremail': useremail}
       ).fetchall()
-      return [result[0].tolower() for result in results]
+      return [result[0].lower() for result in results]
 model_permissions = load_model_permissions(email) #model_permissions is ALL LOWERCASE
 if "default" not in model_permissions: #We want everyone to want to have access to default, at least at time of writing this comment.
   model_permissions.insert(0, "Default")
