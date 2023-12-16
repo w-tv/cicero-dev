@@ -23,11 +23,27 @@ email = st.experimental_user['email']
 chang_mode = email in ["achang@targetedvictory.com", "test@example.com", "abrady@targetedvictory.com", "thall@targetedvictory.com", "afuhrer@targetedvictory.com"]
 st.set_page_config(layout="wide") # Use wide mode in Cicero, mostly so that results display more of their text by default.
 
-models: dict[str,str] = {"Default": st.secrets['model_uri']} #COULD: these URIs don't necessarily have to be loaded in this way, nor be secret.
-databricks_api_token = st.secrets['databricks_api_token']
-
 loading_message = st.empty()
 loading_message.write("Loading Cicero. This may take about a second or up to a minute...")
+
+databricks_api_token = st.secrets['databricks_api_token']
+
+@st.cache_data(ttl="1h")
+def load_model_permissions(useremail: str) -> list[str]:
+  with sql.connect(server_hostname=os.getenv("DATABRICKS_SERVER_HOSTNAME"), http_path=os.getenv("DATABRICKS_HTTP_PATH"), access_token=os.getenv("databricks_api_token")) as connection: #These secrets should be in the root level of the .streamlit/secrets.toml
+    with connection.cursor() as cursor:
+      results = cursor.execute(
+        "SELECT DISTINCT modelname FROM models.default.permissions WHERE useremail = %(useremail)s", {'useremail': useremail}
+      ).fetchall()
+      return [result[0] for result in results]
+model_permissions = load_model_permissions(email)
+if "Default" not in model_permissions: #We want everyone to want to have access to default, at least at time of writing this comment.
+  model_permissions.insert(0, "Default")
+#NOTE: these model secrets have to be in the secrets.toml as, like:
+# models.Default = ''
+# models.Context = ''
+# Or some other way of making a dict in toml
+models: dict[str,str] = { k:v for k, v in st.secrets['models'].items() if k in model_permissions } #filter for what the actual permissions are for the user.
 
 #We could throw a cache annotation on this, but since logic demands we do a manual cache of it anyway in the one place we call it, I guess we don't have to.
 def count_from_activity_log_times_used_today(useremail: str = email) -> int: #this goes by whatever the datetime default timezone is because we don't expect the exact boundary to matter much.
