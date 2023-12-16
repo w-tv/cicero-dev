@@ -35,15 +35,15 @@ def load_model_permissions(useremail: str) -> list[str]:
       results = cursor.execute(
         "SELECT DISTINCT modelname FROM models.default.permissions WHERE useremail = %(useremail)s", {'useremail': useremail}
       ).fetchall()
-      return [result[0] for result in results]
-model_permissions = load_model_permissions(email)
-if "Default" not in model_permissions: #We want everyone to want to have access to default, at least at time of writing this comment.
+      return [result[0].tolower() for result in results]
+model_permissions = load_model_permissions(email) #model_permissions is ALL LOWERCASE
+if "default" not in model_permissions: #We want everyone to want to have access to default, at least at time of writing this comment.
   model_permissions.insert(0, "Default")
 #NOTE: these model secrets have to be in the secrets.toml as, like:
 # models.Default = ''
 # models.Context = ''
 # Or some other way of making a dict in toml
-models: dict[str,str] = { k:v for k, v in st.secrets['models'].items() if k in model_permissions } #filter for what the actual permissions are for the user.
+models: dict[str,str] = { k:v for k, v in st.secrets['models'].items() if k.lower() in [m.lower() for m in model_permissions] } #filter for what the actual permissions are for the user.
 
 #We could throw a cache annotation on this, but since logic demands we do a manual cache of it anyway in the one place we call it, I guess we don't have to.
 def count_from_activity_log_times_used_today(useremail: str = email) -> int: #this goes by whatever the datetime default timezone is because we don't expect the exact boundary to matter much.
