@@ -123,34 +123,22 @@ def load_headlines(get_all:bool=False) -> list[str]:
     return ["There was an exception in load_headlines, so I'm just returning this. Here's the exception: "+str(e)]
 headlines : list[str] = load_headlines(get_all=False) #COULD: if we don't need to allow the user this list all the time, we could move this line to the expander, in some kind of if statement, possibly a checkbox, to save on app load times. #COULD: also use the process logic to kill this on a timeout
 
-@runtime_checkable
-class Search_Content_Function_Type_Class(Protocol): # This very roundabout-seeming way of writing this is the only standard way of expressing a default argument in python type annotations(!) https://mypy.readthedocs.io/en/stable/protocols.html#callback-protocols
-  def __call__(self, query: str, number_of_results_to_return: int=1) -> list[str]: ... #TIL Ellipsis is a real part of python syntax.
-
-#embed_into_vector returns a function, which can't be pickled, so it can't be cached via annotation, so we manually "cache" it instead using the st.session_state.
-def embed_into_vector(headlines: list[str]) -> Search_Content_Function_Type_Class:
+@st.cache_data(ttl="1h")
+def sort_headlines_semantically(headlines: list[str], query: str, number_of_results_to_return:int=1) -> list[str]:
   """This does a bunch of gobbledygook no one understands. But the important thing is that it returns to you a function that will return to you the top k news results for a given query."""
-  if isinstance(s:=st.session_state.get("headline_search_function"),Search_Content_Function_Type_Class): #manual cache, early out; also, typed for extra type-strictness!
-    return s
   model = SentenceTransformer("all-MiniLM-L6-v2")
   faiss_title_embedding = model.encode(headlines)
   faiss.normalize_L2(faiss_title_embedding)
   # Index1DMap translates search results to IDs: https://faiss.ai/cpp_api/file/IndexIDMap_8h.html#_CPPv4I0EN5faiss18IndexIDMapTemplateE ; The IndexFlatIP below builds index.
   index_content = faiss.IndexIDMap(faiss.IndexFlatIP(len(faiss_title_embedding[0])))
   index_content.add_with_ids(faiss_title_embedding, range(len(headlines)))
-
-  #This particular cache annotation might be useless or counter-productive but whatever.
-  @st.cache_data(ttl="1h")
-  def search_content(query: str, number_of_results_to_return:int=1) -> list[str]:
-    query_vector = model.encode([query])
-    faiss.normalize_L2(query_vector)
-    top_results = index_content.search(query_vector, number_of_results_to_return)
-    ids = top_results[1][0].tolist()
-    similarities = top_results[0][0].tolist() # COULD: return this, for whatever we want.
-    results = [headlines[i] for i in ids]
-    return results
-  st.session_state["headline_search_function"] = search_content
-  return search_content
+  query_vector = model.encode([query])
+  faiss.normalize_L2(query_vector)
+  top_results = index_content.search(query_vector, number_of_results_to_return)
+  ids = top_results[1][0].tolist()
+  similarities = top_results[0][0].tolist() # COULD: return this, for whatever we want.
+  results = [headlines[i] for i in ids]
+  return results
 
 #Make default state, and other presets, so we can manage presets and resets.
 # Ah, finally, I've figured out how you're actually supposed to do it: https://docs.streamlit.io/library/advanced-features/button-behavior-and-examples#option-1-use-a-key-for-the-button-and-put-the-logic-before-the-widget
@@ -252,8 +240,7 @@ if chang_mode:
   with st.expander("Headline inclusion"):
     semantic_query = st.text_input("Type in this box to sort the headlines by similarity to a query, using semantic closeness (for example, 'dirt' will also suggest results about 'gravel'). You must press enter after typing to re-sort the headlines.", key="semantic_query")
     if semantic_query:
-      headline_query = embed_into_vector(headlines)
-      headlines_sorted = headline_query(semantic_query, 10) # The limit of 10 is arbitrary. No need to let the user change it.
+      headlines_sorted = sort_headlines_semantically(headlines, semantic_query, 10) # The limit of 10 is arbitrary. No need to let the user change it.
     else:
       headlines_sorted = headlines
     headline = st.selectbox("If one of the headlines in this box is selected, it will be added to the prompt.", [""]+list(headlines_sorted), key="headline")
