@@ -92,7 +92,7 @@ def load_account_names() -> list[str]:
 account_names = load_account_names()
 
 @st.cache_data(ttl="1h")
-def load_headlines(get_all:bool=False) -> list[str]:
+def load_headlines(get_all:bool=False, past_days:int=7) -> list[str]:
   try: # This can fail if the table doesn't exist (at least not yet, as we create it on insert if it doesn't exist), so it's nice to have a default
     with sql.connect(server_hostname=os.getenv("DATABRICKS_SERVER_HOSTNAME"), http_path=os.getenv("DATABRICKS_HTTP_PATH"), access_token=os.getenv("databricks_api_token")) as connection: #These secrets should be in the root level of the .streamlit/secrets.toml
       with connection.cursor() as cursor:
@@ -112,7 +112,7 @@ def load_headlines(get_all:bool=False) -> list[str]:
                 SortedHeadlines
               WHERE
                 row_num = 1
-                AND datetime >= NOW() - INTERVAL 7 DAY
+                AND datetime >= NOW() - INTERVAL {past_days} DAY
               ORDER BY
                 datetime DESC, headline;
           """ # The (arbitrary) requirement is that we return results from the last 7 days, and this is the easiest way to do it. Might not be the most performant query, but it works. TODO: review performance, see if there are any alternative queries that could be faster.
@@ -121,7 +121,8 @@ def load_headlines(get_all:bool=False) -> list[str]:
   except Exception as e:
     print("There was an exception in load_headlines, so I'm just returning this. Here's the exception:", str(e))
     return ["There was an exception in load_headlines, so I'm just returning this. Here's the exception: "+str(e)]
-headlines : list[str] = load_headlines(get_all=False) #COULD: if we don't need to allow the user this list all the time, we could move this line to the expander, in some kind of if statement, possibly a checkbox, to save on app load times. #COULD: also use the process logic to kill this on a timeout
+headlines : list[str] = load_headlines(get_all=False) #COULD: if we don't need to allow the user this list all the time, we could move this line to the expander, in some kind of if statement, possibly a checkbox, to save maybe 2 seconds on app load times.
+headlines_overdrive : list[str] = load_headlines(get_all=False, past_days=3)
 
 @st.cache_data(ttl="1h")
 def sort_headlines_semantically(headlines: list[str], query: str, number_of_results_to_return:int=1) -> list[str]:
@@ -164,7 +165,9 @@ presets: dict[str, dict[str, Union[float, int, bool, str, list[str], None]]] = {
     "topics" : [],
     "additional_topics" : "",
     "semantic_query": "",
-    "headline": None
+    "headline": None,
+    "overdrive": False,
+    "exact_match": False
   },
 }
 
@@ -234,15 +237,26 @@ early_stopping=False
 do_sample=True
 output_scores=False
 
+def only_those_strings_of_the_list_that_contain_the_given_substring_case_insensitively(l: list[str], s: str): return [s for s in l if s.lower().find(semantic_query.lower()) != -1]
+
 headline = None #default for non-chang_mode users
 #For technical reasons this can't go within the st.form
 if chang_mode:
   with st.expander("Headline inclusion"):
     semantic_query = st.text_input("Type in this box to sort the headlines by similarity to a query, using semantic closeness (for example, 'dirt' will also suggest results about 'gravel'). You must press enter after typing to re-sort the headlines.", key="semantic_query")
+    col1, col2 = st.columns(2) #this column setup arguably looks worse than the default, and we've already blown the vertical-single-screen idea when you open this expander, so maybe you don't have to keep this formatting idk.
+    with col1:
+      exact_match: bool = st.checkbox("Use exact match instead of semantic match. If enabled, 'dirt' will only match 'dirt', not 'gravel'.", key="exact_match") #an option for persnickety people ohoho
+    with col2:
+      overdrive: bool = st.checkbox("Restrict search to those headlines of the last 3 days (instead of the default 7).", key="overdrive")
+    h = headlines if not overdrive else headlines_overdrive
     if semantic_query:
-      headlines_sorted = sort_headlines_semantically(headlines, semantic_query, 10) # The limit of 10 is arbitrary. No need to let the user change it.
+      if exact_match:
+        headlines_sorted = only_those_strings_of_the_list_that_contain_the_given_substring_case_insensitively(h, semantic_query)
+      else:
+        headlines_sorted = sort_headlines_semantically(h, semantic_query, 10) # The limit of 10 is arbitrary. No need to let the user change it.
     else:
-      headlines_sorted = headlines
+      headlines_sorted = h # I forget if this is actually sorted in any way by default. Possibly date?
     headline = st.selectbox("If one of the headlines in this box is selected, it will be added to the prompt.", [""]+list(headlines_sorted), key="headline")
 
   st.text("") # Just for vertical spacing.
