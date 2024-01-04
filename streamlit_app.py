@@ -31,7 +31,7 @@ def count_from_activity_log_times_used_today_for_user(useremail: str) -> int:
     with sql.connect(server_hostname=os.getenv("DATABRICKS_SERVER_HOSTNAME"), http_path=os.getenv("DATABRICKS_HTTP_PATH"), access_token=os.getenv("databricks_api_token")) as connection: #These secrets should be in the root level of the .streamlit/secrets.toml
       with connection.cursor() as cursor:
         return cursor.execute(
-          f"SELECT COUNT(*) FROM main.default.activity_log WHERE useremail = %(useremail)s AND datetime LIKE '{date.today()}%%'",
+          f"SELECT COUNT(*) FROM main.default.activity_log WHERE (useremail = cicero or useremail = %(useremail)s) AND datetime LIKE '{date.today()}%%'",
           {'useremail': useremail}
         ).fetchone()[0]
   except Exception as e:
