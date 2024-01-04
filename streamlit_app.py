@@ -28,12 +28,13 @@ def count_from_activity_log_times_used_today() -> int: #this goes by whatever th
   return count_from_activity_log_times_used_today_for_user(st.experimental_user['email'])
 def count_from_activity_log_times_used_today_for_user(useremail: str) -> int:
   try: # This can fail if the table doesn't exist (at least not yet, as we create it on insert if it doesn't exist), so it's nice to have a default
-    with sql.connect(server_hostname=os.getenv("DATABRICKS_SERVER_HOSTNAME"), http_path=os.getenv("DATABRICKS_HTTP_PATH"), access_token=os.getenv("databricks_api_token")) as connection: #These secrets should be in the root level of the .streamlit/secrets.toml
-      with connection.cursor() as cursor:
-        return cursor.execute(
-          f"SELECT COUNT(*) FROM main.default.activity_log WHERE (useremail = 'cicero' or useremail = %(useremail)s) AND datetime LIKE '{date.today()}%%'",
-          {'useremail': useremail}
-        ).fetchone()[0]
+    return 0
+    # with sql.connect(server_hostname=os.getenv("DATABRICKS_SERVER_HOSTNAME"), http_path=os.getenv("DATABRICKS_HTTP_PATH"), access_token=os.getenv("databricks_api_token")) as connection: #These secrets should be in the root level of the .streamlit/secrets.toml
+    #   with connection.cursor() as cursor:
+    #     return cursor.execute(
+    #       f"SELECT COUNT(*) FROM main.default.activity_log WHERE (useremail = 'cicero' or useremail = %(useremail)s) AND datetime LIKE '{date.today()}%%'",
+    #       {'useremail': useremail}
+    #     ).fetchone()[0]
   except Exception as e:
     print("There was an exception in count_from_activity_log_times_used_today, so I'm just returning a value of 0. Here's the exception:", str(e))
     return 0
@@ -279,7 +280,7 @@ with st.sidebar: #The history display includes a result of the logic of the scri
   if 'history' not in st.session_state: st.session_state['history'] = []
   st.dataframe( pd.DataFrame(reversed( st.session_state['history'] ),columns=(["Outputs"])), hide_index=True, use_container_width=True)
 
-login_activity_counter_container.write(f"You are logged in as {st.experimental_user['email']} ." + (f" You have queried {use_count} {'time' if use_count == 1 else 'times'} today, out of a limit of {use_count_limit}." if use_count!=None else f" The server has not returned your query count yet, but the daily limit is {use_count_limit}."))
+login_activity_counter_container.write(f"You are logged in as {st.experimental_user['email']} .") #+ (f" You have queried {use_count} {'time' if use_count == 1 else 'times'} today, out of a limit of {use_count_limit}." if use_count!=None else f" The server has not returned your query count yet, but the daily limit is {use_count_limit}."))
 
 #activity logging takes a bit, so I've put it last to preserve immediate-feeling performance and responses for the user making a query
 if did_a_query:
