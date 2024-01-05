@@ -244,7 +244,7 @@ headline = None #default for non-chang_mode users
 #For technical reasons this can't go within the st.form
 if chang_mode:
   with st.expander(r"$\textsf{\Large NEWS HEADLINES}$"):
-    semantic_query = st.text_input("Semantic Search\n\textit{Returns headlines matching the meaning of the search terms, not necessarily exact matches. Must hit Enter. Example: searching for \"border\" will also return headlines for \"immigration,\" \"migrants,\" \"border crossings,\" \"deportation,\" etc.}", key="semantic_query")
+    semantic_query = st.text_input("Semantic Search  \n$\textit{Returns headlines matching the meaning of the search terms, not necessarily exact matches. Must hit Enter. Example: searching for \"border\" will also return headlines for \"immigration,\" \"migrants,\" \"border crossings,\" \"deportation,\" etc.}$", key="semantic_query")
     col1, col2 = st.columns(2) #this column setup arguably looks worse than the default, and we've already blown the vertical-single-screen idea when you open this expander, so maybe you don't have to keep this formatting idk.
     with col1:
       exact_match: bool = st.checkbox("Use exact match instead of semantic match.", key="exact_match") #an option for persnickety people ohoho
@@ -258,7 +258,7 @@ if chang_mode:
         headlines_sorted = sort_headlines_semantically(h, semantic_query, 10) # The limit of 10 is arbitrary. No need to let the user change it.
     else:
       headlines_sorted = h # I forget if this is actually sorted in any way by default. Possibly date?
-    headline = st.selectbox("If one of the headlines in this box is selected, it will be added to the prompt.", [""]+list(headlines_sorted), key="headline")
+    headline = st.selectbox("Selected headlines will be added to your prompt below.", [""]+list(headlines_sorted), key="headline")
 
   st.text("") # Just for vertical spacing.
 
