@@ -244,7 +244,7 @@ headline = None #default for non-chang_mode users
 #For technical reasons this can't go within the st.form
 if chang_mode:
   with st.expander(r"$\textsf{\Large NEWS HEADLINES}$"):
-    semantic_query = st.text_input(r"Semantic Search  $\textit{\scriptsize Returns headlines matching the meaning of the search terms, not necessarily exact matches. Must hit Enter.} \textit{\scriptsize Example: searching for `border' will also return headlines for `immigration', `migrants', `border crossings', `deportation', etc.}$", key="semantic_query")
+    semantic_query = st.text_input(r"Semantic Search  $\textit{\scriptsize Returns headlines matching the meaning of the search terms, not necessarily exact matches. Must hit Enter.\\} \textit{\scriptsize \newline Example: searching for `border' will also return headlines for `immigration', `migrants', `border crossings', `deportation', etc.}$", key="semantic_query")
     col1, col2 = st.columns(2) #this column setup arguably looks worse than the default, and we've already blown the vertical-single-screen idea when you open this expander, so maybe you don't have to keep this formatting idk.
     with col1:
       exact_match: bool = st.checkbox("Use exact match instead of semantic match.", key="exact_match") #an option for persnickety people ohoho
