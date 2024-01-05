@@ -1,4 +1,4 @@
-ffrom time import perf_counter_ns
+from time import perf_counter_ns
 nanoseconds_base : int = perf_counter_ns()
 from streamlit.components.v1 import html
 from collections import namedtuple
