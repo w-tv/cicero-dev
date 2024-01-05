@@ -1,4 +1,4 @@
-from time import perf_counter_ns
+ffrom time import perf_counter_ns
 nanoseconds_base : int = perf_counter_ns()
 from streamlit.components.v1 import html
 from collections import namedtuple
@@ -244,7 +244,7 @@ headline = None #default for non-chang_mode users
 #For technical reasons this can't go within the st.form
 if chang_mode:
   with st.expander(r"$\textsf{\Large NEWS HEADLINES}$"):
-    semantic_query = st.text_input("Semantic Search  \nReturns headlines matching the meaning of the search terms, not necessarily exact matches. Must hit Enter. Example: searching for 'border' will also return headlines for 'immigration', 'migrants', 'border crossings', 'deportation', etc.", key="semantic_query")
+    semantic_query = st.text_input("Semantic Search  \n\x1B[3mReturns headlines matching the meaning of the search terms, not necessarily exact matches. Must hit Enter. Example: searching for 'border' will also return headlines for 'immigration', 'migrants', 'border crossings', 'deportation', etc.\x1B[0m", key="semantic_query")
     col1, col2 = st.columns(2) #this column setup arguably looks worse than the default, and we've already blown the vertical-single-screen idea when you open this expander, so maybe you don't have to keep this formatting idk.
     with col1:
       exact_match: bool = st.checkbox("Use exact match instead of semantic match.", key="exact_match") #an option for persnickety people ohoho
