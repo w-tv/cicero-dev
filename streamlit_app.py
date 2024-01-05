@@ -243,13 +243,13 @@ def only_those_strings_of_the_list_that_contain_the_given_substring_case_insensi
 headline = None #default for non-chang_mode users
 #For technical reasons this can't go within the st.form
 if chang_mode:
-  with st.expander("Headline inclusion"):
-    semantic_query = st.text_input("Type in this box to sort the headlines by similarity to a query, using semantic closeness (for example, 'dirt' will also suggest results about 'gravel'). You must press enter after typing to re-sort the headlines.", key="semantic_query")
+  with st.expander(r"$\textsf{\Large NEWS HEADLINES}$"):
+    semantic_query = st.text_input("Semantic Search\n\textit{Returns headlines matching the meaning of the search terms, not necessarily exact matches. Must hit Enter. Example: searching for \"border\" will also return headlines for \"immigration,\" \"migrants,\" \"border crossings,\" \"deportation,\" etc.}", key="semantic_query")
     col1, col2 = st.columns(2) #this column setup arguably looks worse than the default, and we've already blown the vertical-single-screen idea when you open this expander, so maybe you don't have to keep this formatting idk.
     with col1:
-      exact_match: bool = st.checkbox("Use exact match instead of semantic match. If enabled, 'dirt' will only match 'dirt', not 'gravel'.", key="exact_match") #an option for persnickety people ohoho
+      exact_match: bool = st.checkbox("Use exact match instead of semantic match.", key="exact_match") #an option for persnickety people ohoho
     with col2:
-      overdrive: bool = st.checkbox("Restrict search to those headlines of the last 3 days (instead of the default 7).", key="overdrive")
+      overdrive: bool = st.checkbox("Only search headlines from the last 3 days.", key="overdrive")
     h = headlines if not overdrive else headlines_overdrive
     if semantic_query:
       if exact_match:
