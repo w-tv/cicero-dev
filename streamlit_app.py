@@ -244,7 +244,7 @@ headline = None #default for non-chang_mode users
 #For technical reasons this can't go within the st.form
 if chang_mode:
   with st.expander(r"$\textsf{\Large NEWS HEADLINES}$"):
-    semantic_query = st.text_input("Semantic Search  \n$\textit{Returns headlines matching the meaning of the search terms, not necessarily exact matches. Must hit Enter. Example: searching for \"border\" will also return headlines for \"immigration,\" \"migrants,\" \"border crossings,\" \"deportation,\" etc.}$", key="semantic_query")
+    semantic_query = st.text_input("Semantic Search  \n${\fontsize{9}{10}\selectfont \textit{Returns headlines matching the meaning of the search terms, not necessarily exact matches. Must hit Enter. Example: searching for 'border' will also return headlines for 'immigration', 'migrants', 'border crossings', 'deportation', etc.}}$", key="semantic_query")
     col1, col2 = st.columns(2) #this column setup arguably looks worse than the default, and we've already blown the vertical-single-screen idea when you open this expander, so maybe you don't have to keep this formatting idk.
     with col1:
       exact_match: bool = st.checkbox("Use exact match instead of semantic match.", key="exact_match") #an option for persnickety people ohoho
@@ -337,7 +337,7 @@ if generate_button:
 
 # The idea is for these output elements to persist after one query button, until overwritten by the results of the next query.
 if 'human-facing_prompt' in st.session_state: st.caption(st.session_state['human-facing_prompt'])
-if chang_mode: st.error("WARNING! Outputs have not been fact checked.  Please review all names, places, counts, times, and events for accuracy.", icon="⚠️")
+if chang_mode: st.error("WARNING! Outputs have not been fact checked. CICERO is not responsible for inaccuracies in deployed copy. Please check all names, places, counts, times, events, and titles (esp. military titles) for accuracy.  \nAll numbers included in outputs are suggestions only and should be updated. They are NOT analytically optimized to increase conversions (yet) and are based solely on frequency in past copy.", icon="⚠️")
 if 'outputs_df' in st.session_state: st.dataframe(st.session_state['outputs_df'], hide_index=True, use_container_width=True)
 if 'character_counts_caption' in st.session_state: st.caption(st.session_state['character_counts_caption'])
 
