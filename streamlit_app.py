@@ -24,7 +24,7 @@ chang_mode = email in ["achang@targetedvictory.com", "test@example.com", "abrady
 st.set_page_config(layout="wide") # Use wide mode in Cicero, mostly so that results display more of their text by default.
 
 loading_message = st.empty()
-loading_message.write("Loading Cicero. This may take about a second or up to a minute...")
+loading_message.write("Loading CICERO.  This may take up to a minute...")
 
 databricks_api_token = st.secrets['databricks_api_token']
 
@@ -48,12 +48,13 @@ models: dict[str,str] = { k:v for k, v in st.secrets['models'].items() if k.lowe
 #We could throw a cache annotation on this, but since logic demands we do a manual cache of it anyway in the one place we call it, I guess we don't have to.
 def count_from_activity_log_times_used_today(useremail: str = email) -> int: #this goes by whatever the datetime default timezone is because we don't expect the exact boundary to matter much.
   try: # This can fail if the table doesn't exist (at least not yet, as we create it on insert if it doesn't exist), so it's nice to have a default
-    with sql.connect(server_hostname=os.getenv("DATABRICKS_SERVER_HOSTNAME"), http_path=os.getenv("DATABRICKS_HTTP_PATH"), access_token=os.getenv("databricks_api_token")) as connection: #These secrets should be in the root level of the .streamlit/secrets.toml
-      with connection.cursor() as cursor:
-        return cursor.execute(
-          f"SELECT COUNT(*) FROM main.default.activity_log WHERE useremail = %(useremail)s AND datetime LIKE '{date.today()}%%'",
-          {'useremail': useremail}
-        ).fetchone()[0]
+    return 0 #leaving this until we can fix it
+    # with sql.connect(server_hostname=os.getenv("DATABRICKS_SERVER_HOSTNAME"), http_path=os.getenv("DATABRICKS_HTTP_PATH"), access_token=os.getenv("databricks_api_token")) as connection: #These secrets should be in the root level of the .streamlit/secrets.toml
+    #   with connection.cursor() as cursor:
+    #     return cursor.execute(
+    #       f"SELECT COUNT(*) FROM main.default.activity_log WHERE useremail = %(useremail)s AND datetime LIKE '{date.today()}%%'",
+    #       {'useremail': useremail}
+    #     ).fetchone()[0]
   except Exception as e:
     print("There was an exception in count_from_activity_log_times_used_today, so I'm just returning a value of 0. Here's the exception:", str(e))
     return 0
