@@ -28,7 +28,7 @@ loading_message.write("Loading CICERO.  This may take up to a minute...")
 
 databricks_api_token = st.secrets['databricks_api_token']
 
-@st.cache_data(ttl="1h")
+@st.cache_data()
 def load_model_permissions(useremail: str) -> list[str]:
   with sql.connect(server_hostname=os.getenv("DATABRICKS_SERVER_HOSTNAME"), http_path=os.getenv("DATABRICKS_HTTP_PATH"), access_token=os.getenv("databricks_api_token")) as connection: #These secrets should be in the root level of the .streamlit/secrets.toml
     with connection.cursor() as cursor:
@@ -81,18 +81,18 @@ if st.session_state['use_count'] >= use_count_limit:
 bespoke_title_element = '<h1><img src="https://targetedvictory.com/wp-content/uploads/2019/07/favicon.png" alt="💬" style="display:inline-block; height:1em; width:auto;"> CICERO</h1>'
 st.markdown(bespoke_title_element, unsafe_allow_html=True)
 st.error('REMINDER! Please tag all projects with "optimization" in the LABELS field in Salesforce.')
-@st.cache_data(ttl="1h")
+@st.cache_data()
 def load_bios() -> dict[str, str]:
   bios : dict[str, str] = dict(pd.read_csv("Candidate_Bios.csv", index_col="ID").to_dict('split')['data'])
   return bios
 bios : dict[str, str] = load_bios()
 
-@st.cache_data(ttl="1h")
+@st.cache_data()
 def load_account_names() -> list[str]:
   return pd.read_csv("Client_List.csv")['ACCOUNT_NAME']
 account_names = load_account_names()
 
-@st.cache_data(ttl="1h")
+@st.cache_data()
 def load_headlines(get_all:bool=False, past_days:int=7) -> list[str]:
   try: # This can fail if the table doesn't exist (at least not yet, as we create it on insert if it doesn't exist), so it's nice to have a default
     with sql.connect(server_hostname=os.getenv("DATABRICKS_SERVER_HOSTNAME"), http_path=os.getenv("DATABRICKS_HTTP_PATH"), access_token=os.getenv("databricks_api_token")) as connection: #These secrets should be in the root level of the .streamlit/secrets.toml
@@ -125,7 +125,7 @@ def load_headlines(get_all:bool=False, past_days:int=7) -> list[str]:
 headlines : list[str] = load_headlines(get_all=False) #COULD: if we don't need to allow the user this list all the time, we could move this line to the expander, in some kind of if statement, possibly a checkbox, to save maybe 2 seconds on app load times.
 headlines_overdrive : list[str] = load_headlines(get_all=False, past_days=3)
 
-@st.cache_data(ttl="1h")
+@st.cache_data()
 def sort_headlines_semantically(headlines: list[str], query: str, number_of_results_to_return:int=1) -> list[str]:
   """This does a bunch of gobbledygook no one understands. But the important thing is that it returns to you a function that will return to you the top k news results for a given query."""
   model = SentenceTransformer("all-MiniLM-L6-v2")
