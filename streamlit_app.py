@@ -240,27 +240,26 @@ output_scores=False
 
 def only_those_strings_of_the_list_that_contain_the_given_substring_case_insensitively(l: list[str], s: str): return [s for s in l if s.lower().find(semantic_query.lower()) != -1]
 
-headline = None #default for non-chang_mode users
-#For technical reasons this can't go within the st.form
-if chang_mode:
-  with st.expander(r"$\textsf{\Large NEWS HEADLINES}$"):
-    semantic_query = st.text_input("Semantic Search  \n*Returns headlines matching the meaning of the search terms, not necessarily exact matches. Must hit Enter.*  \n*Example: searching for `border' will also return headlines for 'immigration', 'migrants', 'border crossings', 'deportation', etc.*", key="semantic_query")
-    col1, col2 = st.columns(2) #this column setup arguably looks worse than the default, and we've already blown the vertical-single-screen idea when you open this expander, so maybe you don't have to keep this formatting idk.
-    with col1:
-      exact_match: bool = st.checkbox("Use exact match instead of semantic match.", key="exact_match") #an option for persnickety people ohoho
-    with col2:
-      overdrive: bool = st.checkbox("Only search headlines from the last 3 days.", key="overdrive")
-    h = headlines if not overdrive else headlines_overdrive
-    if semantic_query:
-      if exact_match:
-        headlines_sorted = only_those_strings_of_the_list_that_contain_the_given_substring_case_insensitively(h, semantic_query)
-      else:
-        headlines_sorted = sort_headlines_semantically(h, semantic_query, 10) # The limit of 10 is arbitrary. No need to let the user change it.
+headline = None #default value, possibly redundant
+#For technical reasons (various parts of it update when other parts of it are changed, iirc) this can't go within the st.form
+with st.expander(r"$\textsf{\Large NEWS HEADLINES}$"):
+  semantic_query = st.text_input("Semantic Search  \n*Returns headlines matching the meaning of the search terms, not necessarily exact matches. Must hit Enter.*  \n*Example: searching for `border' will also return headlines for 'immigration', 'migrants', 'border crossings', 'deportation', etc.*", key="semantic_query")
+  col1, col2 = st.columns(2) #this column setup arguably looks worse than the default, and we've already blown the vertical-single-screen idea when you open this expander, so maybe you don't have to keep this formatting idk.
+  with col1:
+    exact_match: bool = st.checkbox("Use exact match instead of semantic match.", key="exact_match") #an option for persnickety people ohoho
+  with col2:
+    overdrive: bool = st.checkbox("Only search headlines from the last 3 days.", key="overdrive")
+  h = headlines if not overdrive else headlines_overdrive
+  if semantic_query:
+    if exact_match:
+      headlines_sorted = only_those_strings_of_the_list_that_contain_the_given_substring_case_insensitively(h, semantic_query)
     else:
-      headlines_sorted = h # I forget if this is actually sorted in any way by default. Possibly date?
-    headline = st.selectbox("Selected headlines will be added to your prompt below.", [""]+list(headlines_sorted), key="headline")
+      headlines_sorted = sort_headlines_semantically(h, semantic_query, 10) # The limit of 10 is arbitrary. No need to let the user change it.
+  else:
+    headlines_sorted = h # I forget if this is actually sorted in any way by default. Possibly date?
+  headline = st.selectbox("Selected headlines will be added to your prompt below.", [""]+list(headlines_sorted), key="headline")
 
-  st.text("") # Just for vertical spacing.
+st.text("") # Just for vertical spacing.
 
 with st.form('query_builder'):
   with st.sidebar:
@@ -337,7 +336,7 @@ if generate_button:
 
 # The idea is for these output elements to persist after one query button, until overwritten by the results of the next query.
 if 'human-facing_prompt' in st.session_state: st.caption(st.session_state['human-facing_prompt'])
-if chang_mode: st.error("WARNING! Outputs have not been fact checked. CICERO is not responsible for inaccuracies in deployed copy. Please check all *names*, *places*, *counts*, *times*, *events*, and *titles* (esp. military titles) for accuracy.  \nAll numbers included in outputs are suggestions only and should be updated. They are NOT analytically optimized to increase conversions (yet) and are based solely on frequency in past copy.", icon="⚠️")
+st.error("WARNING! Outputs have not been fact checked. CICERO is not responsible for inaccuracies in deployed copy. Please check all *names*, *places*, *counts*, *times*, *events*, and *titles* (esp. military titles) for accuracy.  \nAll numbers included in outputs are suggestions only and should be updated. They are NOT analytically optimized to increase conversions (yet) and are based solely on frequency in past copy.", icon="⚠️")
 if 'outputs_df' in st.session_state: st.dataframe(st.session_state['outputs_df'], hide_index=True, use_container_width=True)
 if 'character_counts_caption' in st.session_state: st.caption(st.session_state['character_counts_caption'])
 
@@ -346,7 +345,8 @@ with st.sidebar: #The history display includes a result of the logic of the scri
   if 'history' not in st.session_state: st.session_state['history'] = []
   st.dataframe( pd.DataFrame(reversed( st.session_state['history'] ),columns=(["Outputs"])), hide_index=True, use_container_width=True)
   #These stats are unrelated to the concept of history, but for formatting reasons it works best here:
-  st.caption(f"""Streamlit app memory usage: {psutil.Process(os.getpid()).memory_info().rss // 1024 ** 2} MiB.<br>
+  if chang_mode:
+    st.caption(f"""Streamlit app memory usage: {psutil.Process(os.getpid()).memory_info().rss // 1024 ** 2} MiB.<br>
 Time to display: {(perf_counter_ns()-nanoseconds_base)/1000/1000/1000} seconds.<br>
 Python version: {platform.python_version()}""", unsafe_allow_html=True)
 
