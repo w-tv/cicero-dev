@@ -1,15 +1,13 @@
 from time import perf_counter_ns
 nanoseconds_base : int = perf_counter_ns()
-from streamlit.components.v1 import html
-from collections import namedtuple
 import streamlit as st
 import pandas as pd
 import requests
 import json
 import os, psutil, platform
 from databricks import sql # Spooky that this is not the same name as the pypi package databricks-sql-connector, but is the way to refer to the same thing.
-from datetime import datetime, date, timedelta
-from typing import Optional, Callable, Union
+from datetime import datetime
+from typing import Union #Perhaps one day we can upgrade python versions, use the type bar instead of the Union type, and remove this import
 import faiss
 from sentence_transformers import SentenceTransformer # Weird that this is how you reference the sentence-transformers package on pypi, too. Well, whatever.
 #COULD: use https://pypi.org/project/streamlit-profiler/ for profiling
@@ -358,4 +356,5 @@ if did_a_query:
   no_prompt_dict_str = str(dict_prompt)
   write_to_activity_log_table(datetime=str(datetime.now()), useremail=email, promptsent=prompt, responsegiven=json.dumps(outputs), modelparams=no_prompt_dict_str)
 
+# from streamlit.components.v1 import html
 # html('<!--<script>//you can include arbitrary html and javascript this way</script>-->')
