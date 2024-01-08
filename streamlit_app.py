@@ -6,7 +6,7 @@ import requests
 import json
 import os, psutil, platform
 from databricks import sql # Spooky that this is not the same name as the pypi package databricks-sql-connector, but is the way to refer to the same thing.
-from datetime import datetime
+from datetime import datetime, timedelta, timezone
 from typing import Union #Perhaps one day we can upgrade python versions, use the type bar instead of the Union type, and remove this import
 import faiss
 from sentence_transformers import SentenceTransformer # Weird that this is how you reference the sentence-transformers package on pypi, too. Well, whatever.
@@ -45,16 +45,19 @@ models: dict[str,str] = { k:v for k, v in st.secrets['models'].items() if k.lowe
 
 #We could throw a cache annotation on this, but since logic demands we do a manual cache of it anyway in the one place we call it, I guess we don't have to.
 def count_from_activity_log_times_used_today(useremail: str = email) -> int: #this goes by whatever the datetime default timezone is because we don't expect the exact boundary to matter much.
-  try: # This can fail if the table doesn't exist (at least not yet, as we create it on insert if it doesn't exist), so it's nice to have a default
-    return 0 #leaving this until we can fix it
-    # with sql.connect(server_hostname=os.getenv("DATABRICKS_SERVER_HOSTNAME"), http_path=os.getenv("DATABRICKS_HTTP_PATH"), access_token=os.getenv("databricks_api_token")) as connection: #These secrets should be in the root level of the .streamlit/secrets.toml
-    #   with connection.cursor() as cursor:
-    #     return cursor.execute(
-    #       f"SELECT COUNT(*) FROM main.default.activity_log WHERE useremail = %(useremail)s AND datetime LIKE '{date.today()}%%'",
-    #       {'useremail': useremail}
-    #     ).fetchone()[0]
-  except Exception as e:
-    print("There was an exception in count_from_activity_log_times_used_today, so I'm just returning a value of 0. Here's the exception:", str(e))
+  current_time = datetime.now(timezone(timedelta(hours=-5)))
+  if current_time.weekday() < 5 and 9 <= current_time.hour < 17: #this function only runs from 9am to 5pm on weekdays. only a holdover until we figure out more.
+    try: # This can fail if the table doesn't exist (at least not yet, as we create it on insert if it doesn't exist), so it's nice to have a default
+      with sql.connect(server_hostname=os.getenv("DATABRICKS_SERVER_HOSTNAME"), http_path=os.getenv("DATABRICKS_HTTP_PATH"), access_token=os.getenv("databricks_api_token")) as connection: #These secrets should be in the root level of the .streamlit/secrets.toml
+        with connection.cursor() as cursor:
+          return cursor.execute(
+            f"SELECT COUNT(*) FROM main.default.activity_log WHERE useremail = %(useremail)s AND datetime LIKE '{date.today()}%%'",
+            {'useremail': useremail}
+          ).fetchone()[0]
+    except Exception as e:
+      print("There was an exception in count_from_activity_log_times_used_today, so I'm just returning a value of 0. Here's the exception:", str(e))
+      return 0
+  else:
     return 0
 
 def write_to_activity_log_table(datetime: str, useremail: str, promptsent: str, responsegiven: str, modelparams: str) -> int:
