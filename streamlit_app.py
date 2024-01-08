@@ -236,7 +236,7 @@ early_stopping=False
 do_sample=True
 output_scores=False
 
-def only_those_strings_of_the_list_that_contain_the_given_substring_case_insensitively(l: list[str], s: str): return [s for s in l if s.lower().find(semantic_query.lower()) != -1]
+def only_those_strings_of_the_list_that_contain_the_given_substring_case_insensitively(l: list[str], s: str) -> list[str]: return [s for s in l if s.lower().find(semantic_query.lower()) != -1]
 
 headline = None #default value, possibly redundant
 #For technical reasons (various parts of it update when other parts of it are changed, iirc) this can't go within the st.form
@@ -277,7 +277,7 @@ with st.form('query_builder'):
         early_stopping = st.checkbox("early_stopping", key="early_stopping" , help="Controls the stopping condition for beam-based methods, like beam-search. It accepts the following values: True, where the generation stops as soon as there are num_beams complete candidates; False, where an heuristic is applied and the generation stops when is it very unlikely to find better candidates; \"never\", where the beam search procedure only stops when there cannot be better candidates (canonical beam search algorithm). In other words: if the model is using beam search (see num_beams, above), then if this box is checked the model will spend less time trying to improve its beams after it generates them. If num_beams = 1, this checkbox does nothing either way. There is no way to select \"never\" using this checkbox, as that setting is just a waste of time.")
         do_sample = st.checkbox("do_sample", key="do_sample" , help="Whether or not to use sampling ; use greedy decoding otherwise. These are two different strategies the model can use to generate text. Greedy is probably much worse, and you should probably always keep this box checked.")
         output_scores = st.checkbox("output_scores", key="output_scores" , help="Whether or not to return the prediction scores. See scores under returned tensors for more details. In other words: This will not only give you back responses, like normal, it will also tell you how likely the model thinks the response is. Usually useless, and there's probably no need to check this box.")
-  model_name = st.selectbox(r"$\textsf{\Large COPYWRITING MODEL}$", models, key="model")
+  model_name = str( st.selectbox(r"$\textsf{\Large COPYWRITING MODEL}$", models, key="model") )
   model_uri = models[model_name]
   account = st.selectbox("Account (required)", [""]+list(account_names), key="account" ) #For some reason, in the current version of streamlit, st.selectbox ends up returning the first value if the index has value is set to None via the key in the session_state, which is a bug, but anyway we work around it using this ridiculous workaround. This does leave a first blank option in there. But whatever.
   ask_type = str( st.selectbox("Ask Type", ["Fundraising Hard Ask", "Fundraising Medium Ask", "Fundraising Soft Ask", "List Building"], key="ask_type") )
