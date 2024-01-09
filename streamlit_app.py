@@ -43,7 +43,7 @@ if "default" not in model_permissions: #We want everyone to want to have access 
 # Or some other way of making a dict in toml
 models: dict[str,str] = { k:v for k, v in st.secrets['models'].items() if k.lower() in [m.lower() for m in model_permissions] } #filter for what the actual permissions are for the user.
 
-#We could throw a cache annotation on this, but since logic demands we do a manual cache of it anyway in the one place we call it, I guess we don't have to.
+@st.cache_data() #Necessity demands we do a manual cache of this function's result anyway in the one place we call it, but (for some reason) it seems like our deployed environment is messed up in some way I cannot locally replicate, which causes it to run this function once every five minutes. So, we cache it as well, to prevent waking up our server and costing us money.
 def count_from_activity_log_times_used_today(useremail: str = email) -> int: #this goes by whatever the datetime default timezone is because we don't expect the exact boundary to matter much.
   print("count_from_activity_log_times_used_today ACTIVE")
   try: # This can fail if the table doesn't exist (at least not yet, as we create it on insert if it doesn't exist), so it's nice to have a default
