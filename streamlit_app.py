@@ -37,8 +37,8 @@ def load_model_permissions(useremail: str) -> list[str]:
       ).fetchall()
       return [result[0].lower() for result in results]
 model_permissions = load_model_permissions(email) #model_permissions is ALL LOWERCASE
-if "default" not in model_permissions: #We want everyone to want to have access to default, at least at time of writing this comment.
-  model_permissions.insert(0, "Default")
+if "context" not in model_permissions: #We want everyone to want to have access to default, at least at time of writing this comment.
+  model_permissions.insert(0, "Context")
 #NOTE: these model secrets have to be in the secrets.toml as, like:
 # models.Default = ''
 # models.Context = ''
@@ -159,7 +159,7 @@ presets: dict[str, dict[str, Union[float, int, bool, str, list[str], None]]] = {
     "early_stopping" : False,
     "do_sample" : True,
     "output_scores" : False,
-    "model": "Default",
+    "model": "Context",
     "account" : None,
     "ask_type": "Fundraising Hard Ask",
     "tone" : [],
