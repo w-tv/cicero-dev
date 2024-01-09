@@ -13,13 +13,15 @@ from sentence_transformers import SentenceTransformer # Weird that this is how y
 #COULD: use https://pypi.org/project/streamlit-profiler/ for profiling
 from transformers import GenerationConfig
 
+st.set_page_config(layout="wide") # Use wide mode in Cicero, mostly so that results display more of their text by default. #NOTE: "`set_page_config()` can only be called once per app page, and must be called as the first Streamlit command in your script."
+
 if st.experimental_user['email'] is None:
   st.write("Your user email is None, which implies we are currently running publicly on Streamlit Community Cloud. https://docs.streamlit.io/library/api-reference/personalization/st.experimental_user#public-app-on-streamlit-community-cloud. This app is configured to function only privately and permissionedly, so we will now exit. Good day.")
   exit()
 email = st.experimental_user['email']
 
-chang_mode = email in ["achang@targetedvictory.com", "test@example.com", "abrady@targetedvictory.com", "thall@targetedvictory.com", "afuhrer@targetedvictory.com"]
-st.set_page_config(layout="wide") # Use wide mode in Cicero, mostly so that results display more of their text by default.
+developer_mode = email in ["achang@targetedvictory.com", "test@example.com", "abrady@targetedvictory.com", "thall@targetedvictory.com", "afuhrer@targetedvictory.com", "wcarpenter@targetedvictory.com"] and not st.session_state.get("developer_mode_disabled")
+def disable_developer_mode(): st.session_state["developer_mode_disabled"] = True
 
 loading_message = st.empty()
 loading_message.write("Loading CICERO.  This may take up to a minute...")
@@ -266,7 +268,7 @@ with st.form('query_builder'):
     #character count max, min: int, cannot be negative or 0, starts at 40. floor divide by 4 to get token count to pass to model:
     target_charcount_min = st.number_input("Min Target Characters:", min_value=40, format='%d', step=1, key="target_charcount_min")
     target_charcount_max = st.number_input("Max Target Characters:", min_value=40, format='%d', step=1, key="target_charcount_max")
-    if chang_mode:
+    if developer_mode:
       with st.expander("Advanced Parameters"):
         num_beams = int( st.number_input("num_beams:", min_value=1, format='%d', step=1, key="num_beams", help="Number of beams for beam search. 1 means no beam search. Beam search is a particular strategy for generating text that the model can elect to use or not use. It can use more or fewer beams in the beam search, as well. More beams basically means it considers more candidate possibilities.") )
         top_k = int( st.number_input("top_k:", min_value=1, format='%d', step=1, key="top_k" , help="The number of highest probability vocabulary tokens to keep for top-k-filtering. In other words: how many likely words the model will consider."))
@@ -343,12 +345,13 @@ with st.sidebar: #The history display includes a result of the logic of the scri
   if 'history' not in st.session_state: st.session_state['history'] = []
   st.dataframe( pd.DataFrame(reversed( st.session_state['history'] ),columns=(["Outputs"])), hide_index=True, use_container_width=True)
   #These stats are unrelated to the concept of history, but for formatting reasons it works best here:
-  if chang_mode:
+  if developer_mode:
     st.caption(f"""Streamlit app memory usage: {psutil.Process(os.getpid()).memory_info().rss // 1024 ** 2} MiB.<br>
 Time to display: {(perf_counter_ns()-nanoseconds_base)/1000/1000/1000} seconds.<br>
 Python version: {platform.python_version()}""", unsafe_allow_html=True)
+    st.button("disable developer mode", on_click=disable_developer_mode, help="Click this button to disable developer mode, allowing you to see and interact with the app as a basic user would. You can refresh the page in your browser to re-enable developer mode.") #this is a callback for streamlit ui update-flow reasons.
 
-login_activity_counter_container.write(f"You are logged in as {email} . You have queried {st.session_state['use_count']} {'time' if st.session_state['use_count'] == 1 else 'times'} today, out of a limit of {use_count_limit}.")
+login_activity_counter_container.write( f"You are logged in as {email} . You have queried {st.session_state['use_count']} {'time' if st.session_state['use_count'] == 1 else 'times'} today, out of a limit of {use_count_limit}."+(" You are in developer mode." if developer_mode else "") )
 
 #activity logging takes a bit, so I've put it last to preserve immediate-feeling performance and responses for the user making a query
 if did_a_query:
