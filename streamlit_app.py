@@ -7,7 +7,6 @@ import json
 import os, psutil, platform
 from databricks import sql # Spooky that this is not the same name as the pypi package databricks-sql-connector, but is the way to refer to the same thing.
 from datetime import datetime, date
-from typing import Union #Perhaps one day we can upgrade python versions, use the type bar instead of the Union type, and remove this import
 import faiss
 from sentence_transformers import SentenceTransformer # Weird that this is how you reference the sentence-transformers package on pypi, too. Well, whatever.
 #COULD: use https://pypi.org/project/streamlit-profiler/ for profiling
@@ -21,7 +20,7 @@ if st.experimental_user['email'] is None:
 email = st.experimental_user['email']
 
 developer_mode = email in ["achang@targetedvictory.com", "test@example.com", "abrady@targetedvictory.com", "thall@targetedvictory.com", "afuhrer@targetedvictory.com", "wcarpenter@targetedvictory.com"] and not st.session_state.get("developer_mode_disabled")
-def disable_developer_mode(): st.session_state["developer_mode_disabled"] = True
+def disable_developer_mode() -> None: st.session_state["developer_mode_disabled"] = True
 
 loading_message = st.empty()
 loading_message.write("Loading CICERO.  This may take up to a minute...")
@@ -89,7 +88,7 @@ bios : dict[str, str] = load_bios()
 
 @st.cache_data()
 def load_account_names() -> list[str]:
-  return pd.read_csv("Client_List.csv")['ACCOUNT_NAME']
+  return list(pd.read_csv("Client_List.csv")['ACCOUNT_NAME'])
 account_names = load_account_names()
 
 @st.cache_data()
@@ -145,7 +144,7 @@ def sort_headlines_semantically(headlines: list[str], query: str, number_of_resu
 #Make default state, and other presets, so we can manage presets and resets.
 # Ah, finally, I've figured out how you're actually supposed to do it: https://docs.streamlit.io/library/advanced-features/button-behavior-and-examples#option-1-use-a-key-for-the-button-and-put-the-logic-before-the-widget
 #IMPORTANT: these field names are the same field names as what we eventually submit. HOWEVER, these are just the default values, and are only used for that, and are stored in this particular data structure, and do not overwrite the other variables of the same names that represent the returned values.
-presets: dict[str, dict[str, Union[float, int, bool, str, list[str], None]]] = {
+presets: dict[ str, dict[str, float|int|bool|str|list[str]|None] ] = {
   "default": {
     "temperature": 0.7,
     "target_charcount_min": 80,

@@ -10,9 +10,7 @@ To host Cicero, you will need a file, secrets.toml, to be placed in the .streaml
 
 Access to the version of Cicero hosted on the Streamlit Community Cloud on https://cicero.streamlit.app/ is controlled through a whitelist of emails that you can ask to be added to.
 
-The python version Cicero currently uses in production is 3.9. The production app is up at https://cicero.streamlit.app/ . There is also a staging/active-development version up at https://cicero-dev.streamlit.app/ . This also has its own repo that development is done in, instead of developing directly in prod. This would be a branch, and for that matter we would be using a later version of python, but ehhhh streamlit community cloud has weird constraints ehhhh don't worry about it.
-
-TODO: at some point I would like to upgrade past python 3.9, as it is the last python version that lacks the type bar `|`, which I would like to occasionally use.
+The python version Cicero currently uses in production is 3.11 , specifically 3.11.7 . It can probably run in 3.10 and 3.12+ as well, but not 3.9 because we elected to use a feature from after python 3.9 . The production app is up at https://cicero.streamlit.app/ . There is also a staging/active-development version up at https://cicero-dev.streamlit.app/ . This also has its own repo (a fork) that development is done in, instead of developing directly in prod. This would be a branch but streamlit community cloud only allows one deployment per repo. We don't require a specific version of streamlit in requirements.txt, so we probably get the latest one in production, which is probably Streamlit version 1.29.0 at time of writing.
 
 The current development workflow for this project is that changes are made in the dev(elopment) repo, and then once OK'd, that entire history is pushed to the prod(uction) repo. Patch notes may be created. If you are in dev, have to OK, and want to do the push to prod, here are the steps:
 
