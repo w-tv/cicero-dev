@@ -127,7 +127,7 @@ headlines_overdrive : list[str] = load_headlines(get_all=False, past_days=3)
 @st.cache_data()
 def sort_headlines_semantically(headlines: list[str], query: str, number_of_results_to_return:int=1) -> list[str]:
   """This does a bunch of gobbledygook no one understands. But the important thing is that it returns to you a function that will return to you the top k news results for a given query."""
-  model = SentenceTransformer("all-MiniLM-L6-v2")
+  model = SentenceTransformer("BAAI/bge-large-en-v1.5")
   faiss_title_embedding = model.encode(headlines)
   faiss.normalize_L2(faiss_title_embedding)
   # Index1DMap translates search results to IDs: https://faiss.ai/cpp_api/file/IndexIDMap_8h.html#_CPPv4I0EN5faiss18IndexIDMapTemplateE ; The IndexFlatIP below builds index.
