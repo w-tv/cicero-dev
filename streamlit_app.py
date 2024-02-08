@@ -29,8 +29,9 @@ import webbrowser
 redirect_uri = os.environ.get("REDIRECT_URI", "http://localhost:8501/") #TODO: do we need to change this?
 def auth_flow():
   auth_code = st.query_params.get("code")
-  flow = google_auth_oauthlib.flow.Flow.from_client_secrets_file(
-    "client_secret.json", # replace with you json credentials from your google auth app #TODO: should probably put the secrets in some kind of gitignored folder or something.
+  # Use your json credentials from your google auth app. You must place them, adapting their format, in secrets.toml under a heading [google_signin_secrets.installed] (you'll note that everything in the json is in an object with the key "installed", so from that you should be able to figure out the rest.
+  flow = google_auth_oauthlib.flow.Flow.from_client_config(
+    st.secrets["google_signin_secrets"],
     scopes=["https://www.googleapis.com/auth/userinfo.email", "openid"],
     redirect_uri=redirect_uri,
   )
@@ -50,7 +51,7 @@ def auth_flow():
     if st.button("Sign in with Google"):
       authorization_url, state = flow.authorization_url(access_type="offline", include_granted_scopes="true")
       webbrowser.open(authorization_url)
-if "google_auth_code" not in st.session_state:
+if "google_auth_code" not in st.session_state: #TODO: use cookies to extend this state's lifetime.
   auth_flow()
 if "google_auth_code" in st.session_state:
   email = st.session_state["user_info"].get("email")
