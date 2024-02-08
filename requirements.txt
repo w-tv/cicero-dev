@@ -1,7 +1,8 @@
-streamlit
+streamlit >= 1.30.0
 pandas
 databricks-sql-connector==3.0.1
 faiss-cpu==1.7.4
 sentence-transformers
 psutil
 transformers
+google-auth

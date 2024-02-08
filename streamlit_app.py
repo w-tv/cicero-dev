@@ -18,6 +18,43 @@ if st.experimental_user['email'] is None:
   st.write("Your user email is None, which implies we are currently running publicly on Streamlit Community Cloud. https://docs.streamlit.io/library/api-reference/personalization/st.experimental_user#public-app-on-streamlit-community-cloud. This app is configured to function only privately and permissionedly, so we will now exit. Good day.")
   exit()
 email = st.experimental_user['email']
+if st.experimental_user['email'] == 'text@example.com': #TODO: we should not rely on this behavior. Which is easy, because we don't currently use it for anything
+  pass #The streamlit app is running "locally", which means everywhere but the streamlit community cloud.
+
+# Google sign-in logic
+# Taken from Miguel_Hentoux here https://discuss.streamlit.io/t/google-authentication-in-a-streamlit-app/43252/18 , and modified
+import google_auth_oauthlib.flow
+from googleapiclient.discovery import build
+import webbrowser
+redirect_uri = os.environ.get("REDIRECT_URI", "http://localhost:8501/") #TODO: do we need to change this?
+def auth_flow():
+  auth_code = st.query_params.get("code")
+  flow = google_auth_oauthlib.flow.Flow.from_client_secrets_file(
+    "client_secret.json", # replace with you json credentials from your google auth app #TODO: should probably put the secrets in some kind of gitignored folder or something.
+    scopes=["https://www.googleapis.com/auth/userinfo.email", "openid"],
+    redirect_uri=redirect_uri,
+  )
+  signed_in = False
+  if auth_code:
+    try:
+      flow.fetch_token(code=auth_code)
+      user_info_service = build(serviceName="oauth2", version="v2", credentials=flow.credentials)
+      user_info = user_info_service.userinfo().get().execute()
+      assert user_info.get("email"), "Email not found in google OAuth info"
+      st.session_state["google_auth_code"] = auth_code
+      st.session_state["user_info"] = user_info
+      signed_in = True
+    except Exception as e: #we always get an InvalidGrantError on an F5 if the user was logged-in.
+      pass
+  if not signed_in:
+    if st.button("Sign in with Google"):
+      authorization_url, state = flow.authorization_url(access_type="offline", include_granted_scopes="true")
+      webbrowser.open(authorization_url)
+if "google_auth_code" not in st.session_state:
+  auth_flow()
+if "google_auth_code" in st.session_state:
+  email = st.session_state["user_info"].get("email")
+  st.write(f"Google signed-in as {email}")
 
 developer_mode = email in ["achang@targetedvictory.com", "test@example.com", "abrady@targetedvictory.com", "thall@targetedvictory.com", "afuhrer@targetedvictory.com", "wcarpenter@targetedvictory.com"] and not st.session_state.get("developer_mode_disabled")
 def disable_developer_mode() -> None: st.session_state["developer_mode_disabled"] = True
