@@ -5,4 +5,6 @@ faiss-cpu==1.7.4
 sentence-transformers
 psutil
 transformers
-google-auth
+google_auth_oauthlib
+google-api-python-client
+
