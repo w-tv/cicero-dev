@@ -89,7 +89,6 @@ models: dict[str,str] = { k:v for k, v in st.secrets['models'].items() if k.lowe
 
 @st.cache_data() #Necessity demands we do a manual cache of this function's result anyway in the one place we call it, but (for some reason) it seems like our deployed environment is messed up in some way I cannot locally replicate, which causes it to run this function once every five minutes. So, we cache it as well, to prevent waking up our server and costing us money.
 def count_from_activity_log_times_used_today(useremail: str = email) -> int: #this goes by whatever the datetime default timezone is because we don't expect the exact boundary to matter much.
-  print("count_from_activity_log_times_used_today ACTIVE")
   try: # This can fail if the table doesn't exist (at least not yet, as we create it on insert if it doesn't exist), so it's nice to have a default
     with sql.connect(server_hostname=os.getenv("DATABRICKS_SERVER_HOSTNAME"), http_path=os.getenv("DATABRICKS_HTTP_PATH"), access_token=os.getenv("databricks_api_token")) as connection: #These secrets should be in the root level of the .streamlit/secrets.toml
       with connection.cursor() as cursor:
@@ -391,7 +390,8 @@ with st.sidebar: #The history display includes a result of the logic of the scri
   if developer_mode:
     st.caption(f"""Streamlit app memory usage: {psutil.Process(os.getpid()).memory_info().rss // 1024 ** 2} MiB.<br>
 Time to display: {(perf_counter_ns()-nanoseconds_base)/1000/1000/1000} seconds.<br>
-Python version: {platform.python_version()}""", unsafe_allow_html=True)
+Python version: {platform.python_version()}<br>
+Base url: {get_base_url()}""", unsafe_allow_html=True)
     st.button("disable developer mode", on_click=disable_developer_mode, help="Click this button to disable developer mode, allowing you to see and interact with the app as a basic user would. You can refresh the page in your browser to re-enable developer mode.") #this is a callback for streamlit ui update-flow reasons.
 
 login_activity_counter_container.write( f"You are logged in as {email} . You have queried {st.session_state['use_count']} {'time' if st.session_state['use_count'] == 1 else 'times'} today, out of a limit of {use_count_limit}."+(" You are in developer mode." if developer_mode else "") )
