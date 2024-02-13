@@ -21,24 +21,24 @@ email = st.experimental_user['email']
 if st.experimental_user['email'] == 'text@example.com': #TODO: we should not rely on this behavior. Which is easy, because we don't currently use it for anything
   pass #The streamlit app is running "locally", which means everywhere but the streamlit community cloud.
 
-# Google sign-in logic
-# Taken from Miguel_Hentoux here https://discuss.streamlit.io/t/google-authentication-in-a-streamlit-app/43252/18 , and modified
+def get_base_url() -> str:
+  #This part is from BramVanroy https://github.com/streamlit/streamlit/issues/798#issuecomment-1647759949
+  import urllib.parse
+  # "WARNING: I found that in multi-page apps, this will always only return the base url and not the sub-page URL with the page appended to the end."
+  session = st.runtime.get_instance()._session_mgr.list_active_sessions()[0]
+  return urllib.parse.urlunparse([session.client.request.protocol, session.client.request.host, "", "", "", ""]) # for example, in testing, this value is probably: http://localhost:8501
+
+# Google sign-in logic. Taken from Miguel_Hentoux here https://discuss.streamlit.io/t/google-authentication-in-a-streamlit-app/43252/18 , and modified
 import google_auth_oauthlib.flow
 from googleapiclient.discovery import build
-
-#This part is from BramVanroy https://github.com/streamlit/streamlit/issues/798#issuecomment-1647759949
-import urllib.parse
-# "WARNING: I found that in multi-page apps, this will always only return the base url and not the sub-page URL with the page appended to the end."
-session = st.runtime.get_instance()._session_mgr.list_active_sessions()[0]
-redirect_uri = urllib.parse.urlunparse([session.client.request.protocol, session.client.request.host, "", "", "", ""]) # for example, in testing, this value is probably: http://localhost:8501
-
 def auth_flow():
   auth_code = st.query_params.get("code")
-  # Use your json credentials from your google auth app. You must place them, adapting their format, in secrets.toml under a heading [google_signin_secrets.installed] (you'll note that everything in the json is in an object with the key "installed", so from that you should be able to figure out the rest.
+  # Use your json credentials from your google auth app (Web Client). You must place them, adapting their format, in secrets.toml under a heading (you'll note that everything in the json is in an object with the key "installed", so from that you should be able to figure out the rest.
+  # previous versions of this code used [google_signin_secrets.installed], because, of course, the only us-defined portion is the google_signin_secrets portion
   flow = google_auth_oauthlib.flow.Flow.from_client_config(
     st.secrets["google_signin_secrets"],
     scopes=["https://www.googleapis.com/auth/userinfo.email", "openid"],
-    redirect_uri=redirect_uri,
+    redirect_uri=get_base_url(),
   )
   signed_in = False
   if auth_code:
