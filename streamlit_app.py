@@ -25,8 +25,13 @@ if st.experimental_user['email'] == 'text@example.com': #TODO: we should not rel
 # Taken from Miguel_Hentoux here https://discuss.streamlit.io/t/google-authentication-in-a-streamlit-app/43252/18 , and modified
 import google_auth_oauthlib.flow
 from googleapiclient.discovery import build
-import webbrowser
-redirect_uri = os.environ.get("REDIRECT_URI", "http://localhost:8501/") #TODO: do we need to change this?
+
+#This part is from BramVanroy https://github.com/streamlit/streamlit/issues/798#issuecomment-1647759949
+import urllib.parse
+# "WARNING: I found that in multi-page apps, this will always only return the base url and not the sub-page URL with the page appended to the end."
+session = st.runtime.get_instance()._session_mgr.list_active_sessions()[0]
+redirect_uri = urllib.parse.urlunparse([session.client.request.protocol, session.client.request.host, "", "", "", ""]) # for example, in testing, this value is probably: http://localhost:8501
+
 def auth_flow():
   auth_code = st.query_params.get("code")
   # Use your json credentials from your google auth app. You must place them, adapting their format, in secrets.toml under a heading [google_signin_secrets.installed] (you'll note that everything in the json is in an object with the key "installed", so from that you should be able to figure out the rest.
