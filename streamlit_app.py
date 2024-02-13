@@ -54,7 +54,7 @@ def auth_flow():
       pass
   if not signed_in:
     authorization_url, state = flow.authorization_url(access_type="offline", include_granted_scopes="true") #ignore the fact that this says the access_type is offline, that's not relevant to our deployment; it's about something different.
-    st.link_button("Sign in with Google", authorization_url)
+    st.markdown(f'<a href="{authorization_url}" target="_self"><button>Sign in with Google</button></a>',unsafe_allow_html=True) #Fun fact: the button element actually does nothing, and simply serves to stylize the link which contains it.
 
 if "google_auth_code" not in st.session_state: #TODO: use cookies to extend this state's lifetime.
   auth_flow()
@@ -403,4 +403,4 @@ if did_a_query:
   write_to_activity_log_table(datetime=str(datetime.now()), useremail=email, promptsent=prompt, responsegiven=json.dumps(outputs), modelparams=no_prompt_dict_str)
 
 # from streamlit.components.v1 import html
-# html('<!--<script>//you can include arbitrary html and javascript this way</script>-->')
+# html('<!--<script>//you can include arbitrary html and javascript this way</script>-->') #or, use st.markdown

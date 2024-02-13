@@ -15,6 +15,8 @@ output_file = sys.argv[2]
 with open(json_file) as source:
     config = json.loads(source.read())
 
+config = {"google_signin_secrets": config} #this line is new, and domain-specific to us
+
 toml_config = toml.dumps(config)
 
 with open(output_file, 'w') as target:
