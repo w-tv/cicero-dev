@@ -48,9 +48,9 @@ def auth_flow():
     except Exception as e: #we always get an InvalidGrantError on an F5 if the user was logged-in.
       pass
   if not signed_in:
-    if st.button("Sign in with Google"):
-      authorization_url, state = flow.authorization_url(access_type="offline", include_granted_scopes="true")
-      webbrowser.open(authorization_url)
+    authorization_url, state = flow.authorization_url(access_type="offline", include_granted_scopes="true") #ignore the fact that this says the access_type is offline, that's not relevant to our deployment; it's about something different.
+    st.link_button("Sign in with Google", authorization_url)
+
 if "google_auth_code" not in st.session_state: #TODO: use cookies to extend this state's lifetime.
   auth_flow()
 if "google_auth_code" in st.session_state:
