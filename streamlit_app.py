@@ -54,7 +54,7 @@ def auth_flow():
       pass
   if not signed_in:
     authorization_url, state = flow.authorization_url(access_type="offline", include_granted_scopes="true") #ignore the fact that this says the access_type is offline, that's not relevant to our deployment; it's about something different.
-    st.markdown(f'<meta http-equiv="Content-Security-Policy" content="default-src *; style-src \'self\' \'unsafe-inline\'; script-src \'self\' \'unsafe-inline\' \'unsafe-eval\' http://www.google.com"><a href="{authorization_url}" target="_self"><button>Sign in with Google</button></a>',unsafe_allow_html=True) #Fun fact: the button element actually does nothing, and simply serves to stylize the link which contains it.
+    st.markdown(f'<a href="{authorization_url}" onclick="close()"><button>Sign in with Google</button></a>',unsafe_allow_html=True)
 
 if "google_auth_code" not in st.session_state: #TODO: use cookies to extend this state's lifetime.
   auth_flow()
