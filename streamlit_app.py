@@ -11,8 +11,14 @@ import faiss
 from sentence_transformers import SentenceTransformer # Weird that this is how you reference the sentence-transformers package on pypi, too. Well, whatever.
 #COULD: use https://pypi.org/project/streamlit-profiler/ for profiling
 from transformers import GenerationConfig
+from typing import NoReturn
 
 st.set_page_config(layout="wide") # Use wide mode in Cicero, mostly so that results display more of their text by default. #NOTE: "`set_page_config()` can only be called once per app page, and must be called as the first Streamlit command in your script."
+
+def blank_the_page_for_redirect() -> NoReturn: #ideally we wouldn't have to do this, but it's tough to use a single-tab workflow here because streamlit is entirely in an iframe, which breaks several things.
+  authorization_url = st.session_state["authorization_url"]
+  st.components.v1.html(f'<script>window.open("{authorization_url}");</script><p>You have elected to sign-in with Google, which opens a new tab. You may now close this tab. If you do not see a new tab, visit <a href="{authorization_url}">click here</a></p>')
+  exit()
 
 if st.experimental_user['email'] is None:
   st.write("Your user email is None, which implies we are currently running publicly on Streamlit Community Cloud. https://docs.streamlit.io/library/api-reference/personalization/st.experimental_user#public-app-on-streamlit-community-cloud. This app is configured to function only privately and permissionedly, so we will now exit. Good day.")
@@ -50,11 +56,12 @@ def auth_flow():
       st.session_state["google_auth_code"] = auth_code
       st.session_state["user_info"] = user_info
       signed_in = True
-    except Exception as e: #we always get an InvalidGrantError on an F5 if the user was logged-in.
+    except Exception as e: #we always get an InvalidGrantError on an F5 if the user was logged-in. Not sure why.
       pass
   if not signed_in:
     authorization_url, state = flow.authorization_url(access_type="offline", include_granted_scopes="true") #ignore the fact that this says the access_type is offline, that's not relevant to our deployment; it's about something different.
-    st.markdown(f'<a href="{authorization_url}" onclick="close()"><button>Sign in with Google</button></a>',unsafe_allow_html=True)
+    st.session_state["authorization_url"] = authorization_url
+    st.button("Sign in with Google", on_click=blank_the_page_for_redirect)
 
 if "google_auth_code" not in st.session_state: #TODO: use cookies to extend this state's lifetime.
   auth_flow()
@@ -402,5 +409,4 @@ if did_a_query:
   no_prompt_dict_str = str(dict_prompt)
   write_to_activity_log_table(datetime=str(datetime.now()), useremail=email, promptsent=prompt, responsegiven=json.dumps(outputs), modelparams=no_prompt_dict_str)
 
-# from streamlit.components.v1 import html
-# html('<!--<script>//you can include arbitrary html and javascript this way</script>-->') #or, use st.markdown
+# st.components.v1.html('<!--<script>//you can include arbitrary html and javascript this way</script>-->') #or, use st.markdown, if you want arbitrary html but javascript isn't needed.
