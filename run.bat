@@ -1,4 +1,5 @@
-python -m venv .venv
+uv --version || pip install uv --disable-pip-version-check
+uv venv
 .venv/Scripts/activate
-pip install -r requirements.txt --disable-pip-version-check --quiet
+uv pip sync requirements.txt
 streamlit run streamlit_app.py
