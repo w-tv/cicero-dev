@@ -97,14 +97,14 @@ def load_headlines(get_all:bool=False, past_days:int=7) -> list[str]:
     with sql.connect(server_hostname=os.getenv("DATABRICKS_SERVER_HOSTNAME"), http_path=os.getenv("DATABRICKS_HTTP_PATH"), access_token=os.getenv("databricks_api_token")) as connection: #These secrets should be in the root level of the .streamlit/secrets.toml
       with connection.cursor() as cursor:
         results = cursor.execute(
-          "SELECT DISTINCT headline FROM main.default.headline_log" if get_all else
+          "SELECT DISTINCT headline FROM cicero.default.headline_log" if get_all else
           f"""WITH SortedHeadlines AS (
                 SELECT
                     datetime,
                     headline,
                     ROW_NUMBER() OVER (PARTITION BY headline ORDER BY datetime DESC, headline) AS row_num
                 FROM
-                    main.default.headline_log
+                    cicero.default.headline_log
                 )
               SELECT
                 headline
