@@ -37,7 +37,7 @@ def get_base_url() -> str:
 # Google sign-in logic. Taken from Miguel_Hentoux here https://discuss.streamlit.io/t/google-authentication-in-a-streamlit-app/43252/18 , and modified
 import google_auth_oauthlib.flow
 from googleapiclient.discovery import build
-def auth_flow():
+def auth_flow() -> None:
   auth_code = st.query_params.get("code")
   # Use your json credentials from your google auth app (Web Client). You must place them, adapting their format, in secrets.toml under a heading (you'll note that everything in the json is in an object with the key "installed", so from that you should be able to figure out the rest.
   # previous versions of this code used [google_signin_secrets.installed], because, of course, the only us-defined portion is the google_signin_secrets portion
