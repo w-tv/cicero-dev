@@ -48,6 +48,8 @@ x = sql_call("""WITH stats(hook, funds, sent, spend, result_count) AS (SELECT Ho
 
 # TODO: use the hook display name to hook table name mapping from the google sheet, or whatever.
 
+st.scatter_chart(x)
+
 st.write(x)
 
 st.write(x[0])
