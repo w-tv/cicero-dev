@@ -35,14 +35,23 @@ def sql_call(query: str) -> list[str]: #possibly add a params dict param?
     Sent - SUM of Sent
     Result Count - Count Distinct of Result Name"""
 
-#x = overall_sum_of_tv_funds = sql_call("SELECT SUM(TV_FUNDS) FROM main.hook_reporting.hook_data_prod")[0][0] #not actually used anywhere
-funds, fpm, roas, sent, result_count = x = sql_call("""WITH stats(funds, sent, spend, result_count) AS (SELECT SUM(TV_FUNDS), SUM(SENT), SUM(SPEND_AMOUNT), COUNT(DISTINCT RESULT_NAME) FROM main.hook_reporting.hook_data_prod)
-SELECT funds, funds / sent * 1000, funds/spend, sent, result_count from stats""")[0] #not actually used anywhere, but sort of related to what's on the graph
+#There's only really one complication to this data, which is that each row is duplicated n times — the product of the row and the list of hook types. Then only the true hooks have Hook_Bool true (all others have Hook_Bool null, which is our signal to ignore that row). This is just because it's easy to do a pivot table (or something) in Tableau that way; it doesn't actually matter. But
 
-funds, fpm, roas, sent, result_count = x = sql_call("""WITH stats(funds, sent, spend, result_count) AS (SELECT SUM(TV_FUNDS), SUM(SENT), SUM(SPEND_AMOUNT), COUNT(DISTINCT RESULT_NAME) FROM main.hook_reporting.hook_data_prod WHERE PROJECT_TYPE="Text Message: P2P" and GOAL="Fundraising" and SEND_DATE="2024-01-01")
-SELECT funds, funds / sent * 1000, funds/spend, sent, result_count from stats""")[0] #not actually used anywhere, but sort of related to what's on the graph # TODO: need to dedup these because of the hook duplication structure.
+# These are not actually used in our program, but are related queries I build while poking about.
+#x = overall_sum_of_tv_funds = sql_call("SELECT SUM(TV_FUNDS) FROM main.hook_reporting.hook_data_prod")[0][0]
+#funds, fpm, roas, sent, result_count = x = sql_call("""WITH stats(funds, sent, spend, result_count) AS (SELECT SUM(TV_FUNDS), SUM(SENT), SUM(SPEND_AMOUNT), COUNT(DISTINCT RESULT_NAME) FROM main.hook_reporting.hook_data_prod) SELECT funds, funds / sent * 1000, funds/spend, sent, result_count from stats""")[0]
+#funds, fpm, roas, sent, result_count = x = sql_call("""WITH stats(funds, sent, spend, result_count) AS (SELECT SUM(TV_FUNDS), SUM(SENT), SUM(SPEND_AMOUNT), COUNT(DISTINCT RESULT_NAME) FROM main.hook_reporting.hook_data_prod WHERE PROJECT_TYPE="Text Message: P2P" and GOAL="Fundraising" and SEND_DATE="2024-01-01" and Hooks="all_hook") SELECT funds, funds / sent * 1000, funds/spend, sent, result_count from stats""")[0]
+
+x = sql_call("""WITH stats(hook, funds, sent, spend, result_count) AS (SELECT Hooks, SUM(TV_FUNDS), SUM(SENT), SUM(SPEND_AMOUNT), COUNT(DISTINCT RESULT_NAME) FROM main.hook_reporting.hook_data_prod WHERE PROJECT_TYPE="Text Message: P2P" and GOAL="Fundraising" and SEND_DATE="2024-01-01" and Hook_Bool=true GROUP BY Hooks) SELECT hook, funds, funds / sent * 1000, funds/spend, sent, result_count from stats""") #this is, basically, the entirety of what we need to do the thing
+
+# AND datetime >= NOW() - INTERVAL {past_days} DAY # TODO: adapt this to control the send_data on either side.
+
+# TODO: use the hook display name to hook table name mapping from the google sheet, or whatever.
 
 st.write(x)
+
+st.write(x[0])
+
 
 st.caption(f"""Streamlit app memory usage: {psutil.Process(os.getpid()).memory_info().rss // 1024 ** 2} MiB.<br>
 Time to display: {(perf_counter_ns()-nanoseconds_base)/1000/1000/1000} seconds.<br>
