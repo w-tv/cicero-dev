@@ -34,15 +34,12 @@ def sql_call(query: str) -> list[str]: #possibly add a params dict param?
     with connection.cursor() as cursor:
       return cursor.execute(query).fetchall()
 
-date_range = st.radio("Date range", ["Yesterday", "Last 7 days", "Last 14 days", "Last 30 days"])
-st.write(date_range)
-# AND datetime >= NOW() - INTERVAL {past_days} DAY # TODO: adapt this to control the send_data on either side.
-
+past_days = st.radio("Date range", [1, 7, 14, 30], index=1, format_func=lambda x: "Yesterday" if x == 1 else f"Last {x} days")
 
 #To minimize RAM usage on the front end, most of the computation is done in the sql query, on the backend. To minimize latency, all of the summary statistics under consideration are queried at once (this is also very easy to do, because it's what SQL is built to do).
 
 #There's only really one complication to this data, which is that each row is duplicated n times — the "product" of the row and the list of hook types, as it were. Then only the true hooks have Hook_Bool true (all others have Hook_Bool null, which is our signal to ignore that row). This is just because it's easy to do a pivot table (or something) in Tableau that way; it doesn't actually matter. But we have to deal with it. It is also easy for us to deal with in SQL using WHERE Hook_Bool=true GROUP BY Hooks.
-summary_data_per_hooks = sql_call("""WITH stats(hook, funds, sent, spend, result_count) AS (SELECT Hooks, SUM(TV_FUNDS), SUM(SENT), SUM(SPEND_AMOUNT), COUNT(DISTINCT RESULT_NAME) FROM main.hook_reporting.hook_data_prod WHERE PROJECT_TYPE="Text Message: P2P" and GOAL="Fundraising" and SEND_DATE="2024-01-01" and Hook_Bool=true GROUP BY Hooks) SELECT hook, funds, funds/sent*1000, funds/spend*100, sent, result_count from stats""") #this is, basically, the entirety of what we need to do the thing
+summary_data_per_hooks = sql_call(f"""WITH stats(hook, funds, sent, spend, result_count) AS (SELECT Hooks, SUM(TV_FUNDS), SUM(SENT), SUM(SPEND_AMOUNT), COUNT(DISTINCT RESULT_NAME) FROM main.hook_reporting.hook_data_prod WHERE PROJECT_TYPE="Text Message: P2P" and GOAL="Fundraising" and SEND_DATE >= NOW() - INTERVAL {past_days} DAY and Hook_Bool=true GROUP BY Hooks) SELECT hook, funds, funds/sent*1000, funds/spend*100, sent, result_count from stats""") #this is, basically, the entirety of what we need to do the thing
 #st.write(summary_data_per_hooks)
 
 # I did a lot of crazy CONCAT and CAST logic in a previous version of this code, but this made everything into a string, and thus the graph used string-sorting order, ruining everything.
