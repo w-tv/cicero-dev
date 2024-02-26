@@ -1,3 +1,7 @@
+#!/usr/bin/env -S streamlit run
+# You must have streamlit installed to run this program. Among other things. Why not run this script using run.bat instead?
+# If you are looking for the hook reporting page, check the pages/ directory
+
 from time import perf_counter_ns
 nanoseconds_base : int = perf_counter_ns()
 import streamlit as st
