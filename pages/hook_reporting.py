@@ -1,14 +1,25 @@
+#!/usr/bin/env -S streamlit run
+
+"""
+This page performs a peculiar task known as "hook reporting", which is basically just summary statistics about various topic keywords.
+
+You must have streamlit installed to run this program. This script is usually run as part of Cicero run.bat in the main folder.
+
+List of derived quantities, left to right (does not include "hook":
+  TV Funds: SUM of TV Funds
+  FPM ($): SUM([TV_FUNDS]) / SUM([SENT]) * 1000
+  ROAS (%): SUM([TV_FUNDS]) / SUM([SPEND_AMOUNT]) PERCENT
+  Sent: SUM of Sent
+  Result_Count: Count Distinct of Result Name
+"""
+
 from time import perf_counter_ns
 nanoseconds_base : int = perf_counter_ns()
 import streamlit as st
 from databricks import sql
 import os, psutil, platform
 
-st.set_page_config(
-  layout="wide",
-  page_title="Hook Reporting", #this is of questionable usefulness, as it just changes the browser tab display.
-  page_icon="🪝",
-)
+st.set_page_config(layout="wide", page_title="Hook Reporting", page_icon="🪝")
 
 def get_base_url() -> str:
   #This part is from BramVanroy https://github.com/streamlit/streamlit/issues/798#issuecomment-1647759949
@@ -23,14 +34,13 @@ def sql_call(query: str) -> list[str]: #possibly add a params dict param?
     with connection.cursor() as cursor:
       return cursor.execute(query).fetchall()
 
+date_range = st.radio("Date range", ["Yesterday", "Last 7 days", "Last 14 days", "Last 30 days"])
+st.write(date_range)
+# AND datetime >= NOW() - INTERVAL {past_days} DAY # TODO: adapt this to control the send_data on either side.
+
+
 #To minimize RAM usage on the front end, most of the computation is done in the sql query, on the backend. To minimize latency, all of the summary statistics under consideration are queried at once (this is also very easy to do, because it's what SQL is built to do).
 
-"""List of graphs, top to bottom:
-    TV Funds: SUM of TV Funds
-    FPM ($): SUM([TV_FUNDS]) / SUM([SENT]) * 1000
-    ROAS (%): SUM([TV_FUNDS]) / SUM([SPEND_AMOUNT]) PERCENT
-    Sent: SUM of Sent
-    Result_Count: Count Distinct of Result Name"""
 #There's only really one complication to this data, which is that each row is duplicated n times — the "product" of the row and the list of hook types, as it were. Then only the true hooks have Hook_Bool true (all others have Hook_Bool null, which is our signal to ignore that row). This is just because it's easy to do a pivot table (or something) in Tableau that way; it doesn't actually matter. But we have to deal with it. It is also easy for us to deal with in SQL using WHERE Hook_Bool=true GROUP BY Hooks.
 summary_data_per_hooks = sql_call("""WITH stats(hook, funds, sent, spend, result_count) AS (SELECT Hooks, SUM(TV_FUNDS), SUM(SENT), SUM(SPEND_AMOUNT), COUNT(DISTINCT RESULT_NAME) FROM main.hook_reporting.hook_data_prod WHERE PROJECT_TYPE="Text Message: P2P" and GOAL="Fundraising" and SEND_DATE="2024-01-01" and Hook_Bool=true GROUP BY Hooks) SELECT hook, funds, funds/sent*1000, funds/spend*100, sent, result_count from stats""") #this is, basically, the entirety of what we need to do the thing
 #st.write(summary_data_per_hooks)
@@ -41,19 +51,10 @@ summary_data_per_hooks = sql_call("""WITH stats(hook, funds, sent, spend, result
 # TODO: display big hook color key to the left of the graph?
 # TODO: add controls
 # TODO: add other graphs
-# AND datetime >= NOW() - INTERVAL {past_days} DAY # TODO: adapt this to control the send_data on either side.
-
-# fpms = {row[0]:row[2] for row in summary_data_per_hooks}
-# roases = {row[0]:row[3] for row in summary_data_per_hooks}
-
-#st.scatter_chart({row[3]:row[2] for row in summary_data_per_hooks}) #this works pretty well for the top x-y roas-fpm graph
-#, x="ROAS", y="FPM") #HMM, these don't really work.
 
 key_of_rows = ("Hook", "Funds", "FPM ($)", "ROAS (%)", "Sent", "Result count")
 
 dicted_rows = {key_of_rows[i]: [row[i] for row in summary_data_per_hooks] for i, key in enumerate(key_of_rows)} #various formats probably work for this; this is just one of them.
-
-#st.write(dicted_rows)
 
 st.scatter_chart(dicted_rows, x="ROAS (%)", y="FPM ($)", color="Hook")
 

@@ -1,6 +1,8 @@
 #!/usr/bin/env -S streamlit run
-# You must have streamlit installed to run this program. Among other things. Why not run this script using run.bat instead?
-# If you are looking for the hook reporting page, check the pages/ directory
+""" This is Cicero, a model prompter.
+You must have streamlit installed to run this program. Among other things. Why not run this script using run.bat instead?
+If you are looking for the hook reporting page, check the pages/ directory
+"""
 
 from time import perf_counter_ns
 nanoseconds_base : int = perf_counter_ns()
@@ -17,7 +19,7 @@ from sentence_transformers import SentenceTransformer # Weird that this is how y
 from transformers import GenerationConfig
 from typing import NoReturn
 
-st.set_page_config(layout="wide") # Use wide mode in Cicero, mostly so that results display more of their text by default. #NOTE: "`set_page_config()` can only be called once per app page, and must be called as the first Streamlit command in your script."
+st.set_page_config(layout="wide", page_title="Cicero", page_icon="🗣️") # Use wide mode in Cicero, mostly so that results display more of their text by default. Also, set title and favicon. #NOTE: "`set_page_config()` can only be called once per app page, and must be called as the first Streamlit command in your script."
 
 def blank_the_page_for_redirect() -> NoReturn: #ideally we wouldn't have to do this, but it's tough to use a single-tab workflow here because streamlit is entirely in an iframe, which breaks several things.
   authorization_url = st.session_state["authorization_url"]
