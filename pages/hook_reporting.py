@@ -41,7 +41,7 @@ past_days = st.radio("Date range", [1, 7, 14, 30], index=1, format_func=lambda x
 
 #To minimize RAM usage on the front end, most of the computation is done in the sql query, on the backend.
 #There's only really one complication to this data, which is that each row is duplicated n times — the "product" of the row and the list of hook types, as it were. Then only the true hooks have Hook_Bool true (all others have Hook_Bool null, which is our signal to ignore that row). This is just because it's easy to do a pivot table (or something) in Tableau that way; it doesn't actually matter. But we have to deal with it. It is also easy for us to deal with in SQL using WHERE Hook_Bool=true GROUP BY Hooks.
-summary_data_per_hook = sql_call(f"""WITH stats(hook, funds, sent, spend, result_count) AS (SELECT Hooks, SUM(TV_FUNDS), SUM(SENT), SUM(SPEND_AMOUNT), COUNT(DISTINCT RESULT_NAME) FROM hook_reporting.default.hook_data_prod WHERE PROJECT_TYPE="Text Message: P2P" and GOAL="Fundraising" and SEND_DATE >= NOW() - INTERVAL {past_days} DAY and Hook_Bool=true GROUP BY Hooks) SELECT hook, funds, try_divide(funds, sent*1000), try_divide(funds, spend*100), sent, result_count from stats""") #this is, basically, the entirety of what we need to do the thing
+summary_data_per_hook = sql_call(f"""WITH stats(hook, funds, sent, spend, result_count) AS (SELECT Hooks, SUM(TV_FUNDS), SUM(SENT), SUM(SPEND_AMOUNT), COUNT(DISTINCT RESULT_NAME) FROM hook_reporting.default.hook_data_prod WHERE PROJECT_TYPE="Text Message: P2P Internal" and GOAL="Fundraising" and SEND_DATE >= NOW() - INTERVAL {past_days} DAY and Hook_Bool=true GROUP BY Hooks) SELECT hook, funds, try_divide(funds, sent)*1000, try_divide(funds, spend)*100, sent, result_count from stats""") #this is, basically, the entirety of what we need to do the thing
 
 # I did a lot of crazy CONCAT and CAST logic in a previous version of this code, but this made everything into a string, and thus the graph used string-sorting order, ruining everything.
 
@@ -50,21 +50,20 @@ summary_data_per_hook = sql_call(f"""WITH stats(hook, funds, sent, spend, result
 
 key_of_rows = ("Hook", "Funds", "FPM ($)", "ROAS (%)", "Sent", "Result count")
 
-def to_graphable_dict(values: Iterable[Iterable]) -> list[dict]:
+def to_graphable_dict(values: Iterable[Iterable], x='x', y='y', color='color') -> list[dict]:
   if len(values) == 3: #it's a 3-list of n-lists
-    return [{"x": values[0][i], "y":values[1][i], "color":values[2][i]} for i, _ in enumerate(values[0])]
+    return [{x: values[0][i], y:values[1][i], color:values[2][i]} for i, _ in enumerate(values[0])]
   else:
-    return [{"x": value[0], "y":value[1], "color":value[2]} for value in values]
+    return [{x: value[0], y:value[1], color:value[2]} for value in values]
 
 dicted_rows = {key_of_rows[i]: [row[i] for row in summary_data_per_hook] for i, key in enumerate(key_of_rows)} #various formats probably work for this; this is just one of them.
 
 st.scatter_chart(dicted_rows, x="ROAS (%)", y="FPM ($)", color="Hook")
 
 # Behold! Day (x) vs TV funds (y) line graph, per selected hook, which is what we decided was the only other important graph to keep from the old hook reporting application.
-days_per_hook = sql_call(f"""WITH stats(date, funds, hook) AS (SELECT SEND_DATE, SUM(TV_FUNDS), Hooks FROM hook_reporting.default.hook_data_prod WHERE PROJECT_TYPE="Text Message: P2P" and GOAL="Fundraising" and Hook_Bool=true GROUP BY SEND_DATE, Hooks) SELECT date, funds, hook from stats""")
-x = [ [1, 2, 3], [42, 50, 63] ]
-st.write(to_graphable_dict(x))
-st.line_chart(to_graphable_dict(days_per_hook), x='x', y='y', color='color')
+#TODO: filter this by selected Hooks, I'm pretty sure.
+days_per_hook = sql_call(f"""WITH stats(date, funds, hook) AS (SELECT SEND_DATE, SUM(TV_FUNDS), Hooks FROM hook_reporting.default.hook_data_prod WHERE PROJECT_TYPE="Text Message: P2P Internal" and GOAL="Fundraising" and Hook_Bool=true GROUP BY SEND_DATE, Hooks) SELECT date, funds, hook from stats""")
+st.line_chart(to_graphable_dict(days_per_hook, "Day", "Funds", "Hook"), x='Day', y='Funds', color='Hook')
 
 st.caption(f"""Streamlit app memory usage: {psutil.Process(os.getpid()).memory_info().rss // 1024 ** 2} MiB.<br>
 Time to display: {(perf_counter_ns()-nanoseconds_base)/1000/1000/1000} seconds.<br>
