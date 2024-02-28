@@ -13,11 +13,8 @@ def main() -> None:
     Result_Count: Count Distinct of Result Name
   """
 
-  from time import perf_counter_ns
-  nanoseconds_base : int = perf_counter_ns()
   import streamlit as st
   from databricks import sql
-  import os, psutil, platform
   from collections.abc import Iterable
 
   @st.cache_data() # I decided to memoize this function primarily in order to make development of the graphing go more rapidly, but it's possible that this will cost us an unfortunate amount of RAM if maybe people use this page. So, removing this memoization is something to consider.
@@ -55,8 +52,4 @@ def main() -> None:
   #TODO: filter this by selected Hooks, I'm pretty sure.
   days_per_hook = sql_call(f"""WITH stats(date, funds, hook) AS (SELECT SEND_DATE, SUM(TV_FUNDS), Hooks FROM hook_reporting.default.hook_data_prod WHERE PROJECT_TYPE="Text Message: P2P Internal" and GOAL="Fundraising" and Hook_Bool=true GROUP BY SEND_DATE, Hooks) SELECT date, funds, hook from stats""")
   st.line_chart(to_graphable_dict(days_per_hook, "Day", "Funds ($)", "Hook"), x='Day', y='Funds ($)', color='Hook')
-
-  st.caption(f"""Streamlit app memory usage: {psutil.Process(os.getpid()).memory_info().rss // 1024 ** 2} MiB.<br>
-  Time to display: {(perf_counter_ns()-nanoseconds_base)/1000/1000/1000} seconds.<br>
-  Python version: {platform.python_version()}<br>""", unsafe_allow_html=True)
 if __name__ == "__main__": main()

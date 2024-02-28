@@ -3,8 +3,11 @@
 You must have streamlit installed to run this program. Among other things. Why not run this script using run.bat instead?
 Check the component_pages/ directory for various functionality of Cicero.
 """
-
+from time import perf_counter_ns
+nanoseconds_base : int = perf_counter_ns()
 import streamlit as st
+import os, psutil, platform
+import urllib.parse
 from typing import NoReturn
 from component_pages import prompter, hook_reporting
 
@@ -15,6 +18,8 @@ st.markdown('<h1><img src="https://targetedvictory.com/wp-content/uploads/2019/0
 loading_message = st.empty()
 loading_message.write("Loading CICERO.  This may take up to a minute...")
 
+
+
 def blank_the_page_for_redirect() -> NoReturn: #ideally we wouldn't have to do this, but it's tough to use a single-tab workflow here because streamlit is entirely in an iframe, which breaks several things.
   authorization_url = st.session_state["authorization_url"]
   st.components.v1.html(f'<script>window.open("{authorization_url}");</script><p>You have elected to sign-in with Google, which opens a new tab. You may now close this tab. If you do not see a new tab, visit <a href="{authorization_url}">click here</a></p>')
@@ -23,13 +28,16 @@ def blank_the_page_for_redirect() -> NoReturn: #ideally we wouldn't have to do t
 if st.experimental_user['email'] is None:
   st.write("Your user email is None, which implies we are currently running publicly on Streamlit Community Cloud. https://docs.streamlit.io/library/api-reference/personalization/st.experimental_user#public-app-on-streamlit-community-cloud. This app is configured to function only privately and permissionedly, so we will now exit. Good day.")
   exit()
-email = st.experimental_user['email']
+email = st.experimental_user['email'] #TODO: this should eventually use the google email stuff, or we should have a firm idea about how the google email should override or be overridden by the google email.
+
+st.session_state['developer_mode'] = email in ["achang@targetedvictory.com", "test@example.com", "abrady@targetedvictory.com", "thall@targetedvictory.com", "afuhrer@targetedvictory.com", "wcarpenter@targetedvictory.com"] and not st.session_state.get("developer_mode_disabled")
+def disable_developer_mode() -> None: st.session_state["developer_mode_disabled"] = True
+
 if st.experimental_user['email'] == 'text@example.com': #TODO: we should not rely on this behavior. Which is easy, because we don't currently use it for anything
   pass #The streamlit app is running "locally", which means everywhere but the streamlit community cloud.
 
 def get_base_url() -> str:
   #This part is from BramVanroy https://github.com/streamlit/streamlit/issues/798#issuecomment-1647759949
-  import urllib.parse
   # "WARNING: I found that in multi-page apps, this will always only return the base url and not the sub-page URL with the page appended to the end."
   try:
     session = st.runtime.get_instance()._session_mgr.list_active_sessions()[0] # There's occasionally a harmless IndexError: list index out of range from this line of code on Streamlit Community Cloud, which I'd like to suppress for the convenience of the reader of the logs.
@@ -69,7 +77,7 @@ def auth_flow() -> None:
 if "google_auth_code" not in st.session_state: #TODO: use cookies to extend this state's lifetime.
   auth_flow()
 if "google_auth_code" in st.session_state:
-  email = st.session_state["user_info"].get("email") #TODO: I think this should probably set the session state emil instead?
+  email = st.session_state["user_info"].get("email") #TODO: I think this should probably set the session state email instead?
   st.write(f"Google signed-in as {email}")
 
 tab1, tab2 = st.tabs(["🗣️ Prompter", "🪝 Hook Reporting"])
@@ -80,3 +88,10 @@ with tab2:
 
 loading_message.empty() # At this point, we no longer need to display a loading message, once we've gotten here and displayed everything above.
 
+with st.sidebar:
+  if st.session_state['developer_mode']:
+    st.caption(f"""Streamlit app memory usage: {psutil.Process(os.getpid()).memory_info().rss // 1024 ** 2} MiB.<br>
+  Time to display: {(perf_counter_ns()-nanoseconds_base)/1000/1000/1000} seconds.<br>
+  Python version: {platform.python_version()}<br>
+  Base url: {get_base_url()}""", unsafe_allow_html=True)
+    st.button("disable developer mode", on_click=disable_developer_mode, help="Click this button to disable developer mode, allowing you to see and interact with the app as a basic user would. You can refresh the page in your browser to re-enable developer mode.") #this is a callback for streamlit ui update-flow reasons.

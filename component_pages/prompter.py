@@ -1,12 +1,9 @@
 #!/usr/bin/env -S streamlit run
 def main() -> None:
-  from time import perf_counter_ns
-  nanoseconds_base : int = perf_counter_ns()
   import streamlit as st
   import pandas as pd
   import requests
   import json
-  import os, psutil, platform
   from databricks import sql # Spooky that this is not the same name as the pypi package databricks-sql-connector, but is the way to refer to the same thing.
   from datetime import datetime, date
   import faiss
@@ -14,29 +11,15 @@ def main() -> None:
   #COULD: use https://pypi.org/project/streamlit-profiler/ for profiling
   from transformers import GenerationConfig
 
-  email = st.experimental_user['email']
-
-  developer_mode = email in ["achang@targetedvictory.com", "test@example.com", "abrady@targetedvictory.com", "thall@targetedvictory.com", "afuhrer@targetedvictory.com", "wcarpenter@targetedvictory.com"] and not st.session_state.get("developer_mode_disabled")
-  def disable_developer_mode() -> None: st.session_state["developer_mode_disabled"] = True
-
-  databricks_api_token = st.secrets['databricks_api_token']
-
-  def get_base_url() -> str:
-    #This part is from BramVanroy https://github.com/streamlit/streamlit/issues/798#issuecomment-1647759949
-    import urllib.parse
-    # "WARNING: I found that in multi-page apps, this will always only return the base url and not the sub-page URL with the page appended to the end."
-    session = st.runtime.get_instance()._session_mgr.list_active_sessions()[0]
-    return urllib.parse.urlunparse([session.client.request.protocol, session.client.request.host, "", "", "", ""]) # for example, in testing, this value is probably: http://localhost:8501
-
   @st.cache_data()
   def load_model_permissions(useremail: str) -> list[str]:
-    with sql.connect(server_hostname=os.getenv("DATABRICKS_SERVER_HOSTNAME"), http_path=os.getenv("DATABRICKS_HTTP_PATH"), access_token=os.getenv("databricks_api_token")) as connection: #These secrets should be in the root level of the .streamlit/secrets.toml
+    with sql.connect(server_hostname=st.secrets["DATABRICKS_SERVER_HOSTNAME"], http_path=st.secrets["DATABRICKS_HTTP_PATH"], access_token=st.secrets["databricks_api_token"]) as connection: #These secrets should be in the root level of the .streamlit/secrets.toml
       with connection.cursor() as cursor:
         results = cursor.execute(
           "SELECT DISTINCT modelname FROM models.default.permissions WHERE useremail = %(useremail)s", {'useremail': useremail}
         ).fetchall()
         return [result[0].lower() for result in results]
-  model_permissions = load_model_permissions(email) #model_permissions is ALL LOWERCASE
+  model_permissions = load_model_permissions(st.experimental_user['email']) #model_permissions is ALL LOWERCASE
   if "context" not in model_permissions: #We want everyone to want to have access to default, at least at time of writing this comment.
     model_permissions.insert(0, "Context")
   #NOTE: these model secrets have to be in the secrets.toml as, like:
@@ -46,9 +29,9 @@ def main() -> None:
   models: dict[str,str] = { k:v for k, v in st.secrets['models'].items() if k.lower() in [m.lower() for m in model_permissions] } #filter for what the actual permissions are for the user.
 
   @st.cache_data() #Necessity demands we do a manual cache of this function's result anyway in the one place we call it, but (for some reason) it seems like our deployed environment is messed up in some way I cannot locally replicate, which causes it to run this function once every five minutes. So, we cache it as well, to prevent waking up our server and costing us money.
-  def count_from_activity_log_times_used_today(useremail: str = email) -> int: #this goes by whatever the datetime default timezone is because we don't expect the exact boundary to matter much.
+  def count_from_activity_log_times_used_today(useremail: str = st.experimental_user['email']) -> int: #this goes by whatever the datetime default timezone is because we don't expect the exact boundary to matter much.
     try: # This can fail if the table doesn't exist (at least not yet, as we create it on insert if it doesn't exist), so it's nice to have a default
-      with sql.connect(server_hostname=os.getenv("DATABRICKS_SERVER_HOSTNAME"), http_path=os.getenv("DATABRICKS_HTTP_PATH"), access_token=os.getenv("databricks_api_token")) as connection: #These secrets should be in the root level of the .streamlit/secrets.toml
+      with sql.connect(server_hostname=st.secrets["DATABRICKS_SERVER_HOSTNAME"], http_path=st.secrets["DATABRICKS_HTTP_PATH"], access_token=st.secrets["databricks_api_token"]) as connection: #These secrets should be in the root level of the .streamlit/secrets.toml
         with connection.cursor() as cursor:
           return cursor.execute(
             f"SELECT COUNT(*) FROM main.default.activity_log WHERE useremail = %(useremail)s AND datetime LIKE '{date.today()}%%'",
@@ -60,7 +43,7 @@ def main() -> None:
 
   def write_to_activity_log_table(datetime: str, useremail: str, promptsent: str, responsegiven: str, modelparams: str) -> int:
     """The most sensical thing for this function to return is the closest thing to a result value that an insert command produces: the .rowcount variable of the cursor, which is "the number of rows that the last .execute*() [...] affected (for DML statements like UPDATE or INSERT)." <https://peps.python.org/pep-0249/#rowcount>. However, that PEP also states that "The attribute is -1 in case no .execute*() has been performed on the cursor or the rowcount of the last operation is cannot be determined by the interface." And the implementation of databricks-sql-connector seems to have taken this liberty to, indeed, always return -1. So this return value is useless."""
-    with sql.connect(server_hostname=os.getenv("DATABRICKS_SERVER_HOSTNAME"), http_path=os.getenv("DATABRICKS_HTTP_PATH"), access_token=os.getenv("databricks_api_token")) as connection: #These should be in the root level of the .streamlit/secrets.toml
+    with sql.connect(server_hostname=st.secrets["DATABRICKS_SERVER_HOSTNAME"], http_path=st.secrets["DATABRICKS_HTTP_PATH"], access_token=st.secrets["databricks_api_token"]) as connection: #These should be in the root level of the .streamlit/secrets.toml
       with connection.cursor() as cursor:
         cursor.execute("CREATE TABLE IF NOT EXISTS main.default.activity_log (datetime string, useremail string, promptsent string, responsegiven string, modelparams string)")
         return cursor.execute(
@@ -71,7 +54,7 @@ def main() -> None:
   if 'use_count' not in st.session_state:
     st.session_state['use_count'] = count_from_activity_log_times_used_today()
   use_count_limit = 100 #arbitrary but reasonable choice of limit
-  if email in ["abrady@targetedvictory.com", "thall@targetedvictory.com" "test@example.com"]: # Give certain users nigh-unlimited uses.
+  if st.experimental_user['email'] in ["abrady@targetedvictory.com", "thall@targetedvictory.com" "test@example.com"]: # Give certain users nigh-unlimited uses.
     use_count_limit = 100_000_000
   if st.session_state['use_count'] >= use_count_limit:
     st.write(f"You cannot use this service more than {use_count_limit} times a day, and you have reached that limit. Please contact the team if this is in error or if you wish to expand the limit.")
@@ -92,7 +75,7 @@ def main() -> None:
   @st.cache_data()
   def load_headlines(get_all:bool=False, past_days:int=7) -> list[str]:
     try: # This can fail if the table doesn't exist (at least not yet, as we create it on insert if it doesn't exist), so it's nice to have a default
-      with sql.connect(server_hostname=os.getenv("DATABRICKS_SERVER_HOSTNAME"), http_path=os.getenv("DATABRICKS_HTTP_PATH"), access_token=os.getenv("databricks_api_token")) as connection: #These secrets should be in the root level of the .streamlit/secrets.toml
+      with sql.connect(server_hostname=st.secrets["DATABRICKS_SERVER_HOSTNAME"], http_path=st.secrets["DATABRICKS_HTTP_PATH"], access_token=st.secrets["databricks_api_token"]) as connection: #These secrets should be in the root level of the .streamlit/secrets.toml
         with connection.cursor() as cursor:
           results = cursor.execute(
             "SELECT DISTINCT headline FROM cicero.default.headline_log" if get_all else
@@ -229,7 +212,7 @@ def main() -> None:
 
   #For technical reasons (various parts of it update when other parts of it are changed, iirc) this can't go within the st.form
 
-  with st.expander(r"$\textsf{\Large FOX NEWS HEADLINES}$"if developer_mode else r"$\textsf{\Large NEWS HEADLINES}$"):
+  with st.expander(r"$\textsf{\Large FOX NEWS HEADLINES}$"if st.session_state["developer_mode"] else r"$\textsf{\Large NEWS HEADLINES}$"):
     semantic_query = st.text_input("Semantic Search  \n*Returns headlines matching the meaning of the search terms, not necessarily exact matches. Must hit Enter.*  \n*Example: searching for `border' will also return headlines for 'immigration', 'migrants', 'border crossings', 'deportation', etc.*", key="semantic_query")
     col1, col2 = st.columns(2) #this column setup arguably looks worse than the default, and we've already blown the vertical-single-screen idea when you open this expander, so maybe you don't have to keep this formatting idk.
     with col1:
@@ -328,7 +311,7 @@ def main() -> None:
       #character count max, min: int, cannot be negative or 0, starts at 40. floor divide by 4 to get token count to pass to model:
       target_charcount_min = st.number_input("Min Target Characters:", min_value=40, format='%d', step=1, key="target_charcount_min")
       target_charcount_max = st.number_input("Max Target Characters:", min_value=40, format='%d', step=1, key="target_charcount_max")
-      if developer_mode:
+      if st.session_state["developer_mode"]:
         with st.expander("Advanced Parameters"):
           num_beams = int( st.number_input("num_beams:", min_value=1, format='%d', step=1, key="num_beams", help="Number of beams for beam search. 1 means no beam search. Beam search is a particular strategy for generating text that the model can elect to use or not use. It can use more or fewer beams in the beam search, as well. More beams basically means it considers more candidate possibilities.") )
           top_k = int( st.number_input("top_k:", min_value=1, format='%d', step=1, key="top_k" , help="The number of highest probability vocabulary tokens to keep for top-k-filtering. In other words: how many likely words the model will consider."))
@@ -382,7 +365,7 @@ def main() -> None:
       try:
         GenerationConfig(**unpsycho_dict_prompt)# This validates the parameters, throwing an exception that displays to the user and explains the problem if the parameters are wrong.
         df_prompt = pd.DataFrame(dict_prompt)
-        outputs = send(model_uri, databricks_api_token, df_prompt)
+        outputs = send(model_uri, st.secrets["databricks_api_token"], df_prompt)
         st.session_state['outputs_df'] = pd.DataFrame(outputs, columns=["Model outputs (double click any output to expand it)"]) #Styling this doesn't seem to work, for some reason. Well, whatever.
         if 'history' not in st.session_state: st.session_state['history'] = []
         st.session_state['history'] += outputs
@@ -396,7 +379,7 @@ def main() -> None:
   # The idea is for these output elements to persist after one query button, until overwritten by the results of the next query.
   if 'human-facing_prompt' in st.session_state:
     st.caption(st.session_state['human-facing_prompt'])
-    if 'developer-facing_prompt' in st.session_state and developer_mode:
+    if 'developer-facing_prompt' in st.session_state and st.session_state["developer_mode"]:
       st.caption("Developer Mode Message: the prompt passed to the model is: "+ st.session_state['developer-facing_prompt'])
 
   st.error("WARNING! Outputs have not been fact checked. CICERO is not responsible for inaccuracies in deployed copy. Please check all *names*, *places*, *counts*, *times*, *events*, and *titles* (esp. military titles) for accuracy.  \nAll numbers included in outputs are suggestions only and should be updated. They are NOT analytically optimized to increase conversions (yet) and are based solely on frequency in past copy.", icon="⚠️")
@@ -407,21 +390,14 @@ def main() -> None:
     st.header("History of replies:")
     if 'history' not in st.session_state: st.session_state['history'] = []
     st.dataframe( pd.DataFrame(reversed( st.session_state['history'] ),columns=(["Outputs"])), hide_index=True, use_container_width=True)
-    #These stats are unrelated to the concept of history, but for formatting reasons it works best here:
-    if developer_mode:
-      st.caption(f"""Streamlit app memory usage: {psutil.Process(os.getpid()).memory_info().rss // 1024 ** 2} MiB.<br>
-  Time to display: {(perf_counter_ns()-nanoseconds_base)/1000/1000/1000} seconds.<br>
-  Python version: {platform.python_version()}<br>
-  Base url: {get_base_url()}""", unsafe_allow_html=True)
-      st.button("disable developer mode", on_click=disable_developer_mode, help="Click this button to disable developer mode, allowing you to see and interact with the app as a basic user would. You can refresh the page in your browser to re-enable developer mode.") #this is a callback for streamlit ui update-flow reasons.
 
-  login_activity_counter_container.write( f"You are logged in as {email} . You have queried {st.session_state['use_count']} {'time' if st.session_state['use_count'] == 1 else 'times'} today, out of a limit of {use_count_limit}."+(" You are in developer mode." if developer_mode else "") )
+  login_activity_counter_container.write( f"You are logged in as {st.experimental_user['email']} . You have queried {st.session_state['use_count']} {'time' if st.session_state['use_count'] == 1 else 'times'} today, out of a limit of {use_count_limit}."+(" You are in developer mode." if st.session_state["developer_mode"] else "") )
 
   #activity logging takes a bit, so I've put it last to preserve immediate-feeling performance and responses for the user making a query
   if did_a_query:
     dict_prompt.pop('prompt')
     no_prompt_dict_str = str(dict_prompt)
-    write_to_activity_log_table(datetime=str(datetime.now()), useremail=email, promptsent=prompt, responsegiven=json.dumps(outputs), modelparams=no_prompt_dict_str)
+    write_to_activity_log_table(datetime=str(datetime.now()), useremail=st.experimental_user['email'], promptsent=prompt, responsegiven=json.dumps(outputs), modelparams=no_prompt_dict_str)
 
   # st.components.v1.html('<!--<script>//you can include arbitrary html and javascript this way</script>-->') #or, use st.markdown, if you want arbitrary html but javascript isn't needed.
 if __name__ == "__main__": main()
