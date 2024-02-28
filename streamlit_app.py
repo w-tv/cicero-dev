@@ -4,6 +4,8 @@ You must have streamlit installed to run this program. Among other things. Why n
 If you are looking for the hook reporting page, check the pages/ directory
 """
 
+#TODO: stop the widgets from resetting as you flip the page back, possibly using tabs instead of pages.
+
 from time import perf_counter_ns
 nanoseconds_base : int = perf_counter_ns()
 import streamlit as st
@@ -215,7 +217,7 @@ presets: dict[ str, dict[str, float|int|bool|str|list[str]|None] ] = {
     "output_scores" : False,
     "model": "Context",
     "account" : None,
-    "ask_type": "Fundraising Hard Ask",
+    "ask_type": "Hard Ask",
     "tone" : [],
     "topics" : [],
     "additional_topics" : "",
@@ -264,20 +266,12 @@ def send(model_uri: str, databricks_token: str, data: pd.DataFrame) -> list[str]
       raise Exception(f"Request failed with status {response.status_code}, {response.text}")
   return response.json()["predictions"][0]["0"]
 
-tone_indictators_sorted = ["Urgency", "Agency", "Exclusivity"]
-
-def sortedUAE(unsorted_tone_indicators: list[str]) -> list[str]:
-  """For some reason (mnemonic?) the canonical ordering of these tone tags is Urgency Agency Exclusivity. They never appear in any other order, although they do appear in every subset. Anyway, this function implements that ordering, regardless of the order the user selected them."""
-  return [indicator for indicator in tone_indictators_sorted if indicator in unsorted_tone_indicators]
-
+def list_from_cicero_tone_format_to_human_format(l: list[str]) -> list[str]:
+  return [x.replace("_", " ").title() for x in l]
+def list_from_human_format_to_cicero_tone_format(l: list[str]):
+  return [x.replace(" ", "_").lower() for x in l]
 def list_to_bracketeds_string(l: list[str]) -> str:
-  s = ""
-  is_first_item = True
-  for i in l:
-    s += " " if not is_first_item else "" #malarkey to space only between bracketeds, not before or after
-    is_first_item = False
-    s += ("["+i.strip().replace(" ", "_")+"]")
-  return s
+  return " ".join([f"[{i}]" for i in l])
 
 # setting default values for advanced parameters for our non-developer end-user
 num_beams=1
@@ -313,6 +307,79 @@ with st.expander(r"$\textsf{\Large FOX NEWS HEADLINES}$"if developer_mode else r
 
 st.text("") # Just for vertical spacing.
 
+cicero_topics_to_user_facing_topic_dict = {
+  "america_wrong_track":"America Wrong Track",
+  "announcement":"Announcement",
+  "biden":"Joe Biden",
+  "biden_impeach":"Biden Impeachment",
+  "big_tech":"Big Tech",
+  "birthday":"Birthday",
+  "bio":"Bio",
+  "border":"Border",
+  "breaking_news":"Breaking News",
+  "campaign_msg":"Campaign Message / Memo",
+  "china":"China",
+  "climate_change":"Climate Change",
+  "commie":"Communism / Socialism",
+  "con_media":"Media Conservative",
+  "contest":"Contest",
+  "control_of_congress":"Control of Congress",
+  "control_of_wh":"Control of WH",
+  "covid":"Covid",
+  "crime":"Crime",
+  "dc_state":"DC Statehood",
+  "deadline":"Deadline",
+  "deep_state":"Deep State / Corruption",
+  "dems":"Dems",
+  "economy":"Taxes / Economy",
+  "education":"Education",
+  "election_integrity":"Election Integrity",
+  "endorse_for_principal":"Endorsement for Principal",
+  "endorse_from_donor":"Endorsement from Donor",
+  "endorse_from_principal":"Endorsement from Principal",
+  "energy":"Energy / Oil",
+  "event_debate":"Event Debate",
+  "event_speech":"Event Speech / Rally",
+  "faith":"Faith",
+  "ga_runoff":"GA Runoff",
+  "gender":"Gender",
+  "gop":"GOP",
+  "hamas":"Hamas",
+  "iran":"Iran",
+  "israel":"Israel",
+  "main_media":"Media Mainstream",
+  "matching":"Matching",
+  "membership":"Membership",
+  "merch_book":"Merch Book",
+  "merch_koozie":"Merch Koozie",
+  "merch_mug":"Merch Mug",
+  "merch_ornament":"Merch Ornament",
+  "merch_shirt":"Merch Shirt",
+  "merch_sticker":"Merch Sticker",
+  "merch_wrapping_paper":"Merch Wrapping Paper",
+  "military":"Military",
+  "murica":"'murica",
+  "n_korea":"North Korea",
+  "nat_sec":"National Security",
+  "non_trump_maga":"Non-Trump MAGA",
+  "parental_rights":"Parental Rights",
+  "pro_life":"Pro-Life",
+  "race_update":"Race Update",
+  "radical_judge":"Radical DAs / Judges",
+  "russia":"Russia",
+  "scotus":"SCOTUS",
+  "sec_amend":"2A",
+  "sotu":"State of the Union",
+  "swamp":"Swamp",
+  "t_arrest":"Trump Arrest",
+  "t_djt":"Donald Trump",
+  "t_pro":"Pro-Trump",
+  "ukraine":"Ukraine"
+}
+
+def inverse_topic_dict_lookup_list_mapping(user_facing_topics: list[str]) -> list[str]:
+  return [key for key, value in cicero_topics_to_user_facing_topic_dict.items() if value in user_facing_topics]
+
 with st.form('query_builder'):
   with st.sidebar:
     st.header("Settings")
@@ -334,10 +401,10 @@ with st.form('query_builder'):
   model_name = str( st.selectbox(r"$\textsf{\Large COPYWRITING MODEL}$", models, key="model") )
   model_uri = models[model_name]
   account = st.selectbox("Account (required)", [""]+list(account_names), key="account" ) #STREAMLIT-BUG-WORKAROUND: For some reason, in the current version of streamlit, st.selectbox ends up returning the first value if the index has value is set to None via the key in the session_state, which is a bug (<https://github.com/streamlit/streamlit/issues/7649>), but anyway we work around it using this ridiculous workaround. This does leave a first blank option in there. But whatever.
-  ask_type = str( st.selectbox("Ask Type", ["Fundraising Hard Ask", "Fundraising Medium Ask", "Fundraising Soft Ask", "List Building"], key="ask_type") )
-  topics = st.multiselect("Topics", ["Announce", "Bio", "Border", "China", "Contest", "Control", "Covid", "Crime", "DC", "Debate", "Dems", "Election", "GOP", "GovOverreach", "Judiciary", "Match", "Merch", "Military", "Opponents", "Raid", "Religion", "Roe", "Runoff", "Schools", "Second_Amd", "State_of_the_Race", "Trump"], key="topics" )
-  additional_topics = [x for x in st.text_input("Additional Topics (examples: Biden, survey, deadline)", key="additional_topics" ).split(",") if x.strip()] # The list comprehension is to filter out empty strings on split, because otherwise this fails to make a truly empty list in the default case, instead having a list with an empty string in, because split changes its behavior when you give it arguments. Anyway, this also filters out trailing comma edge-cases and such.
-  tone = st.multiselect("Tone", tone_indictators_sorted, key="tone")
+  ask_type = str( st.selectbox("Ask Type", ['Hard Ask', 'Medium Ask', 'Soft Ask', 'Soft Ask Petition', 'Soft Ask Poll', 'Soft Ask Survey'], key="ask_type") )
+  topics = st.multiselect("Topics", cicero_topics_to_user_facing_topic_dict.values(), key="topics" )
+  additional_topics = [x.strip() for x in st.text_input("Additional Topics (examples: Biden, survey, deadline)", key="additional_topics" ).split(",") if x.strip()] # The list comprehension is to filter out empty strings on split, because otherwise this fails to make a truly empty list in the default case, instead having a list with an empty string in, because split changes its behavior when you give it arguments. Anyway, this also filters out trailing comma edge-cases and such.
+  tone = st.multiselect("Tone", ['Agency', 'Apologetic', 'Candid', 'Exclusivity', 'Fiesty', 'Grateful', 'Not Asking For Money', 'Pleading', 'Quick Request', 'Secretive', 'Swear Jar', 'Time Sensitive', 'Urgency'], key="tone")
   generate_button = st.form_submit_button("Submit")
 
 loading_message.empty() # At this point, we no longer need to display a loading message, once we've gotten here and displayed everything above.
@@ -352,11 +419,12 @@ if generate_button:
       ((bios[account]+"\n\n") if "Bio" in topics and account in bios else "") +
       "Write a "+ask_type.lower()+
       " text for "+account+
-      " about: "+list_to_bracketeds_string(topics+additional_topics or ["No_Hook"])+
-      ( "" if not tone else " emphasizing "+ list_to_bracketeds_string(sortedUAE(tone)) ) +
+      " about: "+list_to_bracketeds_string( sorted( inverse_topic_dict_lookup_list_mapping(topics)+list_from_human_format_to_cicero_tone_format(additional_topics) ) or ["No Hook"] )+
+      ( "" if not tone else " emphasizing "+ list_to_bracketeds_string(sorted(list_from_human_format_to_cicero_tone_format(tone))) ) +
       (" {"+headline+"} " if headline else "")
     )
     prompt = "<|startoftext|> "+st.session_state['human-facing_prompt']+" <|body|>"
+    st.session_state['developer-facing_prompt'] = prompt
     dict_prompt = {"prompt": [prompt],
                     "temperature": [temperature],
                     "max_new_tokens": [int(target_charcount_max) // 4],
@@ -387,7 +455,11 @@ if generate_button:
     st.error("***No account name is selected, so I can't send the request!***")
 
 # The idea is for these output elements to persist after one query button, until overwritten by the results of the next query.
-if 'human-facing_prompt' in st.session_state: st.caption(st.session_state['human-facing_prompt'])
+if 'human-facing_prompt' in st.session_state:
+  st.caption(st.session_state['human-facing_prompt'])
+  if 'developer-facing_prompt' in st.session_state and developer_mode:
+    st.caption("Developer Mode Message: the prompt passed to the model is: "+ st.session_state['developer-facing_prompt'])
+
 st.error("WARNING! Outputs have not been fact checked. CICERO is not responsible for inaccuracies in deployed copy. Please check all *names*, *places*, *counts*, *times*, *events*, and *titles* (esp. military titles) for accuracy.  \nAll numbers included in outputs are suggestions only and should be updated. They are NOT analytically optimized to increase conversions (yet) and are based solely on frequency in past copy.", icon="⚠️")
 if 'outputs_df' in st.session_state: st.dataframe(st.session_state['outputs_df'], hide_index=True, use_container_width=True)
 if 'character_counts_caption' in st.session_state: st.caption(st.session_state['character_counts_caption'])
