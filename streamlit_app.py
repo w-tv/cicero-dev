@@ -39,8 +39,11 @@ def get_base_url() -> str:
   #This part is from BramVanroy https://github.com/streamlit/streamlit/issues/798#issuecomment-1647759949
   import urllib.parse
   # "WARNING: I found that in multi-page apps, this will always only return the base url and not the sub-page URL with the page appended to the end."
-  session = st.runtime.get_instance()._session_mgr.list_active_sessions()[0]
-  return urllib.parse.urlunparse([session.client.request.protocol, session.client.request.host, "", "", "", ""]) # for example, in testing, this value is probably: http://localhost:8501
+  try:
+    session = st.runtime.get_instance()._session_mgr.list_active_sessions()[0] # There's occasionally a harmless IndexError: list index out of range from this line of code on Streamlit Community Cloud, which I'd like to suppress for the convenience of the reader of the logs.
+    return urllib.parse.urlunparse([session.client.request.protocol, session.client.request.host, "", "", "", ""]) # for example, in testing, this value is probably: http://localhost:8501
+  except IndexError as e:
+    return str(e)
 
 # Google sign-in logic. Taken from Miguel_Hentoux here https://discuss.streamlit.io/t/google-authentication-in-a-streamlit-app/43252/18 , and modified
 import google_auth_oauthlib.flow
