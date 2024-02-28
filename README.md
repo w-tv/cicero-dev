@@ -21,6 +21,8 @@ git push prod # This will push the current history to prod (instead of the defau
 
 Edit `streamlit_app.py` to customize this app to your heart's desire. However, it should be pretty much entirely as customized as we need it to be, at this point. Maybe a couple features left.
 
+We have all the subpages listed in the folder component_pages/ instead of pages/ because the default behavior of losing all widget state on page switch was undesireable, so we just use tabs for that functionality instead.
+
 If you have any questions about streamlit, checkout its [documentation](https://docs.streamlit.io) and [community
 forums](https://discuss.streamlit.io). If you have any questions about Cicero, he wrote some books you can read.
 
