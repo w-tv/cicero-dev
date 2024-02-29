@@ -24,10 +24,22 @@ def main() -> None:
     with sql.connect(server_hostname=st.secrets["DATABRICKS_SERVER_HOSTNAME"], http_path=st.secrets["DATABRICKS_HTTP_PATH"], access_token=st.secrets["databricks_api_token"]) as connection: #These secrets should be in the root level of the .streamlit/secrets.toml
       with connection.cursor() as cursor:
         return cursor.execute(query).fetchall()
-
-  # TODO: add all the controls, use st.columns to put them in a row.
-
-  past_days = st.radio("Date range", [1, 7, 14, 30], index=1, format_func=lambda x: "Yesterday" if x == 1 else f"Last {x} days", help="The date range from which to display data. This will display data from any calendar day greater than or equal to (the present day minus the number of days specified). That is, 'Yesterday' will display data from both yesterday and today (and possibly, in rare circumstances, from the future).")
+  search = st.text_input("Search") #TODO: implement. What does this do?
+  col1, col2, col3, col4, col5, col6, col7, = st.columns(7)
+  with col1:
+    hook = st.selectbox("Hook", ["dummy value"]) #TODO: implement. What does this do?
+  with col2:
+    past_days = st.radio("Date range", [1, 7, 14, 30], index=1, format_func=lambda x: "Yesterday" if x == 1 else f"Last {x} days", help="The date range from which to display data. This will display data from any calendar day greater than or equal to (the present day minus the number of days specified). That is, 'Yesterday' will display data from both yesterday and today (and possibly, in rare circumstances, from the future).")
+  with col3:
+    account = st.selectbox("Account", ["dummy value"]) #TODO: implement. Should this be a multi_select?
+  with col4:
+    project_type = st.selectbox("Project Type", ["dummy value"]) #TODO: implement. Should this be a multi_select?
+  with col5:
+    list_name_house = st.selectbox("List Name = House", ["dummy value"]) #TODO: implement. What does this do?
+  with col6:
+    list_name = st.selectbox("List Name", ["dummy value"]) #TODO: implement. What does this do?
+  with col7:
+    goal = st.selectbox("Goal", ["dummy value"]) #TODO: implement. Should this be a multi_select?
 
   #To minimize RAM usage on the front end, most of the computation is done in the sql query, on the backend.
   #There's only really one complication to this data, which is that each row is duplicated n times — the "product" of the row and the list of hook types, as it were. Then only the true hooks have Hook_Bool true (all others have Hook_Bool null, which is our signal to ignore that row). This is just because it's easy to do a pivot table (or something) in Tableau that way; it doesn't actually matter. But we have to deal with it. It is also easy for us to deal with in SQL using WHERE Hook_Bool=true GROUP BY Hooks.
