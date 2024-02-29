@@ -1,25 +1,26 @@
 #!/usr/bin/env -S streamlit run
-def main() -> None:
-  import streamlit as st
-  import pandas as pd
-  import requests
-  import json
-  from databricks import sql # Spooky that this is not the same name as the pypi package databricks-sql-connector, but is the way to refer to the same thing.
-  from datetime import datetime, date
-  import faiss
-  from sentence_transformers import SentenceTransformer # Weird that this is how you reference the sentence-transformers package on pypi, too. Well, whatever.
-  #COULD: use https://pypi.org/project/streamlit-profiler/ for profiling
-  from transformers import GenerationConfig
 
+import streamlit as st
+import pandas as pd
+import requests
+import json
+from databricks import sql # Spooky that this is not the same name as the pypi package databricks-sql-connector, but is the way to refer to the same thing.
+from datetime import datetime, date
+import faiss
+from sentence_transformers import SentenceTransformer # Weird that this is how you reference the sentence-transformers package on pypi, too. Well, whatever.
+#COULD: use https://pypi.org/project/streamlit-profiler/ for profiling
+from transformers import GenerationConfig
+
+def main() -> None:
   @st.cache_data()
-  def load_model_permissions(useremail: str) -> list[str]:
+  def load_model_permissions(useremail: str|None) -> list[str]:
     with sql.connect(server_hostname=st.secrets["DATABRICKS_SERVER_HOSTNAME"], http_path=st.secrets["DATABRICKS_HTTP_PATH"], access_token=st.secrets["databricks_api_token"]) as connection: #These secrets should be in the root level of the .streamlit/secrets.toml
       with connection.cursor() as cursor:
         results = cursor.execute(
           "SELECT DISTINCT modelname FROM models.default.permissions WHERE useremail = %(useremail)s", {'useremail': useremail}
         ).fetchall()
         return [result[0].lower() for result in results]
-  model_permissions = load_model_permissions(st.experimental_user['email']) #model_permissions is ALL LOWERCASE
+  model_permissions = load_model_permissions(st.experimental_user['email']) #model_permissions stores model names as ***all lowercase***
   if "context" not in model_permissions: #We want everyone to want to have access to default, at least at time of writing this comment.
     model_permissions.insert(0, "Context")
   #NOTE: these model secrets have to be in the secrets.toml as, like:
@@ -29,7 +30,7 @@ def main() -> None:
   models: dict[str,str] = { k:v for k, v in st.secrets['models'].items() if k.lower() in [m.lower() for m in model_permissions] } #filter for what the actual permissions are for the user.
 
   @st.cache_data() #Necessity demands we do a manual cache of this function's result anyway in the one place we call it, but (for some reason) it seems like our deployed environment is messed up in some way I cannot locally replicate, which causes it to run this function once every five minutes. So, we cache it as well, to prevent waking up our server and costing us money.
-  def count_from_activity_log_times_used_today(useremail: str = st.experimental_user['email']) -> int: #this goes by whatever the datetime default timezone is because we don't expect the exact boundary to matter much.
+  def count_from_activity_log_times_used_today(useremail: str|None = st.experimental_user['email']) -> int: #this goes by whatever the datetime default timezone is because we don't expect the exact boundary to matter much.
     try: # This can fail if the table doesn't exist (at least not yet, as we create it on insert if it doesn't exist), so it's nice to have a default
       with sql.connect(server_hostname=st.secrets["DATABRICKS_SERVER_HOSTNAME"], http_path=st.secrets["DATABRICKS_HTTP_PATH"], access_token=st.secrets["databricks_api_token"]) as connection: #These secrets should be in the root level of the .streamlit/secrets.toml
         with connection.cursor() as cursor:
@@ -41,7 +42,7 @@ def main() -> None:
       print("There was an exception in count_from_activity_log_times_used_today, so I'm just returning a value of 0. Here's the exception:", str(e))
       return 0
 
-  def write_to_activity_log_table(datetime: str, useremail: str, promptsent: str, responsegiven: str, modelparams: str) -> int:
+  def write_to_activity_log_table(datetime: str, useremail: str|None, promptsent: str, responsegiven: str, modelparams: str) -> int:
     """The most sensical thing for this function to return is the closest thing to a result value that an insert command produces: the .rowcount variable of the cursor, which is "the number of rows that the last .execute*() [...] affected (for DML statements like UPDATE or INSERT)." <https://peps.python.org/pep-0249/#rowcount>. However, that PEP also states that "The attribute is -1 in case no .execute*() has been performed on the cursor or the rowcount of the last operation is cannot be determined by the interface." And the implementation of databricks-sql-connector seems to have taken this liberty to, indeed, always return -1. So this return value is useless."""
     with sql.connect(server_hostname=st.secrets["DATABRICKS_SERVER_HOSTNAME"], http_path=st.secrets["DATABRICKS_HTTP_PATH"], access_token=st.secrets["databricks_api_token"]) as connection: #These should be in the root level of the .streamlit/secrets.toml
       with connection.cursor() as cursor:
@@ -192,7 +193,7 @@ def main() -> None:
 
   def list_from_cicero_tone_format_to_human_format(l: list[str]) -> list[str]:
     return [x.replace("_", " ").title() for x in l]
-  def list_from_human_format_to_cicero_tone_format(l: list[str]):
+  def list_from_human_format_to_cicero_tone_format(l: list[str]) -> list[str]:
     return [x.replace(" ", "_").lower() for x in l]
   def list_to_bracketeds_string(l: list[str]) -> str:
     return " ".join([f"[{i}]" for i in l])

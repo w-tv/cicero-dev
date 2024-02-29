@@ -22,7 +22,7 @@ loading_message.write("Loading CICERO.  This may take up to a minute...")
 
 def blank_the_page_for_redirect() -> NoReturn: #ideally we wouldn't have to do this, but it's tough to use a single-tab workflow here because streamlit is entirely in an iframe, which breaks several things.
   authorization_url = st.session_state["authorization_url"]
-  st.components.v1.html(f'<script>window.open("{authorization_url}");</script><p>You have elected to sign-in with Google, which opens a new tab. You may now close this tab. If you do not see a new tab, visit <a href="{authorization_url}">click here</a></p>')
+  st.components.v1.html(f'<script>window.open("{authorization_url}");</script><p>You have elected to sign-in with Google, which opens a new tab. You may now close this tab. If you do not see a new tab, visit <a href="{authorization_url}">click here</a></p>') # type: ignore[attr-defined] #TODO: Why doesn't it think this attribute is defined?
   exit()
 
 if st.experimental_user['email'] is None:
@@ -37,11 +37,10 @@ if st.experimental_user['email'] == 'text@example.com': #TODO: we should not rel
   pass #The streamlit app is running "locally", which means everywhere but the streamlit community cloud.
 
 def get_base_url() -> str:
-  #This part is from BramVanroy https://github.com/streamlit/streamlit/issues/798#issuecomment-1647759949
-  # "WARNING: I found that in multi-page apps, this will always only return the base url and not the sub-page URL with the page appended to the end."
+  """Gets the url where the streamlit app is currently running, not including any page paths underneath. In testing, for example, this value is probably http://localhost:8501 . This function is from BramVanroy https://github.com/streamlit/streamlit/issues/798#issuecomment-1647759949 , with modifications. “WARNING: I found that in multi-page apps, this will always only return the base url and not the sub-page URL with the page appended to the end.” """
   try:
     session = st.runtime.get_instance()._session_mgr.list_active_sessions()[0] # There's occasionally a harmless IndexError: list index out of range from this line of code on Streamlit Community Cloud, which I'd like to suppress for the convenience of the reader of the logs.
-    return urllib.parse.urlunparse([session.client.request.protocol, session.client.request.host, "", "", "", ""]) # for example, in testing, this value is probably: http://localhost:8501
+    return urllib.parse.urlunparse([session.client.request.protocol, session.client.request.host, "", "", "", ""]) # type: ignore[attr-defined] #TODO: Why doesn't it think this attribute is defined?
   except IndexError as e:
     return str(e)
 

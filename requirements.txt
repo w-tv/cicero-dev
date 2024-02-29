@@ -8,3 +8,9 @@ transformers
 google_auth_oauthlib
 google-api-python-client
 
+#dev-only requirements (tooling)
+mypy
+mypy-extensions
+typing-extensions
+pipreqs
+deptry

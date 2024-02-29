@@ -1,4 +1,10 @@
 #!/usr/bin/env -S streamlit run
+
+import streamlit as st
+from databricks import sql
+from collections.abc import Iterable
+from typing import Any, Sequence
+
 def main() -> None:
   """
   This page performs a peculiar task known as "hook reporting", which is basically just summary statistics about various topic keywords.
@@ -12,10 +18,6 @@ def main() -> None:
     Sent: SUM of Sent
     Result_Count: Count Distinct of Result Name
   """
-
-  import streamlit as st
-  from databricks import sql
-  from collections.abc import Iterable
 
   @st.cache_data() # I decided to memoize this function primarily in order to make development of the graphing go more rapidly, but it's possible that this will cost us an unfortunate amount of RAM if maybe people use this page. So, removing this memoization is something to consider.
   def sql_call(query: str) -> list[str]: #possibly add a params dict param?
@@ -38,7 +40,7 @@ def main() -> None:
 
   key_of_rows = ("Hook", "Funds", "FPM ($)", "ROAS (%)", "Sent", "Result count")
 
-  def to_graphable_dict(values: Iterable[Iterable], x='x', y='y', color='color') -> list[dict]:
+  def to_graphable_dict(values: Sequence[Sequence[Any]], x:str='x', y:str='y', color:str='color') -> list[dict[str, Any]]:
     if len(values) == 3: #it's a 3-list of n-lists
       return [{x: values[0][i], y:values[1][i], color:values[2][i]} for i, _ in enumerate(values[0])]
     else:
