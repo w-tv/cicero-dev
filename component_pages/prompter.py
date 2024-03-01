@@ -1,5 +1,7 @@
 #!/usr/bin/env -S streamlit run
 
+"""Post hoc ergo prompter hoc?"""
+
 import streamlit as st
 import pandas as pd
 import requests
@@ -10,6 +12,79 @@ import faiss
 from sentence_transformers import SentenceTransformer # Weird that this is how you reference the sentence-transformers package on pypi, too. Well, whatever.
 #COULD: use https://pypi.org/project/streamlit-profiler/ for profiling
 from transformers import GenerationConfig
+
+cicero_topics_to_user_facing_topic_dict = {
+  "america_wrong_track":"America Wrong Track",
+  "announcement":"Announcement",
+  "biden":"Joe Biden",
+  "biden_impeach":"Biden Impeachment",
+  "big_tech":"Big Tech",
+  "birthday":"Birthday",
+  "bio":"Bio",
+  "border":"Border",
+  "breaking_news":"Breaking News",
+  "campaign_msg":"Campaign Message / Memo",
+  "china":"China",
+  "climate_change":"Climate Change",
+  "commie":"Communism / Socialism",
+  "con_media":"Media Conservative",
+  "contest":"Contest",
+  "control_of_congress":"Control of Congress",
+  "control_of_wh":"Control of WH",
+  "covid":"Covid",
+  "crime":"Crime",
+  "dc_state":"DC Statehood",
+  "deadline":"Deadline",
+  "deep_state":"Deep State / Corruption",
+  "dems":"Dems",
+  "economy":"Taxes / Economy",
+  "education":"Education",
+  "election_integrity":"Election Integrity",
+  "endorse_for_principal":"Endorsement for Principal",
+  "endorse_from_donor":"Endorsement from Donor",
+  "endorse_from_principal":"Endorsement from Principal",
+  "energy":"Energy / Oil",
+  "event_debate":"Event Debate",
+  "event_speech":"Event Speech / Rally",
+  "faith":"Faith",
+  "ga_runoff":"GA Runoff",
+  "gender":"Gender",
+  "gop":"GOP",
+  "hamas":"Hamas",
+  "iran":"Iran",
+  "israel":"Israel",
+  "main_media":"Media Mainstream",
+  "matching":"Matching",
+  "membership":"Membership",
+  "merch_book":"Merch Book",
+  "merch_koozie":"Merch Koozie",
+  "merch_mug":"Merch Mug",
+  "merch_ornament":"Merch Ornament",
+  "merch_shirt":"Merch Shirt",
+  "merch_sticker":"Merch Sticker",
+  "merch_wrapping_paper":"Merch Wrapping Paper",
+  "military":"Military",
+  "murica":"'murica",
+  "n_korea":"North Korea",
+  "nat_sec":"National Security",
+  "non_trump_maga":"Non-Trump MAGA",
+  "parental_rights":"Parental Rights",
+  "pro_life":"Pro-Life",
+  "race_update":"Race Update",
+  "radical_judge":"Radical DAs / Judges",
+  "russia":"Russia",
+  "scotus":"SCOTUS",
+  "sec_amend":"2A",
+  "sotu":"State of the Union",
+  "swamp":"Swamp",
+  "t_arrest":"Trump Arrest",
+  "t_djt":"Donald Trump",
+  "t_pro":"Pro-Trump",
+  "ukraine":"Ukraine"
+}
+
+def inverse_topic_dict_lookup_list_mapping(user_facing_topics: list[str]) -> list[str]:
+  return [key for key, value in cicero_topics_to_user_facing_topic_dict.items() if value in user_facing_topics]
 
 def main() -> None:
   @st.cache_data()
@@ -231,79 +306,6 @@ def main() -> None:
     headline = st.selectbox("Selected headlines will be added to your prompt below.", [""]+list(headlines_sorted), key="headline") #STREAMLIT-BUG-WORKAROUND: see other [""] STREAMLIT-BUG-WORKAROUND in file.
 
   st.text("") # Just for vertical spacing.
-
-  cicero_topics_to_user_facing_topic_dict = {
-    "america_wrong_track":"America Wrong Track",
-    "announcement":"Announcement",
-    "biden":"Joe Biden",
-    "biden_impeach":"Biden Impeachment",
-    "big_tech":"Big Tech",
-    "birthday":"Birthday",
-    "bio":"Bio",
-    "border":"Border",
-    "breaking_news":"Breaking News",
-    "campaign_msg":"Campaign Message / Memo",
-    "china":"China",
-    "climate_change":"Climate Change",
-    "commie":"Communism / Socialism",
-    "con_media":"Media Conservative",
-    "contest":"Contest",
-    "control_of_congress":"Control of Congress",
-    "control_of_wh":"Control of WH",
-    "covid":"Covid",
-    "crime":"Crime",
-    "dc_state":"DC Statehood",
-    "deadline":"Deadline",
-    "deep_state":"Deep State / Corruption",
-    "dems":"Dems",
-    "economy":"Taxes / Economy",
-    "education":"Education",
-    "election_integrity":"Election Integrity",
-    "endorse_for_principal":"Endorsement for Principal",
-    "endorse_from_donor":"Endorsement from Donor",
-    "endorse_from_principal":"Endorsement from Principal",
-    "energy":"Energy / Oil",
-    "event_debate":"Event Debate",
-    "event_speech":"Event Speech / Rally",
-    "faith":"Faith",
-    "ga_runoff":"GA Runoff",
-    "gender":"Gender",
-    "gop":"GOP",
-    "hamas":"Hamas",
-    "iran":"Iran",
-    "israel":"Israel",
-    "main_media":"Media Mainstream",
-    "matching":"Matching",
-    "membership":"Membership",
-    "merch_book":"Merch Book",
-    "merch_koozie":"Merch Koozie",
-    "merch_mug":"Merch Mug",
-    "merch_ornament":"Merch Ornament",
-    "merch_shirt":"Merch Shirt",
-    "merch_sticker":"Merch Sticker",
-    "merch_wrapping_paper":"Merch Wrapping Paper",
-    "military":"Military",
-    "murica":"'murica",
-    "n_korea":"North Korea",
-    "nat_sec":"National Security",
-    "non_trump_maga":"Non-Trump MAGA",
-    "parental_rights":"Parental Rights",
-    "pro_life":"Pro-Life",
-    "race_update":"Race Update",
-    "radical_judge":"Radical DAs / Judges",
-    "russia":"Russia",
-    "scotus":"SCOTUS",
-    "sec_amend":"2A",
-    "sotu":"State of the Union",
-    "swamp":"Swamp",
-    "t_arrest":"Trump Arrest",
-    "t_djt":"Donald Trump",
-    "t_pro":"Pro-Trump",
-    "ukraine":"Ukraine"
-  }
-
-  def inverse_topic_dict_lookup_list_mapping(user_facing_topics: list[str]) -> list[str]:
-    return [key for key, value in cicero_topics_to_user_facing_topic_dict.items() if value in user_facing_topics]
 
   with st.form('query_builder'):
     with st.sidebar:

@@ -4,6 +4,7 @@ import streamlit as st
 from databricks import sql
 from collections.abc import Iterable
 from typing import Any, Sequence
+from .prompter import cicero_topics_to_user_facing_topic_dict
 
 def main() -> None:
   """
@@ -28,16 +29,17 @@ def main() -> None:
     with sql.connect(server_hostname=st.secrets["DATABRICKS_SERVER_HOSTNAME"], http_path=st.secrets["DATABRICKS_HTTP_PATH"], access_token=st.secrets["databricks_api_token"]) as connection: #These secrets should be in the root level of the .streamlit/secrets.toml
       with connection.cursor() as cursor:
         return cursor.execute(query).fetchall()
-  search = st.text_input("Search") #TODO: implement. What does this do?
+
   col1, col2, col3, col4, col5, col6 = st.columns(6) #possibly refactor this into non-unpacking for-loop type thing if I need to keep editing it.
   with col1:
     past_days = st.radio("Date range", [1, 7, 14, 30], index=1, format_func=lambda x: "Yesterday" if x == 1 else f"Last {x} days", help="The date range from which to display data. This will display data from any calendar day greater than or equal to (the present day minus the number of days specified). That is, 'Yesterday' will display data from both yesterday and today (and possibly, in rare circumstances, from the future).")
+  #TODO: Ok, so, do we want the values in these controls to be pulled from the table each time, or from a list somewhere in Cicero?
   with col2:
     account = st.multiselect("Account", ["dummy value"]) #TODO: implement.
   with col3:
     project_types = st.multiselect("Project Type", ["dummy value", "Text Message: P2P Internal"]) #TODO: populate with values
   with col4:
-    list_name_house = st.selectbox("List Name = House", ["dummy value"]) #TODO: implement. What does this do?
+    list_name_house = st.selectbox("List Name = House", ["dummy value"]) #TODO: implement. What does this do? Maybe get rid of this, even?
   with col5:
     list_name = st.selectbox("List Name", ["dummy value"]) #TODO: implement. What does this do?
   with col6:
@@ -68,6 +70,7 @@ def main() -> None:
 
   # Behold! Day (x) vs TV funds (y) line graph, per selected hook, which is what we decided was the only other important graph to keep from the old hook reporting application.
   hook = st.multiselect("Hook", ["dummy value"]) #this only affects the graph below it!
+  search = st.text_input("Search", help="This box, if filled in, makes the below graph only include results that have text (in the clean_text/clean_email field, depending on project type selected above) matching the contents of this box, as a regex (python flavor; see https://regex101.com/?flavor=python&regex=biden|trump&flags=gm&testString=example%20non-matching%20text%0Asome%20trump%20stuff%0Abiden!%0Atrumpbiden for more details and to experiment interactively.")
   days_per_hook = sql_call(f"""WITH stats(date, funds, hook) AS (SELECT SEND_DATE, SUM(TV_FUNDS), Hooks FROM hook_reporting.default.hook_data_prod WHERE PROJECT_TYPE="Text Message: P2P Internal" and GOAL="Fundraising" and Hook_Bool=true GROUP BY SEND_DATE, Hooks) SELECT date, funds, hook from stats""")
   st.line_chart(to_graphable_dict(days_per_hook, "Day", "Funds ($)", "Hook"), x='Day', y='Funds ($)', color='Hook')
 if __name__ == "__main__": main()
