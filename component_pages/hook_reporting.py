@@ -30,7 +30,7 @@ def main() -> None:
       with connection.cursor() as cursor:
         return cursor.execute(query).fetchall()
 
-  col1, col2, col3, col4, col5, col6 = st.columns(6) #possibly refactor this into non-unpacking for-loop type thing if I need to keep editing it.
+  col1, col2, col3, col4, col5 = st.columns(5) #possibly refactor this into non-unpacking for-loop type thing if I need to keep editing it.
   with col1:
     past_days = st.radio("Date range", [1, 7, 14, 30], index=1, format_func=lambda x: "Yesterday" if x == 1 else f"Last {x} days", help="The date range from which to display data. This will display data from any calendar day greater than or equal to (the present day minus the number of days specified). That is, 'Yesterday' will display data from both yesterday and today (and possibly, in rare circumstances, from the future).")
   #TODO: Ok, so, do we want the values in these controls to be pulled from the table each time, or from a list somewhere in Cicero?
@@ -39,15 +39,19 @@ def main() -> None:
   with col3:
     project_types = st.multiselect("Project Type", ["dummy value", "Text Message: P2P Internal"]) #TODO: populate with values
   with col4:
-    list_name_house = st.selectbox("List Name = House", ["dummy value"]) #TODO: implement. What does this do? Maybe get rid of this, even?
+    house_or_prospecting = st.selectbox("House or Prospecting?", ["Both", "House", "Prospecting"])
+    #hp_string = (lambda x:  match x: case "Both": return "true"; case "House": return "list_name like 'House%'"; case "Prospecting": return "list_name not like 'House%'")(house_or_prospecting) #invalid due to statements being disallowed in lambdas in python
+    #hp_string = "true" if house_or_prospecting=="Both" else "list_name like '%House%'" if house_or_prospecting=="House" else "list_name not like '%House%'" #works but less readable
+    hp_string = {"Both": "true", "House": "list_name like '%House%'", "Prospecting": "list_name not like '%House%'"}[house_or_prospecting]
   with col5:
-    list_name = st.selectbox("List Name", ["dummy value"]) #TODO: implement. What does this do?
-  with col6:
-    goals = st.multiselect("Goal", ["dummy value", "Fundraising"]) #TODO: populate with values
+    # "Hard Ask": Goal = Fundraising AND Ask Type = Hard Ask OR Medium Ask
+    # "Soft Ask": Goal = Fundraising AND Ask Type = Soft Ask OR GOAL = List Building
+    askgoal = st.selectbox("Ask-Goal", ["Both", "Hard Ask", "Soft Ask"])
+    askgoal_string = {"Both": "true", "Hard Ask": "GOAL = 'Fundraising' and (FUNDRAISING_TYPE in ('Hard Ask', 'Medium Ask')", "Soft Ask": "GOAL = 'Fundraising' and FUNDRAISING_TYPE = 'Soft Ask' or GOAL = 'List Building'"}[askgoal]
 
   #To minimize RAM usage on the front end, most of the computation is done in the sql query, on the backend.
   #There's only really one complication to this data, which is that each row is duplicated n times — the "product" of the row and the list of hook types, as it were. Then only the true hooks have Hook_Bool true (all others have Hook_Bool null, which is our signal to ignore that row). This is just because it's easy to do a pivot table (or something) in Tableau that way; it doesn't actually matter. But we have to deal with it. It is also easy for us to deal with in SQL using WHERE Hook_Bool=true GROUP BY Hooks.
-  summary_data_per_hook = sql_call(f"""WITH stats(hook, funds, sent, spend, result_count) AS (SELECT Hooks, SUM(TV_FUNDS), SUM(SENT), SUM(SPEND_AMOUNT), COUNT(DISTINCT RESULT_NAME) FROM hook_reporting.default.hook_data_prod WHERE PROJECT_TYPE in {to_sql_tuple_string(project_types)} and GOAL in {to_sql_tuple_string(goals)} and SEND_DATE >= NOW() - INTERVAL {past_days} DAY and Hook_Bool=true GROUP BY Hooks) SELECT hook, funds, try_divide(funds, sent)*1000, try_divide(funds, spend)*100, sent, result_count from stats""") #this is, basically, the entirety of what we need to do the thing
+  summary_data_per_hook = sql_call(f"""WITH stats(hook, funds, sent, spend, result_count) AS (SELECT Hooks, SUM(TV_FUNDS), SUM(SENT), SUM(SPEND_AMOUNT), COUNT(DISTINCT RESULT_NAME) FROM hook_reporting.default.hook_data_prod WHERE PROJECT_TYPE in {to_sql_tuple_string(project_types)} and {hp_string} and {askgoal_string} and SEND_DATE >= NOW() - INTERVAL {past_days} DAY and Hook_Bool=true GROUP BY Hooks) SELECT hook, funds, try_divide(funds, sent)*1000, try_divide(funds, spend)*100, sent, result_count from stats""") #this is, basically, the entirety of what we need to do the thing
 
   # I did a lot of crazy CONCAT and CAST logic in a previous version of this code, but this made everything into a string, and thus the graph used string-sorting order, ruining everything.
 
@@ -71,6 +75,7 @@ def main() -> None:
   # Behold! Day (x) vs TV funds (y) line graph, per selected hook, which is what we decided was the only other important graph to keep from the old hook reporting application.
   hook = st.multiselect("Hook", ["dummy value"]) #this only affects the graph below it!
   search = st.text_input("Search", help="This box, if filled in, makes the below graph only include results that have text (in the clean_text/clean_email field, depending on project type selected above) matching the contents of this box, as a regex (python flavor; see https://regex101.com/?flavor=python&regex=biden|trump&flags=gm&testString=example%20non-matching%20text%0Asome%20trump%20stuff%0Abiden!%0Atrumpbiden for more details and to experiment interactively.")
-  days_per_hook = sql_call(f"""WITH stats(date, funds, hook) AS (SELECT SEND_DATE, SUM(TV_FUNDS), Hooks FROM hook_reporting.default.hook_data_prod WHERE PROJECT_TYPE="Text Message: P2P Internal" and GOAL="Fundraising" and Hook_Bool=true GROUP BY SEND_DATE, Hooks) SELECT date, funds, hook from stats""")
+  # TODO: project types that are texts start with "Text: " and project types that are email start with "Email: "; use this to filter, soon.
+  days_per_hook = sql_call(f"""WITH stats(date, funds, hook) AS (SELECT SEND_DATE, SUM(TV_FUNDS), Hooks FROM hook_reporting.default.hook_data_prod WHERE PROJECT_TYPE in {to_sql_tuple_string(project_types)} and {hp_string} and GOAL="Fundraising" and Hook_Bool=true GROUP BY SEND_DATE, Hooks) SELECT date, funds, hook from stats""")
   st.line_chart(to_graphable_dict(days_per_hook, "Day", "Funds ($)", "Hook"), x='Day', y='Funds ($)', color='Hook')
 if __name__ == "__main__": main()
