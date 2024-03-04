@@ -33,21 +33,17 @@ def main() -> None:
   col1, col2, col3, col4, col5 = st.columns(5) #possibly refactor this into non-unpacking for-loop type thing if I need to keep editing it.
   with col1:
     past_days = st.radio("Date range", [1, 7, 14, 30], index=1, format_func=lambda x: "Yesterday" if x == 1 else f"Last {x} days", help="The date range from which to display data. This will display data from any calendar day greater than or equal to (the present day minus the number of days specified). That is, 'Yesterday' will display data from both yesterday and today (and possibly, in rare circumstances, from the future).")
-  #TODO: Ok, so, do we want the values in these controls to be pulled from the table each time, or from a list somewhere in Cicero?
+  #TODO: Ok, so, do we want the values in these other controls to be pulled from the table each time, or from a list somewhere in Cicero?
   with col2:
-    account = st.multiselect("Account", ["dummy value"]) #TODO: implement.
+    account = st.multiselect("Account", ["dummy value"]) #TODO: populate with values, implement.
   with col3:
     project_types = st.multiselect("Project Type", ["dummy value", "Text Message: P2P Internal"]) #TODO: populate with values
   with col4:
-    house_or_prospecting = st.selectbox("House or Prospecting?", ["Both", "House", "Prospecting"])
-    #hp_string = (lambda x:  match x: case "Both": return "true"; case "House": return "list_name like 'House%'"; case "Prospecting": return "list_name not like 'House%'")(house_or_prospecting) #invalid due to statements being disallowed in lambdas in python
-    #hp_string = "true" if house_or_prospecting=="Both" else "list_name like '%House%'" if house_or_prospecting=="House" else "list_name not like '%House%'" #works but less readable
+    house_or_prospecting = st.selectbox("House or Prospecting?", ["Both", "House", "Prospecting"], help="This control allows you to select on whether or not the list_name of the sent message contains \"House\" or not.")
     hp_string = {"Both": "true", "House": "list_name like '%House%'", "Prospecting": "list_name not like '%House%'"}[house_or_prospecting]
   with col5:
-    # "Hard Ask": Goal = Fundraising AND Ask Type = Hard Ask OR Medium Ask
-    # "Soft Ask": Goal = Fundraising AND Ask Type = Soft Ask OR GOAL = List Building
-    askgoal = st.selectbox("Ask-Goal", ["Both", "Hard Ask", "Soft Ask"])
-    askgoal_string = {"Both": "true", "Hard Ask": "GOAL = 'Fundraising' and (FUNDRAISING_TYPE in ('Hard Ask', 'Medium Ask')", "Soft Ask": "GOAL = 'Fundraising' and FUNDRAISING_TYPE = 'Soft Ask' or GOAL = 'List Building'"}[askgoal]
+    askgoal = st.selectbox("Ask-Goal", ["Both", "Hard Ask", "Soft Ask"], help='This control allows you to filter on \"ask type\" which is basically how directly focused on fundraising the text was supposed to be. Hard is more and soft is less.\n\nThe internal logic is that "Both" is no filter, "Soft Ask" is (Goal = Fundraising AND Ask Type = Soft Ask) OR Goal = List Building, and "Hard Ask": Goal = Fundraising AND Ask Type != Soft Ask. (!= "Soft Ask" is the same a in ("Hard Ask", "Medium Ask"); except, it will also catch the values of null and None, which are sometimes in there.)')
+    askgoal_string = {"Both": "true", "Hard Ask": "GOAL = 'Fundraising' and FUNDRAISING_TYPE != 'Soft Ask'", "Soft Ask": "GOAL = 'Fundraising' and FUNDRAISING_TYPE = 'Soft Ask' or GOAL = 'List Building'"}[askgoal]
 
   #To minimize RAM usage on the front end, most of the computation is done in the sql query, on the backend.
   #There's only really one complication to this data, which is that each row is duplicated n times — the "product" of the row and the list of hook types, as it were. Then only the true hooks have Hook_Bool true (all others have Hook_Bool null, which is our signal to ignore that row). This is just because it's easy to do a pivot table (or something) in Tableau that way; it doesn't actually matter. But we have to deal with it. It is also easy for us to deal with in SQL using WHERE Hook_Bool=true GROUP BY Hooks.
@@ -55,7 +51,7 @@ def main() -> None:
 
   # I did a lot of crazy CONCAT and CAST logic in a previous version of this code, but this made everything into a string, and thus the graph used string-sorting order, ruining everything.
 
-  # TODO: use the hook display name to hook table name mapping from the google sheet, or whatever. Also the colors, I suppose. #Curiously, I think the hooks in hook reporting interface are neither the internal hooks nor the user-facing hooks?
+  # TODO: use the hook display name to hook table name mapping from the google sheet, or whatever. Also the colors, I suppose. # One of these days I think we're going to change the hook names to human-readable names, anyway.
   # TODO: display big hook color key to the left of the graph?
 
   key_of_rows = ("Hook", "Funds", "FPM ($)", "ROAS (%)", "Sent", "Result count")
