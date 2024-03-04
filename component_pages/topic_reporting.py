@@ -8,11 +8,11 @@ from .prompter import cicero_topics_to_user_facing_topic_dict
 
 def main() -> None:
   """
-  This page performs a peculiar task known as "hook reporting", which is basically just summary statistics about various topic keywords.
+  This page performs a peculiar task known as "topic reporting", which is basically just summary statistics about various topic keywords (internally called "hooks").
 
   You must have streamlit installed to run this program. This script is usually run as part of Cicero run.bat in the main folder.
 
-  List of derived quantities, left to right (does not include "hook":
+  List of derived quantities, left to right (does not include "topic", which is also there, but not derived per se):
     TV Funds: SUM of TV Funds
     FPM ($): SUM([TV_FUNDS]) / SUM([SENT]) * 1000
     ROAS (%): SUM([TV_FUNDS]) / SUM([SPEND_AMOUNT]) PERCENT
@@ -47,14 +47,14 @@ def main() -> None:
 
   #To minimize RAM usage on the front end, most of the computation is done in the sql query, on the backend.
   #There's only really one complication to this data, which is that each row is duplicated n times — the "product" of the row and the list of hook types, as it were. Then only the true hooks have Hook_Bool true (all others have Hook_Bool null, which is our signal to ignore that row). This is just because it's easy to do a pivot table (or something) in Tableau that way; it doesn't actually matter. But we have to deal with it. It is also easy for us to deal with in SQL using WHERE Hook_Bool=true GROUP BY Hooks.
-  summary_data_per_hook = sql_call(f"""WITH stats(hook, funds, sent, spend, result_count) AS (SELECT Hooks, SUM(TV_FUNDS), SUM(SENT), SUM(SPEND_AMOUNT), COUNT(DISTINCT RESULT_NAME) FROM hook_reporting.default.hook_data_prod WHERE PROJECT_TYPE in {to_sql_tuple_string(project_types)} and {hp_string} and {askgoal_string} and SEND_DATE >= NOW() - INTERVAL {past_days} DAY and Hook_Bool=true GROUP BY Hooks) SELECT hook, funds, try_divide(funds, sent)*1000, try_divide(funds, spend)*100, sent, result_count from stats""") #this is, basically, the entirety of what we need to do the thing
+  summary_data_per_topic = sql_call(f"""WITH stats(topic, funds, sent, spend, result_count) AS (SELECT Hooks, SUM(TV_FUNDS), SUM(SENT), SUM(SPEND_AMOUNT), COUNT(DISTINCT RESULT_NAME) FROM hook_reporting.default.hook_data_prod WHERE PROJECT_TYPE in {to_sql_tuple_string(project_types)} and {hp_string} and {askgoal_string} and SEND_DATE >= NOW() - INTERVAL {past_days} DAY and Hook_Bool=true GROUP BY Hooks) SELECT topic, funds, try_divide(funds, sent)*1000, try_divide(funds, spend)*100, sent, result_count from stats""") #this is, basically, the entirety of what we need to do the thing
 
   # I did a lot of crazy CONCAT and CAST logic in a previous version of this code, but this made everything into a string, and thus the graph used string-sorting order, ruining everything.
 
-  # TODO: use the hook display name to hook table name mapping from the google sheet, or whatever. Also the colors, I suppose. # One of these days I think we're going to change the hook names to human-readable names, anyway.
-  # TODO: display big hook color key to the left of the graph?
+  # TODO: use the topic display name to internal topic name mapping in the big dict , to display the human-readable topci names to the user. Also the colors, I suppose. # One of these days I think we're going to change the topic names internally to human-readable names, anyway.
+  # TODO: display big topic color key to the left of the graph?
 
-  key_of_rows = ("Hook", "Funds", "FPM ($)", "ROAS (%)", "Sent", "Result count")
+  key_of_rows = ("Topic", "Funds", "FPM ($)", "ROAS (%)", "Sent", "Result count")
 
   def to_graphable_dict(values: Sequence[Sequence[Any]], x:str='x', y:str='y', color:str='color') -> list[dict[str, Any]]:
     if len(values) == 3: #it's a 3-list of n-lists
@@ -62,16 +62,16 @@ def main() -> None:
     else:
       return [{x: value[0], y:value[1], color:value[2]} for value in values]
 
-  dicted_rows = {key_of_rows[i]: [row[i] for row in summary_data_per_hook] for i, key in enumerate(key_of_rows)} #various formats probably work for this; this is just one of them.
-  if len(summary_data_per_hook):
-    st.scatter_chart(dicted_rows, x="ROAS (%)", y="FPM ($)", color="Hook")
+  dicted_rows = {key_of_rows[i]: [row[i] for row in summary_data_per_topic] for i, key in enumerate(key_of_rows)} #various formats probably work for this; this is just one of them.
+  if len(summary_data_per_topic):
+    st.scatter_chart(dicted_rows, x="ROAS (%)", y="FPM ($)", color="Topic")
   else:
     st.info("No data points are selected by the values indicated by the controls. Therefore, there is nothing to graph. Please broaden your criteria.")
 
-  # Behold! Day (x) vs TV funds (y) line graph, per selected hook, which is what we decided was the only other important graph to keep from the old hook reporting application.
-  hook = st.multiselect("Hook", ["dummy value"]) #this only affects the graph below it!
+  # Behold! Day (x) vs TV funds (y) line graph, per selected topic, which is what we decided was the only other important graph to keep from the old topic reporting application.
+  topic = st.multiselect("Topic", ["dummy value"]) #this only affects the graph below it!
   search = st.text_input("Search", help="This box, if filled in, makes the below graph only include results that have text (in the clean_text/clean_email field, depending on project type selected above) matching the contents of this box, as a regex (python flavor; see https://regex101.com/?flavor=python&regex=biden|trump&flags=gm&testString=example%20non-matching%20text%0Asome%20trump%20stuff%0Abiden!%0Atrumpbiden for more details and to experiment interactively.")
   # TODO: project types that are texts start with "Text: " and project types that are email start with "Email: "; use this to filter, soon.
-  days_per_hook = sql_call(f"""WITH stats(date, funds, hook) AS (SELECT SEND_DATE, SUM(TV_FUNDS), Hooks FROM hook_reporting.default.hook_data_prod WHERE PROJECT_TYPE in {to_sql_tuple_string(project_types)} and {hp_string} and GOAL="Fundraising" and Hook_Bool=true GROUP BY SEND_DATE, Hooks) SELECT date, funds, hook from stats""")
-  st.line_chart(to_graphable_dict(days_per_hook, "Day", "Funds ($)", "Hook"), x='Day', y='Funds ($)', color='Hook')
+  day_data_per_topic = sql_call(f"""WITH stats(date, funds, topic) AS (SELECT SEND_DATE, SUM(TV_FUNDS), Hooks FROM hook_reporting.default.hook_data_prod WHERE PROJECT_TYPE in {to_sql_tuple_string(project_types)} and {hp_string} and GOAL="Fundraising" and Hook_Bool=true GROUP BY SEND_DATE, Hooks) SELECT date, funds, topic from stats""")
+  st.line_chart(to_graphable_dict(day_data_per_topic, "Day", "Funds ($)", "Topic"), x='Day', y='Funds ($)', color='Topic')
 if __name__ == "__main__": main()

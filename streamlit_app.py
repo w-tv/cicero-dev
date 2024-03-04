@@ -9,7 +9,7 @@ import streamlit as st
 import os, psutil, platform
 import urllib.parse
 from typing import NoReturn
-from component_pages import prompter, hook_reporting
+from component_pages import prompter, topic_reporting
 
 st.set_page_config(layout="wide") # Use wide mode in Cicero, mostly so that results display more of their text by default. Also, set title and favicon. #NOTE: "`set_page_config()` can only be called once per app page, and must be called as the first Streamlit command in your script."
 
@@ -79,11 +79,11 @@ if "google_auth_code" in st.session_state:
   email = st.session_state["user_info"].get("email") #TODO: I think this should probably set the session state email instead?
   st.write(f"Google signed-in as {email}")
 
-tab1, tab2 = st.tabs(["🗣️ Prompter", "🪝 Hook Reporting"])
+tab1, tab2 = st.tabs(["🗣️ Prompter", "🌈 Topic Reporting"])
 with tab1:
   prompter.main()
 with tab2:
-  hook_reporting.main()
+  topic_reporting.main()
 
 loading_message.empty() # At this point, we no longer need to display a loading message, once we've gotten here and displayed everything above.
 
