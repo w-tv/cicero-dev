@@ -86,46 +86,138 @@ cicero_topics_to_user_facing_topic_dict = {
 def inverse_topic_dict_lookup_list_mapping(user_facing_topics: list[str]) -> list[str]:
   return [key for key, value in cicero_topics_to_user_facing_topic_dict.items() if value in user_facing_topics]
 
-def main() -> None:
-  @st.cache_data()
-  def load_model_permissions(useremail: str|None) -> list[str]:
+@st.cache_data()
+def load_model_permissions(useremail: str|None) -> list[str]:
+  with sql.connect(server_hostname=st.secrets["DATABRICKS_SERVER_HOSTNAME"], http_path=st.secrets["DATABRICKS_HTTP_PATH"], access_token=st.secrets["databricks_api_token"]) as connection: #These secrets should be in the root level of the .streamlit/secrets.toml
+    with connection.cursor() as cursor:
+      results = cursor.execute(
+        "SELECT DISTINCT modelname FROM models.default.permissions WHERE useremail = %(useremail)s", {'useremail': useremail}
+      ).fetchall()
+      return [result[0].lower() for result in results]
+
+@st.cache_data() #Necessity demands we do a manual cache of this function's result anyway in the one place we call it, but (for some reason) it seems like our deployed environment is messed up in some way I cannot locally replicate, which causes it to run this function once every five minutes. So, we cache it as well, to prevent waking up our server and costing us money.
+def count_from_activity_log_times_used_today(useremail: str|None = st.experimental_user['email']) -> int: #this goes by whatever the datetime default timezone is because we don't expect the exact boundary to matter much.
+  try: # This can fail if the table doesn't exist (at least not yet, as we create it on insert if it doesn't exist), so it's nice to have a default
+    with sql.connect(server_hostname=st.secrets["DATABRICKS_SERVER_HOSTNAME"], http_path=st.secrets["DATABRICKS_HTTP_PATH"], access_token=st.secrets["databricks_api_token"]) as connection: #These secrets should be in the root level of the .streamlit/secrets.toml
+      with connection.cursor() as cursor:
+        return cursor.execute(
+          f"SELECT COUNT(*) FROM main.default.activity_log WHERE useremail = %(useremail)s AND datetime LIKE '{date.today()}%%'",
+          {'useremail': useremail}
+        ).fetchone()[0]
+  except Exception as e:
+    print("There was an exception in count_from_activity_log_times_used_today, so I'm just returning a value of 0. Here's the exception:", str(e))
+    return 0
+
+def write_to_activity_log_table(datetime: str, useremail: str|None, promptsent: str, responsegiven: str, modelparams: str) -> int:
+  """The most sensical thing for this function to return is the closest thing to a result value that an insert command produces: the .rowcount variable of the cursor, which is "the number of rows that the last .execute*() [...] affected (for DML statements like UPDATE or INSERT)." <https://peps.python.org/pep-0249/#rowcount>. However, that PEP also states that "The attribute is -1 in case no .execute*() has been performed on the cursor or the rowcount of the last operation is cannot be determined by the interface." And the implementation of databricks-sql-connector seems to have taken this liberty to, indeed, always return -1. So this return value is useless."""
+  with sql.connect(server_hostname=st.secrets["DATABRICKS_SERVER_HOSTNAME"], http_path=st.secrets["DATABRICKS_HTTP_PATH"], access_token=st.secrets["databricks_api_token"]) as connection: #These should be in the root level of the .streamlit/secrets.toml
+    with connection.cursor() as cursor:
+      cursor.execute("CREATE TABLE IF NOT EXISTS main.default.activity_log (datetime string, useremail string, promptsent string, responsegiven string, modelparams string)")
+      return cursor.execute(
+        "INSERT INTO main.default.activity_log VALUES (%(datetime)s, %(useremail)s, %(promptsent)s, %(responsegiven)s, %(modelparams)s)",
+        {'datetime': datetime, 'useremail': useremail, 'promptsent': promptsent, 'responsegiven': responsegiven, 'modelparams': modelparams} #this probably could be a kwargs, but I couldn't figure out how to do that neatly the particular way I wanted so whatever, you just have to change this 'signature' four times in this function if you want to change it.
+      ).rowcount
+
+@st.cache_data()
+def load_bios() -> dict[str, str]:
+  bios : dict[str, str] = dict(pd.read_csv("Candidate_Bios.csv", index_col="ID").to_dict('split')['data'])
+  return bios
+
+@st.cache_data()
+def load_account_names() -> list[str]:
+  return list(pd.read_csv("Client_List.csv")['ACCOUNT_NAME'])
+
+@st.cache_data()
+def load_headlines(get_all:bool=False, past_days:int=7) -> list[str]:
+  try: # This can fail if the table doesn't exist (at least not yet, as we create it on insert if it doesn't exist), so it's nice to have a default
     with sql.connect(server_hostname=st.secrets["DATABRICKS_SERVER_HOSTNAME"], http_path=st.secrets["DATABRICKS_HTTP_PATH"], access_token=st.secrets["databricks_api_token"]) as connection: #These secrets should be in the root level of the .streamlit/secrets.toml
       with connection.cursor() as cursor:
         results = cursor.execute(
-          "SELECT DISTINCT modelname FROM models.default.permissions WHERE useremail = %(useremail)s", {'useremail': useremail}
+          "SELECT DISTINCT headline FROM cicero.default.headline_log" if get_all else
+          f"""WITH SortedHeadlines AS (
+                SELECT
+                    datetime,
+                    headline,
+                    ROW_NUMBER() OVER (PARTITION BY headline ORDER BY datetime DESC, headline) AS row_num
+                FROM
+                    cicero.default.headline_log
+                )
+              SELECT
+                headline
+              FROM
+                SortedHeadlines
+              WHERE
+                row_num = 1
+                AND datetime >= NOW() - INTERVAL {past_days} DAY
+              ORDER BY
+                datetime DESC, headline;
+          """ # The (arbitrary) requirement is that we return results from the last 7 days, and this is the easiest way to do it. Might not be the most performant query, but it works. COULD: review performance, see if there are any alternative queries that could be faster.
         ).fetchall()
-        return [result[0].lower() for result in results]
-  model_permissions = load_model_permissions(st.experimental_user['email']) #model_permissions stores model names as ***all lowercase***
-  if "context" not in model_permissions: #We want everyone to want to have access to default, at least at time of writing this comment.
-    model_permissions.insert(0, "Context")
-  #NOTE: these model secrets have to be in the secrets.toml as, like:
-  # models.Default = ''
-  # models.Context = ''
-  # Or some other way of making a dict in toml
-  models: dict[str,str] = { k:v for k, v in st.secrets['models'].items() if k.lower() in [m.lower() for m in model_permissions] } #filter for what the actual permissions are for the user.
+        return [result[0] for result in results]
+  except Exception as e:
+    print("There was an exception in load_headlines, so I'm just returning this. Here's the exception:", str(e))
+    return ["There was an exception in load_headlines, so I'm just returning this. Here's the exception: "+str(e)]
 
-  @st.cache_data() #Necessity demands we do a manual cache of this function's result anyway in the one place we call it, but (for some reason) it seems like our deployed environment is messed up in some way I cannot locally replicate, which causes it to run this function once every five minutes. So, we cache it as well, to prevent waking up our server and costing us money.
-  def count_from_activity_log_times_used_today(useremail: str|None = st.experimental_user['email']) -> int: #this goes by whatever the datetime default timezone is because we don't expect the exact boundary to matter much.
-    try: # This can fail if the table doesn't exist (at least not yet, as we create it on insert if it doesn't exist), so it's nice to have a default
-      with sql.connect(server_hostname=st.secrets["DATABRICKS_SERVER_HOSTNAME"], http_path=st.secrets["DATABRICKS_HTTP_PATH"], access_token=st.secrets["databricks_api_token"]) as connection: #These secrets should be in the root level of the .streamlit/secrets.toml
-        with connection.cursor() as cursor:
-          return cursor.execute(
-            f"SELECT COUNT(*) FROM main.default.activity_log WHERE useremail = %(useremail)s AND datetime LIKE '{date.today()}%%'",
-            {'useremail': useremail}
-          ).fetchone()[0]
-    except Exception as e:
-      print("There was an exception in count_from_activity_log_times_used_today, so I'm just returning a value of 0. Here's the exception:", str(e))
-      return 0
+@st.cache_data()
+def sort_headlines_semantically(headlines: list[str], query: str, number_of_results_to_return:int=1) -> list[str]:
+  """This does a bunch of gobbledygook no one understands. But the important thing is that it returns to you a function that will return to you the top k news results for a given query."""
+  model = SentenceTransformer("BAAI/bge-large-en-v1.5")
+  faiss_title_embedding = model.encode(headlines)
+  faiss.normalize_L2(faiss_title_embedding)
+  # Index1DMap translates search results to IDs: https://faiss.ai/cpp_api/file/IndexIDMap_8h.html#_CPPv4I0EN5faiss18IndexIDMapTemplateE ; The IndexFlatIP below builds index.
+  index_content = faiss.IndexIDMap(faiss.IndexFlatIP(len(faiss_title_embedding[0])))
+  index_content.add_with_ids(faiss_title_embedding, range(len(headlines)))
+  query_vector = model.encode([query])
+  faiss.normalize_L2(query_vector)
+  top_results = index_content.search(query_vector, number_of_results_to_return)
+  ids = top_results[1][0].tolist()
+  similarities = top_results[0][0].tolist() # COULD: return this, for whatever we want.
+  results = [headlines[i] for i in ids]
+  return results
 
-  def write_to_activity_log_table(datetime: str, useremail: str|None, promptsent: str, responsegiven: str, modelparams: str) -> int:
-    """The most sensical thing for this function to return is the closest thing to a result value that an insert command produces: the .rowcount variable of the cursor, which is "the number of rows that the last .execute*() [...] affected (for DML statements like UPDATE or INSERT)." <https://peps.python.org/pep-0249/#rowcount>. However, that PEP also states that "The attribute is -1 in case no .execute*() has been performed on the cursor or the rowcount of the last operation is cannot be determined by the interface." And the implementation of databricks-sql-connector seems to have taken this liberty to, indeed, always return -1. So this return value is useless."""
-    with sql.connect(server_hostname=st.secrets["DATABRICKS_SERVER_HOSTNAME"], http_path=st.secrets["DATABRICKS_HTTP_PATH"], access_token=st.secrets["databricks_api_token"]) as connection: #These should be in the root level of the .streamlit/secrets.toml
-      with connection.cursor() as cursor:
-        cursor.execute("CREATE TABLE IF NOT EXISTS main.default.activity_log (datetime string, useremail string, promptsent string, responsegiven string, modelparams string)")
-        return cursor.execute(
-          "INSERT INTO main.default.activity_log VALUES (%(datetime)s, %(useremail)s, %(promptsent)s, %(responsegiven)s, %(modelparams)s)",
-          {'datetime': datetime, 'useremail': useremail, 'promptsent': promptsent, 'responsegiven': responsegiven, 'modelparams': modelparams} #this probably could be a kwargs, but I couldn't figure out how to do that neatly the particular way I wanted so whatever, you just have to change this 'signature' four times in this function if you want to change it.
-        ).rowcount
+#Make default state, and other presets, so we can manage presets and resets.
+# Ah, finally, I've figured out how you're actually supposed to do it: https://docs.streamlit.io/library/advanced-features/button-behavior-and-examples#option-1-use-a-key-for-the-button-and-put-the-logic-before-the-widget
+#IMPORTANT: these field names are the same field names as what we eventually submit. HOWEVER, these are just the default values, and are only used for that, and are stored in this particular data structure, and do not overwrite the other variables of the same names that represent the returned values.
+presets: dict[ str, dict[str, float|int|bool|str|list[str]|None] ] = {
+  "default": {
+    "temperature": 0.7,
+    "target_charcount_min": 80,
+    "target_charcount_max": 160,
+    "num_beams" : 1,
+    "top_k" : 50,
+    "top_p" : 1.0,
+    "repetition_penalty" : 1.2,
+    "no_repeat_ngram_size" : 4,
+    "num_return_sequences" : 5,
+    "early_stopping" : False,
+    "do_sample" : True,
+    "output_scores" : False,
+    "model": "Context",
+    "account" : None,
+    "ask_type": "Hard Ask",
+    "tone" : [],
+    "topics" : [],
+    "additional_topics" : "",
+    "semantic_query": "",
+    "headline": None,
+    "overdrive": False,
+    "exact_match": False
+  },
+}
+
+def set_ui_to_preset(preset_name: str) -> None:
+  preset = presets[preset_name]
+  for i in preset: #this iterates over the keys
+    st.session_state[i] = preset[i]
+
+def list_from_cicero_tone_format_to_human_format(l: list[str]) -> list[str]:
+  return [x.replace("_", " ").title() for x in l]
+def list_from_human_format_to_cicero_tone_format(l: list[str]) -> list[str]:
+  return [x.replace(" ", "_").lower() for x in l]
+def list_to_bracketeds_string(l: list[str]) -> str:
+  return " ".join([f"[{i}]" for i in l])
+
+def main() -> None:
 
   if 'use_count' not in st.session_state:
     st.session_state['use_count'] = count_from_activity_log_times_used_today()
@@ -136,102 +228,23 @@ def main() -> None:
     st.write(f"You cannot use this service more than {use_count_limit} times a day, and you have reached that limit. Please contact the team if this is in error or if you wish to expand the limit.")
     exit() # When a user hits the limit it completely locks them out of the ui using an error message. This wasn't a requirement, but it seems fine.
 
+  model_permissions = load_model_permissions(st.experimental_user['email']) #model_permissions stores model names as ***all lowercase***
+  if "context" not in model_permissions: #We want everyone to want to have access to default, at least at time of writing this comment.
+    model_permissions.insert(0, "Context")
+  #NOTE: these model secrets have to be in the secrets.toml as, like:
+  # models.Default = ''
+  # models.Context = ''
+  # Or some other way of making a dict in toml
+  models: dict[str,str] = { k:v for k, v in st.secrets['models'].items() if k.lower() in [m.lower() for m in model_permissions] } #filter for what the actual permissions are for the user.
+
   st.error('REMINDER! Please tag all projects with "optimization" in the LABELS field in Salesforce.')
-  @st.cache_data()
-  def load_bios() -> dict[str, str]:
-    bios : dict[str, str] = dict(pd.read_csv("Candidate_Bios.csv", index_col="ID").to_dict('split')['data'])
-    return bios
+
   bios : dict[str, str] = load_bios()
 
-  @st.cache_data()
-  def load_account_names() -> list[str]:
-    return list(pd.read_csv("Client_List.csv")['ACCOUNT_NAME'])
   account_names = load_account_names()
 
-  @st.cache_data()
-  def load_headlines(get_all:bool=False, past_days:int=7) -> list[str]:
-    try: # This can fail if the table doesn't exist (at least not yet, as we create it on insert if it doesn't exist), so it's nice to have a default
-      with sql.connect(server_hostname=st.secrets["DATABRICKS_SERVER_HOSTNAME"], http_path=st.secrets["DATABRICKS_HTTP_PATH"], access_token=st.secrets["databricks_api_token"]) as connection: #These secrets should be in the root level of the .streamlit/secrets.toml
-        with connection.cursor() as cursor:
-          results = cursor.execute(
-            "SELECT DISTINCT headline FROM cicero.default.headline_log" if get_all else
-            f"""WITH SortedHeadlines AS (
-                  SELECT
-                      datetime,
-                      headline,
-                      ROW_NUMBER() OVER (PARTITION BY headline ORDER BY datetime DESC, headline) AS row_num
-                  FROM
-                      cicero.default.headline_log
-                  )
-                SELECT
-                  headline
-                FROM
-                  SortedHeadlines
-                WHERE
-                  row_num = 1
-                  AND datetime >= NOW() - INTERVAL {past_days} DAY
-                ORDER BY
-                  datetime DESC, headline;
-            """ # The (arbitrary) requirement is that we return results from the last 7 days, and this is the easiest way to do it. Might not be the most performant query, but it works. COULD: review performance, see if there are any alternative queries that could be faster.
-          ).fetchall()
-          return [result[0] for result in results]
-    except Exception as e:
-      print("There was an exception in load_headlines, so I'm just returning this. Here's the exception:", str(e))
-      return ["There was an exception in load_headlines, so I'm just returning this. Here's the exception: "+str(e)]
   headlines : list[str] = load_headlines(get_all=False) #COULD: if we don't need to allow the user this list all the time, we could move this line to the expander, in some kind of `if` statement, possibly a checkbox, to save maybe 2 seconds on app load times. (Unfortunately, the expansion state of the expander is not programmatically available to `if` upon. Also, we do kind of want the user to be able to access this list all the time, without sorting or searching necessarily being in play.)
   headlines_overdrive : list[str] = load_headlines(get_all=False, past_days=3)
-
-  @st.cache_data()
-  def sort_headlines_semantically(headlines: list[str], query: str, number_of_results_to_return:int=1) -> list[str]:
-    """This does a bunch of gobbledygook no one understands. But the important thing is that it returns to you a function that will return to you the top k news results for a given query."""
-    model = SentenceTransformer("BAAI/bge-large-en-v1.5")
-    faiss_title_embedding = model.encode(headlines)
-    faiss.normalize_L2(faiss_title_embedding)
-    # Index1DMap translates search results to IDs: https://faiss.ai/cpp_api/file/IndexIDMap_8h.html#_CPPv4I0EN5faiss18IndexIDMapTemplateE ; The IndexFlatIP below builds index.
-    index_content = faiss.IndexIDMap(faiss.IndexFlatIP(len(faiss_title_embedding[0])))
-    index_content.add_with_ids(faiss_title_embedding, range(len(headlines)))
-    query_vector = model.encode([query])
-    faiss.normalize_L2(query_vector)
-    top_results = index_content.search(query_vector, number_of_results_to_return)
-    ids = top_results[1][0].tolist()
-    similarities = top_results[0][0].tolist() # COULD: return this, for whatever we want.
-    results = [headlines[i] for i in ids]
-    return results
-
-  #Make default state, and other presets, so we can manage presets and resets.
-  # Ah, finally, I've figured out how you're actually supposed to do it: https://docs.streamlit.io/library/advanced-features/button-behavior-and-examples#option-1-use-a-key-for-the-button-and-put-the-logic-before-the-widget
-  #IMPORTANT: these field names are the same field names as what we eventually submit. HOWEVER, these are just the default values, and are only used for that, and are stored in this particular data structure, and do not overwrite the other variables of the same names that represent the returned values.
-  presets: dict[ str, dict[str, float|int|bool|str|list[str]|None] ] = {
-    "default": {
-      "temperature": 0.7,
-      "target_charcount_min": 80,
-      "target_charcount_max": 160,
-      "num_beams" : 1,
-      "top_k" : 50,
-      "top_p" : 1.0,
-      "repetition_penalty" : 1.2,
-      "no_repeat_ngram_size" : 4,
-      "num_return_sequences" : 5,
-      "early_stopping" : False,
-      "do_sample" : True,
-      "output_scores" : False,
-      "model": "Context",
-      "account" : None,
-      "ask_type": "Hard Ask",
-      "tone" : [],
-      "topics" : [],
-      "additional_topics" : "",
-      "semantic_query": "",
-      "headline": None,
-      "overdrive": False,
-      "exact_match": False
-    },
-  }
-
-  def set_ui_to_preset(preset_name: str) -> None:
-    preset = presets[preset_name]
-    for i in preset: #this iterates over the keys
-      st.session_state[i] = preset[i]
 
   if not st.session_state.get("initted"):
     set_ui_to_preset("default")
@@ -265,13 +278,6 @@ def main() -> None:
       else:
         raise Exception(f"Request failed with status {response.status_code}, {response.text}")
     return response.json()["predictions"][0]["0"]
-
-  def list_from_cicero_tone_format_to_human_format(l: list[str]) -> list[str]:
-    return [x.replace("_", " ").title() for x in l]
-  def list_from_human_format_to_cicero_tone_format(l: list[str]) -> list[str]:
-    return [x.replace(" ", "_").lower() for x in l]
-  def list_to_bracketeds_string(l: list[str]) -> str:
-    return " ".join([f"[{i}]" for i in l])
 
   # setting default values for advanced parameters for our non-developer end-user
   num_beams=1
@@ -329,7 +335,7 @@ def main() -> None:
     model_uri = models[model_name]
     account = st.selectbox("Account (required)", [""]+list(account_names), key="account" ) #STREAMLIT-BUG-WORKAROUND: For some reason, in the current version of streamlit, st.selectbox ends up returning the first value if the index has value is set to None via the key in the session_state, which is a bug (<https://github.com/streamlit/streamlit/issues/7649>), but anyway we work around it using this ridiculous workaround. This does leave a first blank option in there. But whatever.
     ask_type = str( st.selectbox("Ask Type", ['Hard Ask', 'Medium Ask', 'Soft Ask', 'Soft Ask Petition', 'Soft Ask Poll', 'Soft Ask Survey'], key="ask_type") )
-    topics = st.multiselect("Topics", cicero_topics_to_user_facing_topic_dict.values(), key="topics" )
+    topics = st.multiselect("Topics", sorted(cicero_topics_to_user_facing_topic_dict.values()), key="topics" )
     additional_topics = [x.strip() for x in st.text_input("Additional Topics (examples: Biden, survey, deadline)", key="additional_topics" ).split(",") if x.strip()] # The list comprehension is to filter out empty strings on split, because otherwise this fails to make a truly empty list in the default case, instead having a list with an empty string in, because split changes its behavior when you give it arguments. Anyway, this also filters out trailing comma edge-cases and such.
     tone = st.multiselect("Tone", ['Agency', 'Apologetic', 'Candid', 'Exclusivity', 'Fiesty', 'Grateful', 'Not Asking For Money', 'Pleading', 'Quick Request', 'Secretive', 'Swear Jar', 'Time Sensitive', 'Urgency'], key="tone")
     generate_button = st.form_submit_button("Submit")

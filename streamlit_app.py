@@ -37,7 +37,7 @@ if st.experimental_user['email'] == 'text@example.com': #TODO: we should not rel
   pass #The streamlit app is running "locally", which means everywhere but the streamlit community cloud.
 
 def get_base_url() -> str:
-  """Gets the url where the streamlit app is currently running, not including any page paths underneath. In testing, for example, this value is probably http://localhost:8501 . This function is from BramVanroy https://github.com/streamlit/streamlit/issues/798#issuecomment-1647759949 , with modifications. “WARNING: I found that in multi-page apps, this will always only return the base url and not the sub-page URL with the page appended to the end.” """
+  """Gets the url where the streamlit app is currently running, not including any page paths underneath. In testing, for example, this value is probably http://localhost:8501 . This function is from BramVanroy https://github.com/streamlit/streamlit/issues/798#issuecomment-1647759949 , with modifications. “WARNING: I found that in multi-page apps, this will always only return the base url and not the sub-page URL with the page appended to the end.”"""
   try:
     session = st.runtime.get_instance()._session_mgr.list_active_sessions()[0] # There's occasionally a harmless IndexError: list index out of range from this line of code on Streamlit Community Cloud, which I'd like to suppress for the convenience of the reader of the logs.
     return urllib.parse.urlunparse([session.client.request.protocol, session.client.request.host, "", "", "", ""]) # type: ignore[attr-defined] #TODO: Why doesn't it think this attribute is defined?
