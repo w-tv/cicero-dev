@@ -13,78 +13,87 @@ from sentence_transformers import SentenceTransformer # Weird that this is how y
 #COULD: use https://pypi.org/project/streamlit-profiler/ for profiling
 from transformers import GenerationConfig
 
-cicero_topics_to_user_facing_topic_dict = {
-  "america_wrong_track":"America Wrong Track",
-  "announcement":"Announcement",
-  "biden":"Joe Biden",
-  "biden_impeach":"Biden Impeachment",
-  "big_tech":"Big Tech",
-  "birthday":"Birthday",
-  "bio":"Bio",
-  "border":"Border",
-  "breaking_news":"Breaking News",
-  "campaign_msg":"Campaign Message / Memo",
-  "china":"China",
-  "climate_change":"Climate Change",
-  "commie":"Communism / Socialism",
-  "con_media":"Media Conservative",
-  "contest":"Contest",
-  "control_of_congress":"Control of Congress",
-  "control_of_wh":"Control of WH",
-  "covid":"Covid",
-  "crime":"Crime",
-  "dc_state":"DC Statehood",
-  "deadline":"Deadline",
-  "deep_state":"Deep State / Corruption",
-  "dems":"Dems",
-  "economy":"Taxes / Economy",
-  "education":"Education",
-  "election_integrity":"Election Integrity",
-  "endorse_for_principal":"Endorsement for Principal",
-  "endorse_from_donor":"Endorsement from Donor",
-  "endorse_from_principal":"Endorsement from Principal",
-  "energy":"Energy / Oil",
-  "event_debate":"Event Debate",
-  "event_speech":"Event Speech / Rally",
-  "faith":"Faith",
-  "ga_runoff":"GA Runoff",
-  "gender":"Gender",
-  "gop":"GOP",
-  "hamas":"Hamas",
-  "iran":"Iran",
-  "israel":"Israel",
-  "main_media":"Media Mainstream",
-  "matching":"Matching",
-  "membership":"Membership",
-  "merch_book":"Merch Book",
-  "merch_koozie":"Merch Koozie",
-  "merch_mug":"Merch Mug",
-  "merch_ornament":"Merch Ornament",
-  "merch_shirt":"Merch Shirt",
-  "merch_sticker":"Merch Sticker",
-  "merch_wrapping_paper":"Merch Wrapping Paper",
-  "military":"Military",
-  "murica":"'murica",
-  "n_korea":"North Korea",
-  "nat_sec":"National Security",
-  "non_trump_maga":"Non-Trump MAGA",
-  "parental_rights":"Parental Rights",
-  "pro_life":"Pro-Life",
-  "race_update":"Race Update",
-  "radical_judge":"Radical DAs / Judges",
-  "russia":"Russia",
-  "scotus":"SCOTUS",
-  "sec_amend":"2A",
-  "sotu":"State of the Union",
-  "swamp":"Swamp",
-  "t_arrest":"Trump Arrest",
-  "t_djt":"Donald Trump",
-  "t_pro":"Pro-Trump",
-  "ukraine":"Ukraine"
+
+# This is the 'big' of topics, the authoritative record of various facts and mappings about topics.
+topics_big = {
+  'All': {'color': '#61A5A2', 'internal name': 'all', 'show in prompter?': False},
+  "’murica": {'color': '#F0D0E8', 'internal name': 'murica', 'show in prompter?': True}, #for SQL syntax reasons, this has to be a typographic apostrophe instead of a straight apostrophe. (’ instead of ')
+  '2A': {'color': '#6B747D', 'internal name': 'sec_amend', 'show in prompter?': True},
+  'America Wrong Track': {'color': '#658AB2', 'internal name': 'america_wrong_track', 'show in prompter?': True},
+  'Announcement': {'color': '#FDB0A1', 'internal name': 'announcement', 'show in prompter?': True},
+  'Biden Impeachment': {'color': '#F58271', 'internal name': 'biden_impeach', 'show in prompter?': True},
+  'Big Tech': {'color': '#EF6862', 'internal name': 'big_tech', 'show in prompter?': True},
+  'Bio': {'color': '#FFF', 'internal name': 'bio', 'show in prompter?': True},
+  'Birthday': {'color': '#E24F59', 'internal name': 'birthday', 'show in prompter?': True},
+  'Border': {'color': '#CF3D54', 'internal name': 'border', 'show in prompter?': True},
+  'Breaking News': {'color': '#B93154', 'internal name': 'breaking_news', 'show in prompter?': True},
+  'Campaign Message / Memo': {'color': '#FFF021', 'internal name': 'campaign_msg', 'show in prompter?': True},
+  'China': {'color': '#F5E721', 'internal name': 'china', 'show in prompter?': True},
+  'Climate Change': {'color': '#000', 'internal name': 'climate_change', 'show in prompter?': True},
+  'Communism / Socialism': {'color': '#E3D321', 'internal name': 'commie', 'show in prompter?': True},
+  'Contest': {'color': '#DBC628', 'internal name': 'contest', 'show in prompter?': True},
+  'Control of Congress': {'color': '#CBB828', 'internal name': 'control_of_congress', 'show in prompter?': True},
+  'Control of WH': {'color': '#C7BC42', 'internal name': 'control_of_wh', 'show in prompter?': True},
+  'Covid': {'color': '#A69F56', 'internal name': 'covid', 'show in prompter?': True},
+  'Crime': {'color': '#A6A633', 'internal name': 'crime', 'show in prompter?': True},
+  'DC Statehood': {'color': '#BDE4B2', 'internal name': 'dc_state', 'show in prompter?': True},
+  'Deadline': {'color': '#85C37B', 'internal name': 'deadline', 'show in prompter?': True},
+  'Deep State / Corruption': {'color': '#5CA065', 'internal name': 'deep_state', 'show in prompter?': True},
+  'Dems': {'color': '#407D56', 'internal name': 'dems', 'show in prompter?': True},
+  'Donald Trump': {'color': '#F49D70', 'internal name': 't_djt', 'show in prompter?': True},
+  'Education': {'color': '#ABD1E9', 'internal name': 'education', 'show in prompter?': True},
+  'Election Integrity': {'color': '#95BFDD', 'internal name': 'election_integrity', 'show in prompter?': True},
+  'Endorsement for Principal': {'color': '#888', 'internal name': 'endorse_for_principal', 'show in prompter?': True},
+  'Endorsement from Donor': {'color': '#83AECF', 'internal name': 'endorse_from_donor', 'show in prompter?': True},
+  'Endorsement from Principal': {'color': '#729DC2', 'internal name': 'endorse_from_principal', 'show in prompter?': True},
+  'Energy / Oil': {'color': '#628CB4', 'internal name': 'energy', 'show in prompter?': True},
+  'Event Debate': {'color': '#547DA4', 'internal name': 'event_debate', 'show in prompter?': True},
+  'Event Speech / Rally': {'color': '#466D93', 'internal name': 'event_speech', 'show in prompter?': True},
+  'Faith': {'color': '#4F60C7', 'internal name': 'faith', 'show in prompter?': True},
+  'GA Runoff': {'color': '#444', 'internal name': 'ga_runoff', 'show in prompter?': True},
+  'GOP': {'color': '#BBB', 'internal name': 'gop', 'show in prompter?': True},
+  'Gender': {'color': '#6B55DB', 'internal name': 'gender', 'show in prompter?': True},
+  'Hamas': {'color': '#8D4EE6', 'internal name': 'hamas', 'show in prompter?': True},
+  'Iran': {'color': '#A547F6', 'internal name': 'iran', 'show in prompter?': True},
+  'Israel': {'color': '#C839F0', 'internal name': 'israel', 'show in prompter?': True},
+  'Joe Biden': {'color': '#FB9A86', 'internal name': 'biden', 'show in prompter?': True},
+  'Matching': {'color': '#916990', 'internal name': 'matching', 'show in prompter?': True},
+  'Media Conservative': {'color': '#DBC921', 'internal name': 'con_media', 'show in prompter?': True},
+  'Media Mainstream': {'color': '#8D648A', 'internal name': 'main_media', 'show in prompter?': True},
+  'Membership': {'color': '#966F96', 'internal name': 'membership', 'show in prompter?': True},
+  'Merch Book': {'color': '#B8A', 'internal name': 'merch_book', 'show in prompter?': True},
+  'Merch Koozie': {'color': '#B8F', 'internal name': 'merch_koozie', 'show in prompter?': True},
+  'Merch Mug': {'color': '#B587AA', 'internal name': 'merch_mug', 'show in prompter?': True},
+  'Merch Ornament': {'color': '#BAA', 'internal name': 'merch_ornament', 'show in prompter?': True},
+  'Merch Shirt': {'color': '#D8A', 'internal name': 'merch_shirt', 'show in prompter?': True},
+  'Merch Sticker': {'color': '#D1A4C1', 'internal name': 'merch_sticker', 'show in prompter?': True},
+  'Merch Wrapping Paper': {'color': '#D8F', 'internal name': 'merch_wrapping_paper', 'show in prompter?': True},
+  'Military': {'color': '#E4BCD8', 'internal name': 'military', 'show in prompter?': True},
+  'National Security': {'color': '#CDCFCE', 'internal name': 'nat_sec', 'show in prompter?': True},
+  'Non-Trump MAGA': {'color': '#BFC2C2', 'internal name': 'non_trump_maga', 'show in prompter?': True},
+  'North Korea': {'color': '#DADADA', 'internal name': 'n_korea', 'show in prompter?': True},
+  'Parental Rights': {'color': '#ABA', 'internal name': 'parental_rights', 'show in prompter?': True},
+  'Pro-Life': {'color': '#A5ABAD', 'internal name': 'pro_life', 'show in prompter?': True},
+  'Pro-Trump': {'color': '#CF693F', 'internal name': 't_pro', 'show in prompter?': True},
+  'Race Update': {'color': '#97A0A4', 'internal name': 'race_update', 'show in prompter?': True},
+  'Radical DAs / Judges': {'color': '#8B959A', 'internal name': 'radical_judge', 'show in prompter?': True},
+  'Russia': {'color': '#7F8A91', 'internal name': 'russia', 'show in prompter?': True},
+  'SCOTUS': {'color': '#757E88', 'internal name': 'scotus', 'show in prompter?': True},
+  'State of the Union': {'color': '#FF0', 'internal name': 'sotu', 'show in prompter?': True},
+  'Swamp': {'color': '#616873', 'internal name': 'swamp', 'show in prompter?': True},
+  'Taxes / Economy': {'color': '#C2E1F3', 'internal name': 'economy', 'show in prompter?': True},
+  'Trump America First': {'color': '#F9BD74', 'internal name': 't_af', 'show in prompter?': False},
+  'Trump Arrest': {'color': '#F6AB57', 'internal name': 't_arrest', 'show in prompter?': True},
+  'Trump Contest': {'color': '#F49648', 'internal name': 't_contest', 'show in prompter?': False},
+  'Trump MAGA': {'color': '#EF823D', 'internal name': 't_maga', 'show in prompter?': False},
+  'Trump Mar-a-Lago Raid': {'color': '#E1743D', 'internal name': 't_mal_raid', 'show in prompter?': False},
+  'Trump Supporter': {'color': '#BD6040', 'internal name': 't_supporter', 'show in prompter?': False},
+  'Trump Witchhunt': {'color': '#AB563F', 'internal name': 't_witchhunt', 'show in prompter?': False},
+  'Ukraine': {'color': '#0056B9', 'internal name': 'ukraine', 'show in prompter?': True},
 }
 
-def inverse_topic_dict_lookup_list_mapping(user_facing_topics: list[str]) -> list[str]:
-  return [key for key, value in cicero_topics_to_user_facing_topic_dict.items() if value in user_facing_topics]
+def external_topic_names_to_internal_topic_names_list_mapping(external_topic_names: list[str]) -> list[str]:
+  return [topics_big[e]["internal name"] for e in external_topic_names]
 
 @st.cache_data()
 def load_model_permissions(useremail: str|None) -> list[str]:
@@ -335,7 +344,7 @@ def main() -> None:
     model_uri = models[model_name]
     account = st.selectbox("Account (required)", [""]+list(account_names), key="account" ) #STREAMLIT-BUG-WORKAROUND: For some reason, in the current version of streamlit, st.selectbox ends up returning the first value if the index has value is set to None via the key in the session_state, which is a bug (<https://github.com/streamlit/streamlit/issues/7649>), but anyway we work around it using this ridiculous workaround. This does leave a first blank option in there. But whatever.
     ask_type = str( st.selectbox("Ask Type", ['Hard Ask', 'Medium Ask', 'Soft Ask', 'Soft Ask Petition', 'Soft Ask Poll', 'Soft Ask Survey'], key="ask_type") )
-    topics = st.multiselect("Topics", sorted(cicero_topics_to_user_facing_topic_dict.values()), key="topics" )
+    topics = st.multiselect("Topics", sorted([t for t, d in topics_big.items() if d["show in prompter?"]]), key="topics" )
     additional_topics = [x.strip() for x in st.text_input("Additional Topics (examples: Biden, survey, deadline)", key="additional_topics" ).split(",") if x.strip()] # The list comprehension is to filter out empty strings on split, because otherwise this fails to make a truly empty list in the default case, instead having a list with an empty string in, because split changes its behavior when you give it arguments. Anyway, this also filters out trailing comma edge-cases and such.
     tone = st.multiselect("Tone", ['Agency', 'Apologetic', 'Candid', 'Exclusivity', 'Fiesty', 'Grateful', 'Not Asking For Money', 'Pleading', 'Quick Request', 'Secretive', 'Swear Jar', 'Time Sensitive', 'Urgency'], key="tone")
     generate_button = st.form_submit_button("Submit")
@@ -350,7 +359,10 @@ def main() -> None:
         ((bios[account]+"\n\n") if "Bio" in topics and account in bios else "") +
         "Write a "+ask_type.lower()+
         " text for "+account+
-        " about: "+list_to_bracketeds_string( sorted( inverse_topic_dict_lookup_list_mapping(topics)+list_from_human_format_to_cicero_tone_format(additional_topics) ) or ["No Hook"] )+
+        " about: "+list_to_bracketeds_string(
+            sorted( external_topic_names_to_internal_topic_names_list_mapping(topics) + list_from_human_format_to_cicero_tone_format(additional_topics) )
+            or ["No Hook"]
+        )+
         ( "" if not tone else " emphasizing "+ list_to_bracketeds_string(sorted(list_from_human_format_to_cicero_tone_format(tone))) ) +
         (" {"+headline+"} " if headline else "")
       )
