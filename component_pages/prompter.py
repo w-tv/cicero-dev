@@ -14,9 +14,9 @@ from sentence_transformers import SentenceTransformer # Weird that this is how y
 from transformers import GenerationConfig
 from typing import TypedDict
 
-Topics_Big_Payload = TypedDict("Topics_Big_Payload", {'color': str, 'internal name': str, 'show in prompter?': bool})
 
 # This is the 'big' of topics, the authoritative record of various facts and mappings about topics.
+Topics_Big_Payload = TypedDict("Topics_Big_Payload", {'color': str, 'internal name': str, 'show in prompter?': bool})
 topics_big: dict[str, Topics_Big_Payload] = {
   'All': {'color': '#61A5A2', 'internal name': 'all', 'show in prompter?': False},
   "’murica": {'color': '#F0D0E8', 'internal name': 'murica', 'show in prompter?': True}, #for SQL syntax reasons, this has to be a typographic apostrophe instead of a straight apostrophe. (’ instead of ')
@@ -416,7 +416,8 @@ def main() -> None:
 
   login_activity_counter_container.write( f"You are logged in as {st.experimental_user['email']} . You have queried {st.session_state['use_count']} {'time' if st.session_state['use_count'] == 1 else 'times'} today, out of a limit of {use_count_limit}."+(" You are in developer mode." if st.session_state["developer_mode"] else "") )
 
-  st.text_area("Scratchpad", help="This text area does nothing to the prompter; it's only here to allow you to paste outputs here and edit them slightly, for your own convenience.")
+  scratchpad = st.text_area("Scratchpad", help="This text area does nothing to the prompter; it's only here to allow you to paste outputs here and edit them slightly, for your own convenience.")
+  st.caption(f"Scratchpad character count: {len(scratchpad)}. (Ctrl-Enter in the box above to recalculate character count.)")
   #activity logging takes a bit, so I've put it last to preserve immediate-feeling performance and responses for the user making a query
   if did_a_query:
     dict_prompt.pop('prompt')
