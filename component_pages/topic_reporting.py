@@ -73,6 +73,8 @@ internal_account_name_to_external_account_name = { #many-to-one relationship
   'Bo Hines for Congress - National Public Affairs (TMA Direct)' : 'Bo Hines - TMA',
   'Bob Latta' : 'Bob Latta',
   'Britt - Convert Digital (TMA)' : 'Katie Britt - TMA',
+  'Britt - Convergence (916)': 'Katie Britt - TMA',
+  'Katie Britt for Senate (AL-Sen) (Convert Digital)': 'Katie Britt - TMA',
   'Brnovich for AZ Senate' : 'Mark Brnovich',
   'Brown, Sam (NV-Sen) (Convert Digital)' : 'Sam Brown',
   'Budd (TAG)' : 'Ted Budd',
