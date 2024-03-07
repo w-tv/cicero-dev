@@ -414,6 +414,7 @@ def main() -> None:
   """
 
   with st.expander("Topics..."):
+    topics_gigaselect_default_selected = ["biden", "border", "deadline", "murica", "faith", "commie", "control_of_congress", "scotus", "economy", "election_integrity"]
     topics_gigaselect = {}
     topic_check_cols = st.columns(len(topics_big)//14 + 1) #the items per column is chosen arbitrarily to kind of be good.
     for i, t in enumerate(topics_big): #In even cols, including 0, put a color square
@@ -423,7 +424,7 @@ def main() -> None:
           color_code = topics_big[t]["color"]
           m = st.markdown(f' <div style="color:{color_code}" title="{t}, {color_code}">&#9632;</div>', unsafe_allow_html=True)
         with col2:
-          topics_gigaselect[t] = st.checkbox(t, value=True)
+          topics_gigaselect[t] = st.checkbox(t, value=(topics_big[t]["internal name"] in topics_gigaselect_default_selected))
 
   col1, col2, col3, col4, col5 = st.columns(5) #possibly refactor this into non-unpacking for-loop type thing if I need to keep editing it.
   with col1:
