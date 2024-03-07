@@ -11,7 +11,7 @@ import pandas as pd
 import numpy as np
 import altair as alt
 
-def to_sql_tuple_string(x: Sequence[str]):
+def to_sql_tuple_string(x: Sequence[str]) -> str:
   """SQL doesn't like the trailing comma python puts in a singleton tuple, so we can't just use the tuple constructor and then convert that to string; we have to do this instead."""
   if len(x) == 0:
     return "(NULL)" #this is a special case, because SQL doesn't like 'in ()' for some reason
@@ -437,9 +437,11 @@ def main() -> None:
       project_type = "" # this should match anything.
   with col4:
     house_or_prospecting = st.selectbox("House or Prospecting?", ["Both", "House", "Prospecting"], help="This control allows you to filter on whether the list_name of the sent message contains \"House\" or not.")
+    house_or_prospecting = str(house_or_prospecting or "Both") #appease typechecker by removing the optionality of this type
     hp_string = {"Both": "true", "House": "list_name like '%House%'", "Prospecting": "list_name not like '%House%'"}[house_or_prospecting]
   with col5:
     askgoal = st.selectbox("Ask-Goal", ["Both", "Hard Ask", "Soft Ask"], help='This control allows you to filter on \"ask type\" which is basically how directly focused on fundraising the text was supposed to be. Hard is more and soft is less.\n\nThe internal logic is that "Both" is no filter; "Soft Ask" is (Goal = Fundraising AND Ask Type = Soft Ask) OR Goal = List Building; and "Hard Ask" is Goal = Fundraising AND Ask Type != Soft Ask. (`!= "Soft Ask"` is the same as `in ("Hard Ask", "Medium Ask")` except it will also catch the values null and \'None\', which are sometimes also in there.)')
+    askgoal = str(askgoal or "Both") #appease typechecker by removing the optionality of this type
     askgoal_string = {"Both": "true", "Hard Ask": "GOAL = 'Fundraising' and FUNDRAISING_TYPE != 'Soft Ask'", "Soft Ask": "GOAL = 'Fundraising' and FUNDRAISING_TYPE = 'Soft Ask' or GOAL = 'List Building'"}[askgoal]
 
   #To minimize RAM usage on the front end, most of the computation is done in the sql query, on the backend.

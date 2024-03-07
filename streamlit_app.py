@@ -31,7 +31,7 @@ email = st.experimental_user['email'] #TODO: this should eventually use the goog
 st.session_state['developer_mode'] = email in ["achang@targetedvictory.com", "test@example.com", "abrady@targetedvictory.com", "thall@targetedvictory.com", "afuhrer@targetedvictory.com", "wcarpenter@targetedvictory.com"] and not st.session_state.get("developer_mode_disabled")
 def disable_developer_mode() -> None: st.session_state["developer_mode_disabled"] = True
 
-if st.experimental_user['email'] == 'text@example.com': #TODO: we should not rely on this behavior. Which is easy, because we don't currently use it for anything
+if st.experimental_user['email'] == 'text@example.com': #TODO: we probably should not rely on this behavior (maybe). Which is easy, because we don't currently use it for anything
   pass #The streamlit app is running "locally", which means everywhere but the streamlit community cloud.
 
 def get_base_url() -> str:

@@ -12,10 +12,12 @@ import faiss
 from sentence_transformers import SentenceTransformer # Weird that this is how you reference the sentence-transformers package on pypi, too. Well, whatever.
 #COULD: use https://pypi.org/project/streamlit-profiler/ for profiling
 from transformers import GenerationConfig
+from typing import TypedDict
 
+Topics_Big_Payload = TypedDict("Topics_Big_Payload", {'color': str, 'internal name': str, 'show in prompter?': bool})
 
 # This is the 'big' of topics, the authoritative record of various facts and mappings about topics.
-topics_big = {
+topics_big: dict[str, Topics_Big_Payload] = {
   'All': {'color': '#61A5A2', 'internal name': 'all', 'show in prompter?': False},
   "’murica": {'color': '#F0D0E8', 'internal name': 'murica', 'show in prompter?': True}, #for SQL syntax reasons, this has to be a typographic apostrophe instead of a straight apostrophe. (’ instead of ')
   '2A': {'color': '#6B747D', 'internal name': 'sec_amend', 'show in prompter?': True},
