@@ -389,7 +389,7 @@ def main() -> None:
         GenerationConfig(**unpsycho_dict_prompt)# This validates the parameters, throwing an exception that displays to the user and explains the problem if the parameters are wrong.
         df_prompt = pd.DataFrame(dict_prompt)
         outputs = send(model_uri, st.secrets["databricks_api_token"], df_prompt)
-        st.session_state['outputs_df'] = pd.DataFrame(outputs, columns=["Model outputs (double click any output to expand it)"]) #Styling this doesn't seem to work, for some reason. Well, whatever.
+        st.session_state['outputs'] = outputs
         if 'history' not in st.session_state: st.session_state['history'] = []
         st.session_state['history'] += outputs
         st.session_state['character_counts_caption'] = "Character counts: "+str([len(o) for o in outputs])
@@ -406,7 +406,16 @@ def main() -> None:
       st.caption("Developer Mode Message: the prompt passed to the model is: "+ st.session_state['developer-facing_prompt'])
 
   st.error("WARNING! Outputs have not been fact checked. CICERO is not responsible for inaccuracies in deployed copy. Please check all *names*, *places*, *counts*, *times*, *events*, and *titles* (esp. military titles) for accuracy.  \nAll numbers included in outputs are suggestions only and should be updated. They are NOT analytically optimized to increase conversions (yet) and are based solely on frequency in past copy.", icon="⚠️")
-  if 'outputs_df' in st.session_state: st.dataframe(st.session_state['outputs_df'], hide_index=True, use_container_width=True)
+  if 'outputs' in st.session_state:
+    for output in st.session_state['outputs']:
+      col1, col2, col3 = st.columns([.94, .03, .03])
+      #TODO: unimplemented draft version
+      with col1:
+        st.write("```"+output+"```") # I put this in markdown code block here just so that messages which contain two dollar signs ("I need $10. Can you give me $10?") don't enter latex mode in the middle.
+      with col2:
+        st.button("⧉", key="⧉"+output, help="Copy to system clipboard (ctrl-c)") #use https://github.com/mmz-001/st-copy-to-clipboard for this if we want it.
+      with col3:
+        st.button("📝", key="📝"+output, help="Send down to scratchpad")
   if 'character_counts_caption' in st.session_state: st.caption(st.session_state['character_counts_caption'])
 
   with st.sidebar: #The history display includes a result of the logic of the script, that has to be updated in the middle of the script where the button press is (when the button is in fact pressed), so the code to display it has to be after all the logic of the script or else it will lag behind the actual state of the history by one time step.
