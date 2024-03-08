@@ -427,7 +427,7 @@ def main() -> None:
   login_activity_counter_container.write( f"You are logged in as {st.experimental_user['email']} . You have queried {st.session_state['use_count']} {'time' if st.session_state['use_count'] == 1 else 'times'} today, out of a limit of {use_count_limit}."+(" You are in developer mode." if st.session_state["developer_mode"] else "") )
 
   scratchpad = st.text_area("Scratchpad", st.session_state.get("scratchpad") or "", help="This text area does nothing to the prompter; it's only here to allow you to paste outputs here and edit them slightly, for your own convenience.")
-  st.caption(f"Scratchpad character count: {len(scratchpad)}. (Ctrl-Enter in the box above to recalculate character count.)")
+  st.caption(f"Scratchpad character count: {len(scratchpad)}. (CTRL-ENTER in the box above to recalculate character count.)")
   #activity logging takes a bit, so I've put it last to preserve immediate-feeling performance and responses for the user making a query
   if did_a_query:
     dict_prompt.pop('prompt')
