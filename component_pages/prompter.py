@@ -203,7 +203,7 @@ presets: dict[ str, dict[str, float|int|bool|str|list[str]|None] ] = {
     "early_stopping" : False,
     "do_sample" : True,
     "output_scores" : False,
-    "model": "Context",
+    "model": "gpt-revamp",
     "account" : None,
     "ask_type": "Hard Ask",
     "tone" : [],
@@ -240,8 +240,8 @@ def main() -> None:
     exit() # When a user hits the limit it completely locks them out of the ui using an error message. This wasn't a requirement, but it seems fine.
 
   model_permissions = load_model_permissions(st.experimental_user['email']) #model_permissions stores model names as ***all lowercase***
-  if "context" not in model_permissions: #We want everyone to want to have access to default, at least at time of writing this comment.
-    model_permissions.insert(0, "Context")
+  if "gpt-revamp" not in model_permissions: #We want everyone to want to have access to default, at least at time of writing this comment.
+    model_permissions.insert(0, "gpt-revamp")
   #NOTE: these model secrets have to be in the secrets.toml as, like:
   # models.Default = ''
   # models.Context = ''
