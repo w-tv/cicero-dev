@@ -13,7 +13,7 @@ from sentence_transformers import SentenceTransformer # Weird that this is how y
 #COULD: use https://pypi.org/project/streamlit-profiler/ for profiling
 from transformers import GenerationConfig
 from typing import TypedDict
-
+from st_copy_to_clipboard import st_copy_to_clipboard
 
 # This is the 'big' of topics, the authoritative record of various facts and mappings about topics.
 Topics_Big_Payload = TypedDict("Topics_Big_Payload", {'color': str, 'internal name': str, 'show in prompter?': bool})
@@ -406,14 +406,15 @@ def main() -> None:
       st.caption("Developer Mode Message: the prompt passed to the model is: "+ st.session_state['developer-facing_prompt'])
 
   st.error("WARNING! Outputs have not been fact checked. CICERO is not responsible for inaccuracies in deployed copy. Please check all *names*, *places*, *counts*, *times*, *events*, and *titles* (esp. military titles) for accuracy.  \nAll numbers included in outputs are suggestions only and should be updated. They are NOT analytically optimized to increase conversions (yet) and are based solely on frequency in past copy.", icon="⚠️")
+  st_copy_to_clipboard("foobar baz")
   if 'outputs' in st.session_state:
     for output in st.session_state['outputs']:
       col1, col2, col3 = st.columns([.94, .03, .03])
-      #TODO: unimplemented draft version
       with col1:
         st.write("```"+output+"```") # I put this in markdown code block here just so that messages which contain two dollar signs ("I need $10. Can you give me $10?") don't enter latex mode in the middle.
       with col2:
-        st.button("⧉", key="⧉"+output, help="Copy to system clipboard (ctrl-c)") #use https://github.com/mmz-001/st-copy-to-clipboard for this if we want it.
+        #if st.button("⧉", key="⧉"+output, help="Copy to system clipboard (ctrl-c)"): #it's actually already a button, hmm. In an iframe that is too big, no less!
+        st_copy_to_clipboard(output) #uses https://github.com/mmz-001/st-copy-to-clipboard
       with col3:
         if st.button("📝", key="📝"+output, help="Send down to scratchpad"):
           st.session_state["scratchpad"] = output
