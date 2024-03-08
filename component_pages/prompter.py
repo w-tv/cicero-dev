@@ -406,18 +406,20 @@ def main() -> None:
       st.caption("Developer Mode Message: the prompt passed to the model is: "+ st.session_state['developer-facing_prompt'])
 
   st.error("WARNING! Outputs have not been fact checked. CICERO is not responsible for inaccuracies in deployed copy. Please check all *names*, *places*, *counts*, *times*, *events*, and *titles* (esp. military titles) for accuracy.  \nAll numbers included in outputs are suggestions only and should be updated. They are NOT analytically optimized to increase conversions (yet) and are based solely on frequency in past copy.", icon="⚠️")
-  st_copy_to_clipboard("foobar baz")
   if 'outputs' in st.session_state:
-    for output in st.session_state['outputs']:
-      col1, col2, col3 = st.columns([.94, .03, .03])
-      with col1:
-        st.write("```"+output+"```") # I put this in markdown code block here just so that messages which contain two dollar signs ("I need $10. Can you give me $10?") don't enter latex mode in the middle.
-      with col2:
-        #if st.button("⧉", key="⧉"+output, help="Copy to system clipboard (ctrl-c)"): #it's actually already a button, hmm. In an iframe that is too big, no less!
-        st_copy_to_clipboard(output) #uses https://github.com/mmz-001/st-copy-to-clipboard
-      with col3:
-        if st.button("📝", key="📝"+output, help="Send down to scratchpad"):
-          st.session_state["scratchpad"] = output
+    if st.session_state["developer_mode"]:
+      for output in st.session_state['outputs']:
+        col1, col2, col3 = st.columns([.94, .03, .03])
+        with col1:
+          st.write("```"+output+"```") # I put this in markdown code block here just so that messages which contain two dollar signs ("I need $10. Can you give me $10?") don't enter latex mode in the middle.
+        with col2:
+          #if st.button("⧉", key="⧉"+output, help="Copy to system clipboard (ctrl-c)"): #it's actually already a button, hmm. In an iframe that is too big, no less!
+          st_copy_to_clipboard(output) #uses https://github.com/mmz-001/st-copy-to-clipboard
+        with col3:
+          if st.button("📝", key="📝"+output, help="Send down to scratchpad"):
+            st.session_state["scratchpad"] = output
+    else:
+      st.dataframe(pd.DataFrame(outputs, columns=["Model outputs (double click any output to expand it)"]), hide_index=True, use_container_width=True) #Styling this dataframe doesn't seem to work, for some reason. Well, whatever.
   if 'character_counts_caption' in st.session_state: st.caption(st.session_state['character_counts_caption'])
 
   with st.sidebar: #The history display includes a result of the logic of the script, that has to be updated in the middle of the script where the button press is (when the button is in fact pressed), so the code to display it has to be after all the logic of the script or else it will lag behind the actual state of the history by one time step.
@@ -426,9 +428,9 @@ def main() -> None:
     st.dataframe( pd.DataFrame(reversed( st.session_state['history'] ),columns=(["Outputs"])), hide_index=True, use_container_width=True)
 
   login_activity_counter_container.write( f"You are logged in as {st.experimental_user['email']} . You have queried {st.session_state['use_count']} {'time' if st.session_state['use_count'] == 1 else 'times'} today, out of a limit of {use_count_limit}."+(" You are in developer mode." if st.session_state["developer_mode"] else "") )
-
-  scratchpad = st.text_area("Scratchpad", st.session_state.get("scratchpad") or "", help="This text area does nothing to the prompter; it's only here to allow you to paste outputs here and edit them slightly, for your own convenience.")
-  st.caption(f"Scratchpad character count: {len(scratchpad)}. (CTRL-ENTER in the box above to recalculate character count.)")
+  if st.session_state["developer_mode"]:
+    scratchpad = st.text_area("Scratchpad", st.session_state.get("scratchpad") or "", help="This text area does nothing to the prompter; it's only here to allow you to paste outputs here and edit them slightly, for your own convenience.")
+    st.caption(f"Scratchpad character count: {len(scratchpad)}. (CTRL-ENTER in the box above to recalculate character count.)")
   #activity logging takes a bit, so I've put it last to preserve immediate-feeling performance and responses for the user making a query
   if did_a_query:
     dict_prompt.pop('prompt')
