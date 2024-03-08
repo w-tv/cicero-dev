@@ -417,6 +417,7 @@ def main() -> None:
 
     # Complicated logic just to have defaults and de/select all. Remember, the streamlit logic seems to be that the default value is overriden by user-selected values... unless the default value changes. Which makes sense, as these things go.
     # It's called an "opinion" and not a "state" because it doesn't directly mirror the state; it only changes when we need to change the state away from what the user has set. Thus, the program suddenly having an opinion about what should be selected, so to speak.
+    #TODO: (urgent) whatever I did here, it's slightly wrong, because uhh sometimes when the user selects something just now and then clicks a button, the button doesn't override it. But another click of a button does it. So, I have to re-read the streamlit docs about this, because I guess my mental model (or code) is wrong.
     topics_gigaselect_default_selected = ["biden", "border", "deadline", "murica", "faith", "commie", "control_of_congress", "scotus", "economy", "election_integrity"]
     cols = st.columns(3)
     with cols[0]:
