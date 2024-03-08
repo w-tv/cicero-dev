@@ -414,7 +414,21 @@ def main() -> None:
   """
 
   with st.expander("Topics..."):
+
+    # Complicated logic just to have defaults and de/select all. Remember, the streamlit logic seems to be that the default value is overriden by user-selected values... unless the default value changes. Which makes sense, as these things go.
+    # It's called an "opinion" and not a "state" because it doesn't directly mirror the state; it only changes when we need to change the state away from what the user has set. Thus, the program suddenly having an opinion about what should be selected, so to speak.
     topics_gigaselect_default_selected = ["biden", "border", "deadline", "murica", "faith", "commie", "control_of_congress", "scotus", "economy", "election_integrity"]
+    cols = st.columns(3)
+    with cols[0]:
+      if st.button("Select All"):
+        st.session_state["topics_gigaselect_opinion"] = {t: True for t in topics_big}
+    with cols[1]:
+      if st.button("Deselect All"):
+        st.session_state["topics_gigaselect_opinion"] = {t: False for t in topics_big}
+    with cols[2]:
+      if st.button("Reset To Default Selection") or not st.session_state.get("topics_gigaselect_opinion"): # set the haver of opinions up by default
+        st.session_state["topics_gigaselect_opinion"] = {t: (topics_big[t]["internal name"] in topics_gigaselect_default_selected) for t in topics_big}
+
     topics_gigaselect = {}
     topic_check_cols = st.columns(len(topics_big)//14 + 1) #the items per column is chosen arbitrarily to kind of be good.
     for i, t in enumerate(topics_big): #In even cols, including 0, put a color square
@@ -424,7 +438,7 @@ def main() -> None:
           color_code = topics_big[t]["color"]
           m = st.markdown(f' <div style="color:{color_code}" title="{t}, {color_code}">&#9632;</div>', unsafe_allow_html=True)
         with col2:
-          topics_gigaselect[t] = st.checkbox(t, value=(topics_big[t]["internal name"] in topics_gigaselect_default_selected))
+          topics_gigaselect[t] = st.checkbox(t, value=st.session_state["topics_gigaselect_opinion"][t])
 
   col1, col2, col3, col4, col5 = st.columns(5) #possibly refactor this into non-unpacking for-loop type thing if I need to keep editing it.
   with col1:
@@ -461,7 +475,6 @@ def main() -> None:
   else:
     st.info("No data points are selected by the values indicated by the controls. Therefore, there is nothing to graph. Please broaden your criteria.")
 
-  # TODO: de/select all button in gigaselect
   # TODO: possibly escape the model outputs with replace $ to $$$ (to enter and then exist markdown math mode
   # TODO: last chart always only last 30 days
   # Behold! Day (x) vs TV funds (y) line graph, per selected topic, which is what we decided was the only other important graph to keep from the old topic reporting application.

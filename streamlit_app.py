@@ -13,10 +13,12 @@ from component_pages import prompter, topic_reporting
 
 st.set_page_config(layout="wide", page_title="Cicero", page_icon="favicon.png") # Use wide mode in Cicero, mostly so that results display more of their text by default. Also, set title and favicon. #NOTE: "`set_page_config()` can only be called once per app page, and must be called as the first Streamlit command in your script."
 
-st.markdown('<h1><img src="https://targetedvictory.com/wp-content/uploads/2019/07/favicon.png" alt="💬" style="display:inline-block; height:1em; width:auto;"> CICERO</h1>', unsafe_allow_html=True)
-
-loading_message = st.empty()
-loading_message.write("Loading CICERO.  This may take up to a minute...")
+title_and_loading_columns = st.columns(2)
+with title_and_loading_columns[0]:
+  st.markdown('<h1><img src="https://targetedvictory.com/wp-content/uploads/2019/07/favicon.png" alt="💬" style="display:inline-block; height:1em; width:auto;"> CICERO</h1>', unsafe_allow_html=True)
+with title_and_loading_columns[1]:
+  loading_message = st.empty()
+  loading_message.write("Loading CICERO.  This may take up to a minute...")
 
 def blank_the_page_for_redirect() -> NoReturn: #ideally we wouldn't have to do this, but it's tough to use a single-tab workflow here because streamlit is entirely in an iframe, which breaks several things.
   authorization_url = st.session_state["authorization_url"]
