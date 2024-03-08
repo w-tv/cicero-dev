@@ -77,11 +77,14 @@ if "google_auth_code" in st.session_state:
   email = st.session_state["user_info"].get("email") #TODO: I think this should probably set the session state email instead?
   st.write(f"Google signed-in as {email}")
 
-tab1, tab2 = st.tabs(["🗣️ Prompter", "🌈 Topic Reporting"])
-with tab1:
+if st.session_state['developer_mode']: #dev-mode out the entirety of topic reporting
+  tab1, tab2 = st.tabs(["🗣️ Prompter", "🌈 Topic Reporting"])
+  with tab1:
+    prompter.main()
+  with tab2:
+    topic_reporting.main()
+else:
   prompter.main()
-with tab2:
-  topic_reporting.main()
 
 loading_message.empty() # At this point, we no longer need to display a loading message, once we've gotten here and displayed everything above.
 

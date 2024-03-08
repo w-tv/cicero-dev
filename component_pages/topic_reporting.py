@@ -461,7 +461,6 @@ def main() -> None:
   else:
     st.info("No data points are selected by the values indicated by the controls. Therefore, there is nothing to graph. Please broaden your criteria.")
 
-  # TODO: dev mode out the entirety of topic reporting (possibly urgent)
   # TODO: de/select all button in gigaselect
   # TODO: possibly escape the model outputs with replace $ to $$$ (to enter and then exist markdown math mode
   # TODO: last chart always only last 30 days
