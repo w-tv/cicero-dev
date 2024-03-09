@@ -7,7 +7,6 @@ psutil
 transformers
 google_auth_oauthlib
 google-api-python-client
-st-copy-to-clipboard
 
 #dev-only requirements (tooling)
 mypy

@@ -13,7 +13,6 @@ from sentence_transformers import SentenceTransformer # Weird that this is how y
 #COULD: use https://pypi.org/project/streamlit-profiler/ for profiling
 from transformers import GenerationConfig
 from typing import TypedDict
-from st_copy_to_clipboard import st_copy_to_clipboard
 
 # This is the 'big' of topics, the authoritative record of various facts and mappings about topics.
 Topics_Big_Payload = TypedDict("Topics_Big_Payload", {'color': str, 'internal name': str, 'show in prompter?': bool})
@@ -413,11 +412,14 @@ def main() -> None:
         with col1:
           st.write( output.replace("$", r"\$") ) #this prevents us from entering math mode when we ask about money.
         with col2:
-          #if st.button("⧉", key="⧉"+output, help="Copy to system clipboard (ctrl-c)"): #it's actually already a button, hmm. In an iframe that is too big, no less!
-          st_copy_to_clipboard(output) #uses https://github.com/mmz-001/st-copy-to-clipboard
+          copied = False
+          if st.button("⧉", key="⧉"+output, help="Copy to system clipboard (ctrl-c)"):
+            copied = True
         with col3:
           if st.button("📝", key="📝"+output, help="Send down to scratchpad"):
             st.session_state["scratchpad"] = output
+        if copied:
+          st.components.v1.html(f'Copied {repr(output)} to system clipboard! (But, to be honest, it probably actually failed instead, due to "DOMException: Clipboard write was blocked due to lack of user activation." So, it will only work if you rapidly click the page after clicking the button, to "activate" the page after the reload but before the javascript to copy to clipboard runs.) <script>navigator.clipboard.writeText({repr(output)})</script>')
     else:
       st.dataframe(pd.DataFrame(st.session_state['outputs'], columns=["Model outputs (double click any output to expand it)"]), hide_index=True, use_container_width=True) #Styling this dataframe doesn't seem to work, for some reason. Well, whatever.
   if 'character_counts_caption' in st.session_state: st.caption(st.session_state['character_counts_caption'])
