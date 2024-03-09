@@ -401,9 +401,9 @@ def main() -> None:
 
   # The idea is for these output elements to persist after one query button, until overwritten by the results of the next query.
   if 'human-facing_prompt' in st.session_state:
-    st.caption(st.session_state['human-facing_prompt'])
+    st.caption(st.session_state['human-facing_prompt'].replace("$", r"\$"))
     if 'developer-facing_prompt' in st.session_state and st.session_state["developer_mode"]:
-      st.caption("Developer Mode Message: the prompt passed to the model is: "+ st.session_state['developer-facing_prompt'])
+      st.caption("Developer Mode Message: the prompt passed to the model is: "+ st.session_state['developer-facing_prompt'].replace("$", r"\$"))
 
   st.error("WARNING! Outputs have not been fact checked. CICERO is not responsible for inaccuracies in deployed copy. Please check all *names*, *places*, *counts*, *times*, *events*, and *titles* (esp. military titles) for accuracy.  \nAll numbers included in outputs are suggestions only and should be updated. They are NOT analytically optimized to increase conversions (yet) and are based solely on frequency in past copy.", icon="⚠️")
   if 'outputs' in st.session_state:
@@ -411,7 +411,7 @@ def main() -> None:
       for output in st.session_state['outputs']:
         col1, col2, col3 = st.columns([.94, .03, .03])
         with col1:
-          st.write("```"+output+"```") # I put this in markdown code block here just so that messages which contain two dollar signs ("I need $10. Can you give me $10?") don't enter latex mode in the middle.
+          st.write( output.replace("$", r"\$") ) #this prevents us from entering math mode when we ask about money.
         with col2:
           #if st.button("⧉", key="⧉"+output, help="Copy to system clipboard (ctrl-c)"): #it's actually already a button, hmm. In an iframe that is too big, no less!
           st_copy_to_clipboard(output) #uses https://github.com/mmz-001/st-copy-to-clipboard
