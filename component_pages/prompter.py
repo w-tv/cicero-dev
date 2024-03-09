@@ -419,7 +419,7 @@ def main() -> None:
           if st.button("📝", key="📝"+output, help="Send down to scratchpad"):
             st.session_state["scratchpad"] = output
     else:
-      st.dataframe(pd.DataFrame(outputs, columns=["Model outputs (double click any output to expand it)"]), hide_index=True, use_container_width=True) #Styling this dataframe doesn't seem to work, for some reason. Well, whatever.
+      st.dataframe(pd.DataFrame(st.session_state['outputs'], columns=["Model outputs (double click any output to expand it)"]), hide_index=True, use_container_width=True) #Styling this dataframe doesn't seem to work, for some reason. Well, whatever.
   if 'character_counts_caption' in st.session_state: st.caption(st.session_state['character_counts_caption'])
 
   with st.sidebar: #The history display includes a result of the logic of the script, that has to be updated in the middle of the script where the button press is (when the button is in fact pressed), so the code to display it has to be after all the logic of the script or else it will lag behind the actual state of the history by one time step.
