@@ -408,18 +408,12 @@ def main() -> None:
   if 'outputs' in st.session_state:
     if st.session_state["developer_mode"]:
       for output in st.session_state['outputs']:
-        col1, col2, col3 = st.columns([.94, .03, .03])
+        col1, col2 = st.columns([.94, .06])
         with col1:
           st.write( output.replace("$", r"\$") ) #this prevents us from entering math mode when we ask about money.
         with col2:
-          copied = False
-          if st.button("⧉", key="⧉"+output, help="Copy to system clipboard (ctrl-c)"):
-            copied = True
-        with col3:
           if st.button("📝", key="📝"+output, help="Send down to scratchpad"):
             st.session_state["scratchpad"] = output
-        if copied:
-          st.components.v1.html(f'Copied {repr(output)} to system clipboard! (But, to be honest, it probably actually failed instead, due to "DOMException: Clipboard write was blocked due to lack of user activation." So, it will only work if you rapidly click the page after clicking the button, to "activate" the page after the reload but before the javascript to copy to clipboard runs.) <script>navigator.clipboard.writeText({repr(output)})</script>')
     else:
       st.dataframe(pd.DataFrame(st.session_state['outputs'], columns=["Model outputs (double click any output to expand it)"]), hide_index=True, use_container_width=True) #Styling this dataframe doesn't seem to work, for some reason. Well, whatever.
   if 'character_counts_caption' in st.session_state: st.caption(st.session_state['character_counts_caption'])
