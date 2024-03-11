@@ -475,7 +475,6 @@ def main() -> None:
   else:
     st.info("No data points are selected by the values indicated by the controls. Therefore, there is nothing to graph. Please broaden your criteria.")
 
-  # TODO: last chart always only last 30 days
   # Behold! Day (x) vs TV funds (y) line graph, per selected topic, which is what we decided was the only other important graph to keep from the old topic reporting application.
   topics = st.multiselect("Topics", topics_big, default="All", help="This control filters the below graph to only include results that have the selected topic.  If 'All' is one of the selected values, an aggregate sum of all the topics will be presented, as well.")
   topics = external_topic_names_to_internal_hooks_list_mapping(topics)
@@ -485,7 +484,7 @@ def main() -> None:
   else:
     search_string = "true"
 
-  day_data_per_topic = sql_call(f"""WITH stats(date, funds, topic) AS (SELECT SEND_DATE, SUM(TV_FUNDS), Hooks FROM hook_reporting.default.hook_data_prod WHERE PROJECT_TYPE like '{project_type}%' and account_name in {to_sql_tuple_string(accounts)} and hooks in {to_sql_tuple_string(topics)} and {hp_string} and {askgoal_string} and Hook_Bool=true and {search_string} GROUP BY SEND_DATE, Hooks) SELECT date, funds, topic from stats""", {"regexp": search})
+  day_data_per_topic = sql_call(f"""WITH stats(date, funds, topic) AS (SELECT SEND_DATE, SUM(TV_FUNDS), Hooks FROM hook_reporting.default.hook_data_prod WHERE PROJECT_TYPE like '{project_type}%' and account_name in {to_sql_tuple_string(accounts)} and hooks in {to_sql_tuple_string(topics)} and {hp_string} and {askgoal_string} and SEND_DATE >= NOW() - INTERVAL 30 DAY and Hook_Bool=true and {search_string} GROUP BY SEND_DATE, Hooks) SELECT date, funds, topic from stats""", {"regexp": search})
   if len(day_data_per_topic):
     st.line_chart(to_graphable_dict(day_data_per_topic, "Day", "Funds ($)", "Topic"), x='Day', y='Funds ($)', color='Topic') #COULD: make colors match above. Not sure if it's important.
   else:
