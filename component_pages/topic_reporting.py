@@ -471,7 +471,6 @@ def main() -> None:
   if len(summary_data_per_topic):
     chart = alt.Chart(pd.DataFrame(dicted_rows)).mark_circle(size=90).encode(alt.X("ROAS (%)"), alt.Y("FPM ($)"), alt.Color("Topic", scale=alt.Scale(domain=dicted_rows["Topic"], range=dicted_rows["color"]), legend=None), tooltip=key_of_rows+("color",))
     st.altair_chart(chart, use_container_width=True)
-    #TODO: why is there so little data recently? Pipeline problem on Chang's end, or with us??
   else:
     st.info("No data points are selected by the values indicated by the controls. Therefore, there is nothing to graph. Please broaden your criteria.")
 
