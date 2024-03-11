@@ -475,7 +475,6 @@ def main() -> None:
   else:
     st.info("No data points are selected by the values indicated by the controls. Therefore, there is nothing to graph. Please broaden your criteria.")
 
-  # TODO: possibly escape the model outputs with replace $ to $$$ (to enter and then exist markdown math mode
   # TODO: last chart always only last 30 days
   # Behold! Day (x) vs TV funds (y) line graph, per selected topic, which is what we decided was the only other important graph to keep from the old topic reporting application.
   topics = st.multiselect("Topics", topics_big, default="All", help="This control filters the below graph to only include results that have the selected topic.  If 'All' is one of the selected values, an aggregate sum of all the topics will be presented, as well.")
