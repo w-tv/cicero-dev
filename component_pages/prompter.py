@@ -227,9 +227,9 @@ def list_from_human_format_to_cicero_tone_format(l: list[str]) -> list[str]:
 def list_to_bracketeds_string(l: list[str]) -> str:
   return " ".join([f"[{i}]" for i in l])
 
-def only_those_strings_of_the_list_that_contain_the_given_substring_case_insensitively(l: list[str], s: str) -> list[str]: return [s for s in l if s.lower().find(semantic_query.lower()) != -1]
+def only_those_strings_of_the_list_that_contain_the_given_substring_case_insensitively(l: list[str], s: str) -> list[str]: return [x for x in l if s.lower() in x.lower()]
 
-def send(model_uri: str, databricks_token: str, data: dict, dummy: bool = False) -> list[str]:
+def send(model_uri: str, databricks_token: str, data: dict[str, list[bool|str]], dummy: bool = False) -> list[str]:
   headers = {"Authorization": f"Bearer {databricks_token}", "Content-Type": "application/json"}
   data_json = json.dumps({"inputs": data}, allow_nan=True)
   if dummy: # If this is a dummy prompt, we're trying to wake up the endpoint, which means we don't want to wait for a response (the request *will* hold up the entire program unless you tell it to time out.)
