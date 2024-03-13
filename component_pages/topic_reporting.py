@@ -485,7 +485,7 @@ def main() -> None:
 
   day_data_per_topic = sql_call(f"""WITH stats(date, funds, topic) AS (SELECT SEND_DATE, SUM(TV_FUNDS), Hooks FROM hook_reporting.default.hook_data_prod WHERE PROJECT_TYPE like '{project_type}%' and account_name in {to_sql_tuple_string(accounts)} and hooks in {to_sql_tuple_string(topics)} and {hp_string} and {askgoal_string} and SEND_DATE >= NOW() - INTERVAL 30 DAY and SEND_DATE < NOW() and Hook_Bool=true and {search_string} GROUP BY SEND_DATE, Hooks) SELECT date, funds, topic from stats""", {"regexp": search})
   if len(day_data_per_topic):
-    st.line_chart(to_graphable_dict(day_data_per_topic, "Day", "Funds ($)", "Topic"), x='Day', y='Funds ($)', color='Topic') #COULD: make colors match above. Not sure if it's important.
+    st.line_chart(to_graphable_dict(day_data_per_topic, "Day", "Funds ($)", "Topic"), x='Day', y='Funds ($)', color='Topic', height=500) #COULD: make colors match above. Not sure if it's important.
   else:
     st.info("No data points are selected by the values indicated by the controls. Therefore, there is nothing to graph. Please broaden your criteria.")
 if __name__ == "__main__": main()
