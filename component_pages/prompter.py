@@ -227,6 +227,26 @@ def list_from_human_format_to_cicero_tone_format(l: list[str]) -> list[str]:
 def list_to_bracketeds_string(l: list[str]) -> str:
   return " ".join([f"[{i}]" for i in l])
 
+def only_those_strings_of_the_list_that_contain_the_given_substring_case_insensitively(l: list[str], s: str) -> list[str]: return [s for s in l if s.lower().find(semantic_query.lower()) != -1]
+
+def send(model_uri: str, databricks_token: str, data: pd.DataFrame) -> list[str]:
+  headers = {"Authorization": f"Bearer {databricks_token}", "Content-Type": "application/json"}
+  # As we were flailing around trying to get the model to work, we made the parameter format logic needlessly complicated. COULD: simplify this. (I'd make this a t*do, but I don't own the other side of this, and the person who does is pretty busy.)
+  ds_dict = {'dataframe_split': data.to_dict(orient='split')}
+  data_json = json.dumps(ds_dict, allow_nan=True)
+
+  response = requests.request(method='POST', headers=headers, url=model_uri, data=data_json)
+  if response.status_code == 504:
+    return send(model_uri, databricks_token, data) #we recursively call this until the machine wakes up.
+  elif response.status_code == 404 and response.json()["error_code"] == "RESOURCE_DOES_NOT_EXIST":
+    raise Exception("Encountered 404 error \"RESOURCE_DOES_NOT_EXIST\" when trying to query the model. This usually means the model endpoint has been moved. Please contact the team in charge of model serving to rectify the situation.")
+  elif response.status_code != 200:
+    if response.json()["error_code"] == "BAD_REQUEST":
+      raise Exception(response.json()["message"])
+    else:
+      raise Exception(f"Request failed with status {response.status_code}, {response.text}")
+  return response.json()["predictions"][0]["0"]
+
 def main() -> None:
 
   if 'use_count' not in st.session_state:
@@ -268,27 +288,6 @@ def main() -> None:
     st.session_state["headline_search_function"] = None
     set_ui_to_preset("default")
 
-  def send(model_uri: str, databricks_token: str, data: pd.DataFrame) -> list[str]:
-    headers = {
-      "Authorization": f"Bearer {databricks_token}",
-      "Content-Type": "application/json",
-    }
-    # As we were flailing around trying to get the model to work, we made the parameter format logic needlessly complicated.
-    ds_dict = {'dataframe_split': data.to_dict(orient='split')}
-    data_json = json.dumps(ds_dict, allow_nan=True)
-
-    response = requests.request(method='POST', headers=headers, url=model_uri, data=data_json)
-    if response.status_code == 504:
-      return send(model_uri, databricks_token, data) #we recursively call this until the machine wakes up.
-    elif response.status_code == 404 and response.json()["error_code"] == "RESOURCE_DOES_NOT_EXIST":
-      raise Exception("Encountered 404 error \"RESOURCE_DOES_NOT_EXIST\" when trying to query the model. This usually means the model endpoint has been moved. Please contact the team in charge of model serving to rectify the situation.")
-    elif response.status_code != 200:
-      if response.json()["error_code"] == "BAD_REQUEST":
-        raise Exception(response.json()["message"])
-      else:
-        raise Exception(f"Request failed with status {response.status_code}, {response.text}")
-    return response.json()["predictions"][0]["0"]
-
   # setting default values for advanced parameters for our non-developer end-user
   num_beams=1
   top_k=50
@@ -299,8 +298,6 @@ def main() -> None:
   early_stopping=False
   do_sample=True
   output_scores=False
-
-  def only_those_strings_of_the_list_that_contain_the_given_substring_case_insensitively(l: list[str], s: str) -> list[str]: return [s for s in l if s.lower().find(semantic_query.lower()) != -1]
 
   #For technical reasons (various parts of it update when other parts of it are changed, iirc) this can't go within the st.form
 
