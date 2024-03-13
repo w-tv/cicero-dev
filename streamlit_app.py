@@ -28,13 +28,12 @@ def blank_the_page_for_redirect() -> NoReturn: #ideally we wouldn't have to do t
 if st.experimental_user['email'] is None:
   st.write("Your user email is None, which implies we are currently running publicly on Streamlit Community Cloud. https://docs.streamlit.io/library/api-reference/personalization/st.experimental_user#public-app-on-streamlit-community-cloud. This app is configured to function only privately and permissionedly, so we will now exit. Good day.")
   exit()
-email = st.experimental_user['email'] #TODO: this should eventually use the google email stuff, or we should have a firm idea about how the google email should override or be overridden by the google email.
 
-st.session_state['developer_mode'] = email in ["achang@targetedvictory.com", "test@example.com", "abrady@targetedvictory.com", "thall@targetedvictory.com", "afuhrer@targetedvictory.com", "wcarpenter@targetedvictory.com"] and not st.session_state.get("developer_mode_disabled")
+st.session_state['developer_mode'] = st.experimental_user['email'] in ["achang@targetedvictory.com", "test@example.com", "abrady@targetedvictory.com", "thall@targetedvictory.com", "afuhrer@targetedvictory.com", "wcarpenter@targetedvictory.com"] and not st.session_state.get("developer_mode_disabled")
 def disable_developer_mode() -> None: st.session_state["developer_mode_disabled"] = True
 
-if st.experimental_user['email'] == 'text@example.com': #TODO: we probably should not rely on this behavior (maybe). Which is easy, because we don't currently use it for anything
-  pass #The streamlit app is running "locally", which means everywhere but the streamlit community cloud.
+if st.experimental_user['email'] == 'text@example.com':
+  pass #The streamlit app is running "locally", which means everywhere but the streamlit community cloud. We probably won't end up relying on this behavior. This should eventually use the google email stuff, or we should have a firm idea about how the google email should override or be overridden by the streamlit community cloud email. Either way, we will only do this when we are ready, as it will make local testing slightly more inconvenient.
 
 def get_base_url() -> str:
   """Gets the url where the streamlit app is currently running, not including any page paths underneath. In testing, for example, this value is probably http://localhost:8501 . This function is from BramVanroy https://github.com/streamlit/streamlit/issues/798#issuecomment-1647759949 , with modifications. “WARNING: I found that in multi-page apps, this will always only return the base url and not the sub-page URL with the page appended to the end.”"""
@@ -76,8 +75,8 @@ def auth_flow() -> None:
 if "google_auth_code" not in st.session_state: #TODO: use cookies to extend this state's lifetime.
   auth_flow()
 if "google_auth_code" in st.session_state:
-  email = st.session_state["user_info"].get("email") #TODO: I think this should probably set the session state email instead?
-  st.write(f"Google signed-in as {email}")
+  st.session_state["email"] = st.session_state["user_info"].get("email")
+  st.write(f"""Google signed-in as {st.session_state["email"]}""")
 
 if st.session_state['developer_mode']: #dev-mode out the entirety of topic reporting
   tab1, tab2 = st.tabs(["🗣️ Prompter", "🌈 Topic Reporting"])
