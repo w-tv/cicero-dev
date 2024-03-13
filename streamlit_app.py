@@ -81,10 +81,10 @@ if "google_auth_code" in st.session_state:
 
 if st.session_state['developer_mode']: #dev-mode out the entirety of topic reporting
   tab1, tab2 = st.tabs(["🗣️ Prompter", "🌈 Topic Reporting"])
-  with tab1:
-    prompter.main()
   with tab2:
     topic_reporting.main()
+  with tab1:
+    prompter.main()
 else:
   prompter.main()
 
