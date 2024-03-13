@@ -229,15 +229,13 @@ def list_to_bracketeds_string(l: list[str]) -> str:
 
 def only_those_strings_of_the_list_that_contain_the_given_substring_case_insensitively(l: list[str], s: str) -> list[str]: return [s for s in l if s.lower().find(semantic_query.lower()) != -1]
 
-def send(model_uri: str, databricks_token: str, data: pd.DataFrame, dummy: bool = False) -> list[str]:
+def send(model_uri: str, databricks_token: str, data: dict, dummy: bool = False) -> list[str]:
   headers = {"Authorization": f"Bearer {databricks_token}", "Content-Type": "application/json"}
-  # As we were flailing around trying to get the model to work, we made the parameter format logic needlessly complicated. COULD: simplify this. (I'd make this a t*do, but I don't own the other side of this, and the person who does is pretty busy.)
-  ds_dict = {'dataframe_split': data.to_dict(orient='split')}
-  data_json = json.dumps(ds_dict, allow_nan=True)
-
-  response = requests.request(method='POST', headers=headers, url=model_uri, data=data_json)
-  if dummy: # If this is a dummy prompt, we're trying to wake up the endpoint, which means the response was probably 504 but we don't care.
+  data_json = json.dumps({"inputs": data}, allow_nan=True)
+  if dummy: # If this is a dummy prompt, we're trying to wake up the endpoint, which means we don't want to wait for a response (the request *will* hold up the entire program unless you tell it to time out.)
+    requests.request(method='POST', headers=headers, url=model_uri, data=data_json, timeout=1)
     return []
+  response = requests.request(method='POST', headers=headers, url=model_uri, data=data_json)
   if response.status_code == 504:
     print("response.status_code == 504; we recursively call this until the machine wakes up...")
     return send(model_uri, databricks_token, data)
@@ -272,7 +270,7 @@ def main() -> None:
 
   st.error('REMINDER! Please tag all projects with "optimization" in the LABELS field in Salesforce.')
 
-  bios : dict[str, str] = load_bios()
+  bios: dict[str, str] = load_bios()
 
   account_names = load_account_names()
 
@@ -281,7 +279,7 @@ def main() -> None:
 
   if not st.session_state.get("initted"):
     set_ui_to_preset("default")
-    send(models["gpt-revamp"], st.secrets["databricks_api_token"], pd.DataFrame(), dummy=True) # This line just tries to wake up the gpt-revamp model slightly faster, therefore slightly conveniencing the user, probably.
+    send(models["gpt-revamp"], st.secrets["databricks_api_token"], {}, dummy=True) # This line just tries to wake up the gpt-revamp model slightly faster, therefore slightly conveniencing the user, probably.
     st.session_state["initted"] = True
     st.rerun() #STREAMLIT-BUG-WORKAROUND: this rerun actually has nothing to do with initing, it's just convenient to do here, since we need to do it exactly once, on app startup. It prevents the expander from experiencing a streamlit bug (<https://github.com/streamlit/streamlit/issues/2360>) that is only present in the initial run state. Anyway, this rerun is really fast and breaks nothing (except the developer mode initial performance timer readout, which is now gone) so it's a good workaround.
 
@@ -387,9 +385,8 @@ def main() -> None:
       unpsycho_dict_prompt = {k:v[0] for (k,v) in dict_prompt.items()}
       try:
         GenerationConfig(**unpsycho_dict_prompt)# This validates the parameters, throwing an exception that displays to the user and explains the problem if the parameters are wrong.
-        df_prompt = pd.DataFrame(dict_prompt)
         with st.spinner("Submitting the prompt to the model. This may process quickly, or take approximately five minutes if the model hasn't been used in a while..."):
-          outputs = send(model_uri, st.secrets["databricks_api_token"], df_prompt)
+          outputs = send(model_uri, st.secrets["databricks_api_token"], dict_prompt)
         st.session_state['outputs'] = outputs
         if 'history' not in st.session_state: st.session_state['history'] = []
         st.session_state['history'] += outputs
