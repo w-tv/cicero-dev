@@ -11,8 +11,15 @@ import os, psutil, platform
 import urllib.parse
 from typing import NoReturn
 from component_pages import prompter, topic_reporting
+import extra_streamlit_components as stx
+
 
 st.set_page_config(layout="wide", page_title="Cicero", page_icon="favicon.png") # Use wide mode in Cicero, mostly so that results display more of their text by default. Also, set title and favicon. #NOTE: "`set_page_config()` can only be called once per app page, and must be called as the first Streamlit command in your script."
+
+st.subheader("All Cookies:")
+cookies = stx.CookieManager().get_all()
+
+
 
 title_and_loading_columns = st.columns(2)
 with title_and_loading_columns[0]:
@@ -95,5 +102,6 @@ with st.sidebar:
     st.caption(f"""Streamlit app memory usage: {psutil.Process(os.getpid()).memory_info().rss // 1024 ** 2} MiB.<br>
   Time to display: {(perf_counter_ns()-nanoseconds_base)/1000/1000/1000} seconds.<br>
   Python version: {platform.python_version()}<br>
-  Base url: {get_base_url()}""", unsafe_allow_html=True)
+  Base url: {get_base_url()}<br>
+  Cookies: {st.write(cookies)}""", unsafe_allow_html=True)
     st.button("disable developer mode", on_click=disable_developer_mode, help="Click this button to disable developer mode, allowing you to see and interact with the app as a basic user would. You can refresh the page in your browser to re-enable developer mode.") #this is a callback for streamlit ui update-flow reasons.
