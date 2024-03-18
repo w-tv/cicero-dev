@@ -1,10 +1,11 @@
 #!/usr/bin/env -S streamlit run
 
 import streamlit as st
-from databricks import sql
 from collections.abc import Iterable
 from typing import Any, Sequence
-from .prompter import topics_big, load_account_names
+from cicero_prompter import topics_big, load_account_names
+from databricks import sql
+from cicero_util import sql_call
 
 import streamlit as st
 import pandas as pd
@@ -21,12 +22,6 @@ def to_sql_tuple_string(x: Sequence[str]) -> str:
 
 def bool_dict_to_string_list(dict_of_strings_to_bool: dict[str, bool]) -> list[str]:
   return [s for s, value in dict_of_strings_to_bool.items() if value]
-
-@st.cache_data() # I decided to memoize this function primarily in order to make development of the graphing go more rapidly, but it's possible that this will cost us an unfortunate amount of RAM if maybe people use this page. So, removing this memoization is something to consider.
-def sql_call(query: str, sql_params_dict:dict[str, Any]|None=None) -> list[str]:
-  with sql.connect(server_hostname=st.secrets["DATABRICKS_SERVER_HOSTNAME"], http_path=st.secrets["DATABRICKS_HTTP_PATH"], access_token=st.secrets["databricks_api_token"]) as connection: #These secrets should be in the root level of the .streamlit/secrets.toml
-    with connection.cursor() as cursor:
-      return cursor.execute(query, sql_params_dict).fetchall()
 
 def to_graphable_dict(values: Sequence[Sequence[Any]], x:str='x', y:str='y', color:str='color') -> list[dict[str, Any]]:
   if len(values) == 3: #it's a 3-list of n-lists
