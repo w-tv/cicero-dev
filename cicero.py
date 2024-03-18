@@ -1,7 +1,7 @@
 #!/usr/bin/env -S streamlit run
 """ This is Cicero.
 You must have streamlit installed to run this program. Among other things. Why not run this script using run.bat instead?
-Check the component_pages/ directory for various functionality of Cicero.
+Check the cicero_*.py files for various functionalities of Cicero.
 """
 from time import perf_counter_ns
 nanoseconds_base : int = perf_counter_ns()
