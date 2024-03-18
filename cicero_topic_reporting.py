@@ -5,7 +5,7 @@ from collections.abc import Iterable
 from typing import Any, Sequence
 from cicero_prompter import topics_big, load_account_names
 from databricks import sql
-from cicero_util import sql_call
+from cicero_shared import sql_call
 
 import streamlit as st
 import pandas as pd
