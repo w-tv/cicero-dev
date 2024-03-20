@@ -235,7 +235,12 @@ def send(model_uri: str, databricks_token: str, data: dict[str, list[bool|str]],
   if dummy: # If this is a dummy prompt, we're trying to wake up the endpoint, which means we don't want to wait for a response (the request *will* hold up the entire program unless you tell it to time out.)
     requests.request(method='POST', headers=headers, url=model_uri, data=data_json, timeout=1)
     return []
-  response = requests.request(method='POST', headers=headers, url=model_uri, data=data_json)
+  if len(data_json) > 14:
+    response = requests.request(method='POST', headers=headers, url=model_uri, data=data_json)
+  else:
+    from datetime import datetime, timezone
+    now = str(datetime.now(timezone.utc))
+    print('data parameter is empty! UTC time:', now[:-6])
   if response.status_code == 504:
     print("response.status_code == 504; we recursively call this until the machine wakes up...")
     return send(model_uri, databricks_token, data)
