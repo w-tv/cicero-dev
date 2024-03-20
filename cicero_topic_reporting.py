@@ -453,8 +453,8 @@ def main() -> None:
 
   #To minimize RAM usage on the front end, most of the computation is done in the sql query, on the backend.
   #There's only really one complication to this data, which is that each row is duplicated n times — the "product" of the row and the list of hook types, as it were. Then only the true hooks have Hook_Bool true (all others have Hook_Bool null, which is our signal to ignore that row). This is just because it's easy to do a pivot table (or something) in Tableau that way; it doesn't actually matter. But we have to deal with it. It is also easy for us to deal with in SQL using WHERE Hook_Bool=true GROUP BY Hooks.
-  summary_data_per_topic = sql_call(f"""WITH stats(topic, funds, sent, spend, project_count) AS (SELECT Hooks, SUM(TV_FUNDS), SUM(SENT), SUM(SPEND_AMOUNT), COUNT(DISTINCT PROJECT_NAME) FROM hook_reporting.default.hook_data_prod WHERE {project_string} and account_name in {to_sql_tuple_string(accounts)} and {askgoal_string} and SEND_DATE >= NOW() - INTERVAL {past_days} DAY and SEND_DATE < NOW() and Hooks in {to_sql_tuple_string(external_topic_names_to_internal_hooks_list_mapping(bool_dict_to_string_list(topics_gigaselect)))} and Hook_Bool=true GROUP BY Hooks) SELECT topic, funds, try_divide(funds, sent)*1000, try_divide(funds, spend)*100, project_count from stats""")
-  key_of_rows = ("Topic", "Funds", "FPM ($)", "ROAS (%)", "Project count")
+  summary_data_per_topic = sql_call(f"""WITH stats(topic, funds, sent, spend, project_count) AS (SELECT Hooks, SUM(TV_FUNDS), SUM(SENT), SUM(SPEND_AMOUNT), COUNT(DISTINCT PROJECT_NAME) FROM hook_reporting.default.hook_data_prod WHERE {project_string} and account_name in {to_sql_tuple_string(accounts)} and {askgoal_string} and SEND_DATE >= NOW() - INTERVAL {past_days} DAY and SEND_DATE < NOW() and Hooks in {to_sql_tuple_string(external_topic_names_to_internal_hooks_list_mapping(bool_dict_to_string_list(topics_gigaselect)))} and Hook_Bool=true GROUP BY Hooks) SELECT topic, funds, cast( try_divide(funds, sent)*1000 as int ), cast( try_divide(funds, spend)*100 as int ), project_count from stats""")
+  key_of_rows = ("Topic", "TV Funds ($)", "FPM ($)", "ROAS (%)", "Project count")
 
   dicted_rows = {key_of_rows[i]: [row[i] for row in summary_data_per_topic] for i, key in enumerate(key_of_rows)} #various formats probably work for this; this is just one of them.
   dicted_rows["color"] = [tb["color"] for t in dicted_rows["Topic"] for _, tb in topics_big.items() if tb["internal name"] == t.removesuffix("_hook")] #this logic is really grody
@@ -475,7 +475,7 @@ def main() -> None:
 
   day_data_per_topic = sql_call(f"""WITH stats(date, funds, topic) AS (SELECT SEND_DATE, SUM(TV_FUNDS), Hooks FROM hook_reporting.default.hook_data_prod WHERE {project_string} and account_name in {to_sql_tuple_string(accounts)} and hooks in {to_sql_tuple_string(topics)} and {askgoal_string} and SEND_DATE >= NOW() - INTERVAL 30 DAY and SEND_DATE < NOW() and Hook_Bool=true and {search_string} GROUP BY SEND_DATE, Hooks) SELECT date, funds, topic from stats""", {"regexp": search})
   if len(day_data_per_topic):
-    st.line_chart(to_graphable_dict(day_data_per_topic, "Day", "Funds ($)", "Topic"), x='Day', y='Funds ($)', color='Topic', height=500) #COULD: make colors match above. Not sure if it's important.
+    st.line_chart(to_graphable_dict(day_data_per_topic, "Day", "TV Funds ($)", "Topic"), x='Day', y='TV Funds ($)', color='Topic', height=500) #COULD: make colors match above. Not sure if it's important.
   else:
     st.info("No data points are selected by the values indicated by the controls. Therefore, there is nothing to graph. Please broaden your criteria.")
 if __name__ == "__main__": main()
