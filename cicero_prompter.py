@@ -205,6 +205,7 @@ presets: dict[ str, dict[str, float|int|bool|str|list[str]|None] ] = {
     "model": "gpt-revamp",
     "account" : None,
     "ask_type": "Hard Ask",
+    "text_length": "",
     "tone" : [],
     "topics" : [],
     "additional_topics" : "",
@@ -265,10 +266,10 @@ def main() -> None:
     exit() # When a user hits the limit it completely locks them out of the ui using an error message. This wasn't a requirement, but it seems fine.
 
   model_permissions = load_model_permissions(st.experimental_user['email']) #model_permissions stores model names as ***all lowercase***
-  if "gpt-revamp" not in model_permissions: #We want everyone to want to have access to default, at least at time of writing this comment.
+  if "gpt-revamp" not in model_permissions: #We want everyone to want to have access to this default, at least at time of writing this comment.
     model_permissions.insert(0, "gpt-revamp")
   #NOTE: these model secrets have to be in the secrets.toml as, like:
-  # models.Default = ''
+  # models.gpt-revamp = ''
   # models.Context = ''
   # Or some other way of making a dict in toml
   models: dict[str,str] = { k:v for k, v in st.secrets['models'].items() if k.lower() in [m.lower() for m in model_permissions] } #filter for what the actual permissions are for the user.
@@ -349,6 +350,7 @@ def main() -> None:
     model_uri = models[model_name]
     account = st.selectbox("Account (required)", [""]+list(account_names), key="account" ) #STREAMLIT-BUG-WORKAROUND: For some reason, in the current version of streamlit, st.selectbox ends up returning the first value if the index has value is set to None via the key in the session_state, which is a bug (<https://github.com/streamlit/streamlit/issues/7649>), but anyway we work around it using this ridiculous workaround. This does leave a first blank option in there. But whatever.
     ask_type = str( st.selectbox("Ask Type", ['Hard Ask', 'Medium Ask', 'Soft Ask', 'Soft Ask Petition', 'Soft Ask Poll', 'Soft Ask Survey'], key="ask_type") )
+    text_length = str( st.selectbox("Text Length (For use with SML models)", ['', 'Short', 'Medium', 'Long'], key="text_length", help="This control has no effect unless the model is gpt-sml.") )
     topics = st.multiselect("Topics", sorted([t for t, d in topics_big.items() if d["show in prompter?"]]), key="topics" )
     additional_topics = [x.strip() for x in st.text_input("Additional Topics (examples: Biden, survey, deadline)", key="additional_topics" ).split(",") if x.strip()] # The list comprehension is to filter out empty strings on split, because otherwise this fails to make a truly empty list in the default case, instead having a list with an empty string in, because split changes its behavior when you give it arguments. Anyway, this also filters out trailing comma edge-cases and such.
     tone = st.multiselect("Tone", ['Agency', 'Apologetic', 'Candid', 'Exclusivity', 'Fiesty', 'Grateful', 'Not Asking For Money', 'Pleading', 'Quick Request', 'Secretive', 'Time Sensitive', 'Urgency'], key="tone") #, 'Swear Jar' will probably be in here some day, but we don't have "we need more swear jar data to make this tone better"
@@ -362,12 +364,12 @@ def main() -> None:
       st.session_state['use_count']+=1 #this is just an optimization for the front-end display of the query count
       st.session_state['human-facing_prompt'] = (
         ((bios[account]+"\n\n") if "Bio" in topics and account in bios else "") +
-        "Write a "+ask_type.lower()+
-        " text for "+account+
-        " about: "+list_to_bracketeds_string(
+        "Write a " + ask_type.lower() + (" "+text_length.lower() if model_name == 'gpt-sml' else "") +
+        " text for " + account +
+        " about: " + list_to_bracketeds_string(
             sorted( external_topic_names_to_internal_topic_names_list_mapping(topics) + list_from_human_format_to_cicero_tone_format(additional_topics) )
             or ["No Hook"]
-        )+
+        ) +
         ( "" if not tone else " emphasizing "+ list_to_bracketeds_string(sorted(list_from_human_format_to_cicero_tone_format(tone))) ) +
         (" {"+headline+"} " if headline else "")
       )
