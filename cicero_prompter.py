@@ -170,8 +170,8 @@ def load_headlines(get_all:bool=False, past_days:int=7) -> list[str]:
 
 @st.cache_data()
 def sort_headlines_semantically(headlines: list[str], query: str, number_of_results_to_return:int=1) -> list[str]:
-  """This does a bunch of gobbledygook no one understands. But the important thing is that it returns to you a function that will return to you the top k news results for a given query."""
-  model = SentenceTransformer("BAAI/bge-large-en-v1.5")
+  """This is a sentence-transformers model: It maps sentences & paragraphs to a 384 dimensional dense vector space and can be used for tasks like clustering or semantic search. This function will return the top k news results for a given query."""
+  model = SentenceTransformer("sentence-transformers/all-MiniLM-L12-v2")
   faiss_title_embedding = model.encode(headlines)
   faiss.normalize_L2(faiss_title_embedding)
   # Index1DMap translates search results to IDs: https://faiss.ai/cpp_api/file/IndexIDMap_8h.html#_CPPv4I0EN5faiss18IndexIDMapTemplateE ; The IndexFlatIP below builds index.
