@@ -243,6 +243,7 @@ def send(model_uri: str, databricks_token: str, data: dict[str, list[bool|str]],
     # from datetime import datetime, timezone
     # now = str(datetime.now(timezone.utc))
     # print('data parameter is empty! UTC time:', now[:-6])
+  response = requests.request(method='POST', headers=headers, url=model_uri, data=data_json)
 
   if response.status_code == 504:
     print("response.status_code == 504; we recursively call this until the machine wakes up...")
