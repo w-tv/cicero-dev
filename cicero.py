@@ -13,6 +13,9 @@ from typing import NoReturn
 import cicero_prompter, cicero_topic_reporting
 import extra_streamlit_components as stx
 from databricks import sql
+import secrets
+import google_auth_oauthlib.flow
+from googleapiclient.discovery import build
 
 def get_base_url() -> str:
   """Gets the url where the streamlit app is currently running, not including any page paths underneath. In testing, for example, this value is probably http://localhost:8501 . This function is from BramVanroy https://github.com/streamlit/streamlit/issues/798#issuecomment-1647759949 , with modifications. “WARNING: I found that in multi-page apps, this will always only return the base url and not the sub-page URL with the page appended to the end.”"""
@@ -22,7 +25,25 @@ def get_base_url() -> str:
   except IndexError as e:
     return str(e)
 
+def blank_the_page_and_redirect(authorization_url: str) -> NoReturn: #ideally we wouldn't have to do this, but it's tough to use a single-tab workflow here because streamlit is entirely in an iframe, which breaks several things.
+  print(authorization_url)
+  html(f'<script>window.open("{authorization_url}");</script><p>You have elected to sign-in with Google, which opens a new tab. You may now close this tab. If you do not see a new tab, <b>enable pop-ups and/or redirects for this page in your browser</b> and <a href="{authorization_url}">click here</a></p>')
+  exit()
+
+google_account_email = None
+@st.cache_data(persist=True)
+def get_google_account_email() -> str|None:
+  """This function returns None if the user is not logged-in through google, and the email string of the user in google otherwise. The function must be reset before further use if it returns None, with get_google_account_email.clear(). Then, the global google_account_email must be set, which this function will return. This complicated dance is because we're abusing the @st.cache_data(persist=True) annotation to persist some data across sessions."""
+  return google_account_email
+
+def set_google_account_email(new_email: str|None) -> None:
+  global google_account_email
+  get_google_account_email.clear()
+  google_account_email = None
+  get_google_account_email()
+
 def main() -> None:
+  global google_account_email #TODO: I can't test it right now, but I'm fairly certain that this works only sometimes, and using cookies would be a better solution.
   st.set_page_config(layout="wide", page_title="Cicero", page_icon="favicon.png") # Use wide mode in Cicero, mostly so that results display more of their text by default. Also, set title and favicon. #NOTE: "`set_page_config()` can only be called once per app page, and must be called as the first Streamlit command in your script."
   cookie_manager = stx.CookieManager()
   title_and_loading_columns = st.columns(2)
@@ -32,10 +53,36 @@ def main() -> None:
     loading_message = st.empty()
     loading_message.write("Loading CICERO.  This may take up to a minute...")
 
-  def blank_the_page_for_redirect() -> NoReturn: #ideally we wouldn't have to do this, but it's tough to use a single-tab workflow here because streamlit is entirely in an iframe, which breaks several things.
-    authorization_url = st.session_state["authorization_url"]
-    html(f'<script>window.open("{authorization_url}");</script><p>You have elected to sign-in with Google, which opens a new tab. You may now close this tab. If you do not see a new tab, visit <a href="{authorization_url}">click here</a></p>')
-    exit()
+  # Google sign-in logic, adapted from Miguel_Hentoux here https://discuss.streamlit.io/t/google-authentication-in-a-streamlit-app/43252/18
+  # Set up the flow (which is just an api call or something I guess. For the first argument, the secrets, use your json credentials from your google auth app (Web Client). You must place them, adapting their format, in secrets.toml under a heading (you'll note that everything in the json is in an object with the key "installed", so from that you should be able to figure out the rest.
+  # previous versions of this code used [google_signin_secrets.installed], because, of course, the only us-defined portion is the google_signin_secrets portion
+  st.write(f"""Google signed-in as {get_google_account_email()}""")
+  if get_google_account_email():
+    st.session_state["email"] = get_google_account_email()
+    if st.button("Sign out from Google"):
+      set_google_account_email(None)
+  else:
+    set_google_account_email("test@string.com")
+    auth_code = st.query_params.get("code")
+    flow = google_auth_oauthlib.flow.Flow.from_client_config( st.secrets["google_signin_secrets"], scopes=["https://www.googleapis.com/auth/userinfo.email", "openid"], redirect_uri=get_base_url() )
+    if auth_code: # detect whether the current url has '&code=' in it (in which case we're actively signing in during this step).
+      print("!"*20, auth_code)
+      try:
+        flow.fetch_token(code=auth_code)
+        user_info_service = build(serviceName="oauth2", version="v2", credentials=flow.credentials)
+        user_info = user_info_service.userinfo().get().execute()
+        assert user_info.get("email"), "Email not found in google OAuth info"
+        st.session_state["email"] = user_info.get("email")
+        set_google_account_email(st.session_state["email"])
+      except Exception as e: #I'm pretty sure this fires multiple times, which is the problem.
+        if str(e) == "(invalid_grant) Bad Request":
+          st.write(str(e))
+        else:
+          raise e
+  if not get_google_account_email(): #if we aren't actively logging in, and we aren't already logged in, give the user the option to log in:
+      authorization_url, state = flow.authorization_url(access_type="offline", include_granted_scopes="true") #ignore the fact that this says the access_type is "offline", that's not relevant to our deployment (which is both online and offline, so to speak); it's about something different.
+      st.write(state)
+      st.button("Sign in with Google", on_click=lambda: blank_the_page_and_redirect(authorization_url))
 
   if st.experimental_user['email'] is None:
     st.write("Your user email is None, which implies we are currently running publicly on Streamlit Community Cloud. https://docs.streamlit.io/library/api-reference/personalization/st.experimental_user#public-app-on-streamlit-community-cloud. This app is configured to function only privately and permissionedly, so we will now exit. Good day.")
@@ -46,41 +93,6 @@ def main() -> None:
 
   if st.experimental_user['email'] == 'text@example.com':
     pass #The streamlit app is running "locally", which means everywhere but the streamlit community cloud. We probably won't end up relying on this behavior. This should eventually use the google email stuff, or we should have a firm idea about how the google email should override or be overridden by the streamlit community cloud email. Either way, we will only do this when we are ready, as it will make local testing slightly more inconvenient.
-
-  # Google sign-in logic. Taken from Miguel_Hentoux here https://discuss.streamlit.io/t/google-authentication-in-a-streamlit-app/43252/18 , and modified
-  import google_auth_oauthlib.flow
-  from googleapiclient.discovery import build
-  def auth_flow() -> None:
-    auth_code = st.query_params.get("code")
-    # Use your json credentials from your google auth app (Web Client). You must place them, adapting their format, in secrets.toml under a heading (you'll note that everything in the json is in an object with the key "installed", so from that you should be able to figure out the rest.
-    # previous versions of this code used [google_signin_secrets.installed], because, of course, the only us-defined portion is the google_signin_secrets portion
-    flow = google_auth_oauthlib.flow.Flow.from_client_config(
-      st.secrets["google_signin_secrets"],
-      scopes=["https://www.googleapis.com/auth/userinfo.email", "openid"],
-      redirect_uri=get_base_url(),
-    )
-    signed_in = False
-    if auth_code:
-      try:
-        flow.fetch_token(code=auth_code)
-        user_info_service = build(serviceName="oauth2", version="v2", credentials=flow.credentials)
-        user_info = user_info_service.userinfo().get().execute()
-        assert user_info.get("email"), "Email not found in google OAuth info"
-        st.session_state["google_auth_code"] = auth_code
-        st.session_state["user_info"] = user_info
-        signed_in = True
-      except Exception as e: #we always get an InvalidGrantError on an F5 if the user was logged-in. Not sure why.
-        pass
-    if not signed_in:
-      authorization_url, state = flow.authorization_url(access_type="offline", include_granted_scopes="true") #ignore the fact that this says the access_type is offline, that's not relevant to our deployment; it's about something different.
-      st.session_state["authorization_url"] = authorization_url
-      st.button("Sign in with Google", on_click=blank_the_page_for_redirect)
-
-  if "google_auth_code" not in st.session_state: #TODO: use cookies to extend this state's lifetime.
-    auth_flow()
-  if "google_auth_code" in st.session_state:
-    st.session_state["email"] = st.session_state["user_info"].get("email")
-    st.write(f"""Google signed-in as {st.session_state["email"]}""")
 
   if st.session_state['developer_mode']: #dev-mode out the entirety of topic reporting
     tab1, tab2 = st.tabs(["🗣️ Prompter", "🌈 Topic Reporting"])
@@ -98,12 +110,11 @@ def main() -> None:
       st.caption(f"""Streamlit app memory usage: {psutil.Process(os.getpid()).memory_info().rss // 1024 ** 2} MiB.<br>
         Time to display: {(perf_counter_ns()-nanoseconds_base)/1000/1000/1000} seconds.<br>
         Python version: {platform.python_version()}<br>
-        Base url: {get_base_url()}
+        Base url: {get_base_url()}<br>
+        User info: {st.session_state.get("user_info")}
       """, unsafe_allow_html=True)
 
       st.caption("Cookies:")
-      if st.button("set cookie"):
-        cookie_manager.set("OK", "Alright")
       cookies = cookie_manager.get_all()
       st.write(cookies)
 
