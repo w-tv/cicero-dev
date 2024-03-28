@@ -355,7 +355,7 @@ def main() -> None:
     tone = st.multiselect("Tone", ['Agency', 'Apologetic', 'Candid', 'Exclusivity', 'Fiesty', 'Grateful', 'Not Asking For Money', 'Pleading', 'Quick Request', 'Secretive', 'Time Sensitive', 'Urgency'], key="tone") #, 'Swear Jar' will probably be in here some day, but we don't have "we need more swear jar data to make this tone better"
     generate_button = st.form_submit_button("Submit")
 
-  if model_name != 'gpt-sml':
+  if model_name != 'gpt-short-medium-long':
     text_length = ""
   else:
     if max_new_tokens < 160:
