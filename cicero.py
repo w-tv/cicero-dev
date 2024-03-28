@@ -11,6 +11,7 @@ import os, psutil, platform
 import urllib.parse
 from typing import NoReturn
 import cicero_prompter, cicero_topic_reporting
+from cicero_shared import sql_call
 import extra_streamlit_components as stx
 from databricks import sql
 import secrets
@@ -25,25 +26,26 @@ def get_base_url() -> str:
   except IndexError as e:
     return str(e)
 
+def google_email_from_nonce(nonce: str) -> str|None: #The nonce here is the nonsense string we associate with an email to prevent the user from being able to spoof identity using cookies. We get the nonce from the param code in the url elsewhere in this code.
+  sql_call("CREATE TABLE IF NOT EXISTS cicero.default.nonce_to_google_email (nonce string, google_email string)")
+  value = sql_call("SELECT google_email FROM cicero.default.nonce_to_google_email WHERE nonce = %(nonce)s", {"nonce": nonce})
+  if len(value):
+    return value[0]
+  else:
+    return None
+def set_google_email_from_nonce(google_email: str, nonce: str) -> None:
+  sql_call("CREATE TABLE IF NOT EXISTS cicero.default.nonce_to_google_email (nonce string, google_email string)")
+  value = sql_call("INSERT INTO cicero.default.nonce_to_google_email (nonce, google_email) VALUES (%(nonce)s, %(google_email)s)", {"nonce": nonce, "google_email": google_email})
+def remove_google_email_from_nonce(nonce: str) -> None: # Technically this is optional, but we might as well clear up the table.
+  sql_call("CREATE TABLE IF NOT EXISTS cicero.default.nonce_to_google_email (nonce string, google_email string)")
+  value = sql_call("DELETE FROM cicero.default.nonce_to_google_email WHERE nonce = %(nonce)s", {"nonce": nonce})
+
 def blank_the_page_and_redirect(authorization_url: str) -> NoReturn: #ideally we wouldn't have to do this, but it's tough to use a single-tab workflow here because streamlit is entirely in an iframe, which breaks several things.
   print(authorization_url)
   html(f'<script>window.open("{authorization_url}");</script><p>You have elected to sign-in with Google, which opens a new tab. You may now close this tab. If you do not see a new tab, <b>enable pop-ups and/or redirects for this page in your browser</b> and <a href="{authorization_url}">click here</a></p>')
   exit()
 
-google_account_email = None
-@st.cache_data(persist=True)
-def get_google_account_email() -> str|None:
-  """This function returns None if the user is not logged-in through google, and the email string of the user in google otherwise. The function must be reset before further use if it returns None, with get_google_account_email.clear(). Then, the global google_account_email must be set, which this function will return. This complicated dance is because we're abusing the @st.cache_data(persist=True) annotation to persist some data across sessions."""
-  return google_account_email
-
-def set_google_account_email(new_email: str|None) -> None:
-  global google_account_email
-  get_google_account_email.clear()
-  google_account_email = None
-  get_google_account_email()
-
 def main() -> None:
-  global google_account_email #TODO: I can't test it right now, but I'm fairly certain that this works only sometimes, and using cookies would be a better solution.
   st.set_page_config(layout="wide", page_title="Cicero", page_icon="favicon.png") # Use wide mode in Cicero, mostly so that results display more of their text by default. Also, set title and favicon. #NOTE: "`set_page_config()` can only be called once per app page, and must be called as the first Streamlit command in your script."
   cookie_manager = stx.CookieManager()
   title_and_loading_columns = st.columns(2)
@@ -56,13 +58,17 @@ def main() -> None:
   # Google sign-in logic, adapted from Miguel_Hentoux here https://discuss.streamlit.io/t/google-authentication-in-a-streamlit-app/43252/18
   # Set up the flow (which is just an api call or something I guess. For the first argument, the secrets, use your json credentials from your google auth app (Web Client). You must place them, adapting their format, in secrets.toml under a heading (you'll note that everything in the json is in an object with the key "installed", so from that you should be able to figure out the rest.
   # previous versions of this code used [google_signin_secrets.installed], because, of course, the only us-defined portion is the google_signin_secrets portion
-  st.write(f"""Google signed-in as {get_google_account_email()}""")
-  if get_google_account_email():
-    st.session_state["email"] = get_google_account_email()
-    if st.button("Sign out from Google"):
-      set_google_account_email(None)
-  else:
-    set_google_account_email("test@string.com")
+  if nonce := cookie_manager.get("google_account_nonce"): # We "remember" a nonce in our cookies, and are going to try to "sign in" to cicero using it (in cicero's local table, not in google itself).
+    if google_email := google_email_from_nonce(nonce): # There is an email, so we have "signed in" successfully.
+      st.session_state["email"] = google_email
+      st.write(f"""Google signed-in as {st.session_state["email"]}""")
+      if st.button("Sign out from Google"): #since we're signed-in, have an option to sign out!
+        cookie_manager.remove("google_account_nonce")
+        remove_google_email_from_nonce(nonce)
+    else: # We had a nonce, but it was not associated with an email, so we did not "sign in" successfully.
+      cookie_manager.remove("google_account_nonce")
+  #Note that the next line is effectively an "else" clause, but it has to service the inner and outer ifs above, hence why it is set up this way.
+  if not cookie_manager.get("google_account_nonce"): # We don't have any nonce, so just offer the option to sign in like regular using google OR we are currently in the process of signing in, in which case continue that.
     auth_code = st.query_params.get("code")
     flow = google_auth_oauthlib.flow.Flow.from_client_config( st.secrets["google_signin_secrets"], scopes=["https://www.googleapis.com/auth/userinfo.email", "openid"], redirect_uri=get_base_url() )
     if auth_code: # detect whether the current url has '&code=' in it (in which case we're actively signing in during this step).
@@ -73,13 +79,14 @@ def main() -> None:
         user_info = user_info_service.userinfo().get().execute()
         assert user_info.get("email"), "Email not found in google OAuth info"
         st.session_state["email"] = user_info.get("email")
-        set_google_account_email(st.session_state["email"])
+        set_google_email_from_nonce(google_email=st.session_state["email"], nonce=auth_code)
+        cookie_manager.set("google_account_nonce", auth_code)
       except Exception as e: #I'm pretty sure this fires multiple times, which is the problem.
         if str(e) == "(invalid_grant) Bad Request":
           st.write(str(e))
         else:
           raise e
-  if not get_google_account_email(): #if we aren't actively logging in, and we aren't already logged in, give the user the option to log in:
+    else: #if we aren't actively logging in, and we aren't already logged in, give the user the option to log in:
       authorization_url, state = flow.authorization_url(access_type="offline", include_granted_scopes="true") #ignore the fact that this says the access_type is "offline", that's not relevant to our deployment (which is both online and offline, so to speak); it's about something different.
       st.write(state)
       st.button("Sign in with Google", on_click=lambda: blank_the_page_and_redirect(authorization_url))
