@@ -358,11 +358,11 @@ def main() -> None:
   if model_name != 'gpt-short-medium-long':
     text_length = ""
   else:
-    if max_new_tokens < 160:
+    if target_charcount_max < 160:
       text_length = " short"
-    elif max_new_tokens >=160 and max_new_tokens < 400:
+    elif target_charcount_max >=160 and target_charcount_max < 400:
       text_length = " medium"
-    elif max_new_tokens >= 400:
+    elif target_charcount_max >= 400:
       text_length = " long"
 
   #Composition and sending a request:
