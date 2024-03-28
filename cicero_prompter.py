@@ -234,7 +234,10 @@ def send(model_uri: str, databricks_token: str, data: dict[str, list[bool|str]],
   headers = {"Authorization": f"Bearer {databricks_token}", "Content-Type": "application/json"}
   data_json = json.dumps({"inputs": data}, allow_nan=True)
   if dummy: # If this is a dummy prompt, we're trying to wake up the endpoint, which means we don't want to wait for a response (the request *will* hold up the entire program unless you tell it to time out.)
-    requests.request(method='POST', headers=headers, url=model_uri, data=data_json, timeout=1)
+    try: # When the dummy prompt fails (ie, the endpoint is waking up), it raises an exception, which is harmless except that it screws up the rest of the page render a bit sometimes, so we catch the error to suppress it.
+      requests.request(method='POST', headers=headers, url=model_uri, data=data_json, timeout=1)
+    except requests.exceptions.ReadTimeout as e:
+      pass
     return []
   response = requests.request(method='POST', headers=headers, url=model_uri, data=data_json)
   if response.status_code == 504:
