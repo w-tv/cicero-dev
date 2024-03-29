@@ -87,11 +87,11 @@ def main() -> None:
       st.session_state["email"] = google_email
       st.write(f"""Google signed-in as {st.session_state["email"]}""")
       if st.button("Sign out from Google"): #since we're signed-in, have an option to sign out!
-        cookie_manager.remove("google_account_nonce")
+        cookie_manager.delete("google_account_nonce")
         remove_google_email_from_nonce(nonce)
     else: # We had a nonce, but it was not associated with an email, so we did not "sign in" successfully.
       st.write("nonce bad, removing nonce")
-      cookie_manager.remove("google_account_nonce")
+      cookie_manager.delete("google_account_nonce")
 
   if st.experimental_user['email'] is None:
     st.write("Your user email is None, which implies we are currently running publicly on Streamlit Community Cloud. https://docs.streamlit.io/library/api-reference/personalization/st.experimental_user#public-app-on-streamlit-community-cloud. This app is configured to function only privately and permissionedly, so we will now exit. Good day.")
