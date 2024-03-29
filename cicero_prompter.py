@@ -287,7 +287,7 @@ def main() -> None:
     if 8 <= datetime.now(z("US/Eastern")).hour <= 19:
       send(models["gpt-revamp"], st.secrets["databricks_api_token"], {}, dummy=True) # This line just tries to wake up the gpt-revamp model slightly faster, therefore slightly conveniencing the user, probably. #possibly due to a streamlit community cloud bug, this line seems to cause our scale-to-zero model to get pinged often enough to always be awake, when the condition is met.
     st.session_state["initted"] = True
-    st.rerun() #STREAMLIT-BUG-WORKAROUND: this rerun actually has nothing to do with initing, it's just convenient to do here, since we need to do it exactly once, on app startup. It prevents the expander from experiencing a streamlit bug (<https://github.com/streamlit/streamlit/issues/2360>) that is only present in the initial run state. Anyway, this rerun is really fast and breaks nothing (except the developer mode initial performance timer readout, which is now gone) so it's a good workaround.
+    #st.rerun() #STREAMLIT-BUG-WORKAROUND: this rerun actually has nothing to do with initing, it's just convenient to do here, since we need to do it exactly once, on app startup. It prevents the expander from experiencing a streamlit bug (<https://github.com/streamlit/streamlit/issues/2360>) that is only present in the initial run state. Anyway, this rerun is really fast and breaks nothing (except the developer mode initial performance timer readout, which is now clobbered) so it's a good workaround. #TODO: I've disabled the rerun-workaround on the hunch that it will fix something about google sign-in and cookies.
 
   login_activity_counter_container = st.container()
 
