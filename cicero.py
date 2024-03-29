@@ -13,8 +13,7 @@ from typing import NoReturn
 import cicero_prompter, cicero_topic_reporting
 from cicero_shared import sql_call
 import extra_streamlit_components as stx
-from databricks import sql
-import secrets
+import secrets #TODO: could use this for nonce if we don't just the auth code?
 import google_auth_oauthlib.flow
 from googleapiclient.discovery import build
 
@@ -35,10 +34,10 @@ def google_email_from_nonce(nonce: str) -> str|None: #The nonce here is the nons
     return None
 def set_google_email_from_nonce(google_email: str, nonce: str) -> None:
   sql_call("CREATE TABLE IF NOT EXISTS cicero.default.nonce_to_google_email (nonce string, google_email string)")
-  value = sql_call("INSERT INTO cicero.default.nonce_to_google_email (nonce, google_email) VALUES (%(nonce)s, %(google_email)s)", {"nonce": nonce, "google_email": google_email})
+  sql_call("INSERT INTO cicero.default.nonce_to_google_email (nonce, google_email) VALUES (%(nonce)s, %(google_email)s)", {"nonce": nonce, "google_email": google_email})
 def remove_google_email_from_nonce(nonce: str) -> None: # Technically this is optional, but we might as well clear up the table.
   sql_call("CREATE TABLE IF NOT EXISTS cicero.default.nonce_to_google_email (nonce string, google_email string)")
-  value = sql_call("DELETE FROM cicero.default.nonce_to_google_email WHERE nonce = %(nonce)s", {"nonce": nonce})
+  sql_call("DELETE FROM cicero.default.nonce_to_google_email WHERE nonce = %(nonce)s", {"nonce": nonce})
 
 def blank_the_page_and_redirect(authorization_url: str) -> NoReturn: #ideally we wouldn't have to do this, but it's tough to use a single-tab workflow here because streamlit is entirely in an iframe, which breaks several things.
   print(authorization_url)
@@ -58,7 +57,7 @@ def main() -> None:
   # Google sign-in logic, adapted from Miguel_Hentoux here https://discuss.streamlit.io/t/google-authentication-in-a-streamlit-app/43252/18
   # Set up the flow (which is just an api call or something I guess. For the first argument, the secrets, use your json credentials from your google auth app (Web Client). You must place them, adapting their format, in secrets.toml under a heading (you'll note that everything in the json is in an object with the key "installed", so from that you should be able to figure out the rest.
   # previous versions of this code used [google_signin_secrets.installed], because, of course, the only us-defined portion is the google_signin_secrets portion
-
+  st.write("Cookie time:", cookie_manager.get("google_account_nonce"))
   if not cookie_manager.get("google_account_nonce"): # We don't have any nonce, so just offer the option to sign in like regular using google OR we are currently in the process of signing in, in which case continue that.
     auth_code = st.query_params.get("code")
     flow = google_auth_oauthlib.flow.Flow.from_client_config( st.secrets["google_signin_secrets"], scopes=["https://www.googleapis.com/auth/userinfo.email", "openid"], redirect_uri=get_base_url() )

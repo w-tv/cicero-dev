@@ -1,15 +1,11 @@
 #!/usr/bin/env -S streamlit run
 
 import streamlit as st
-from collections.abc import Iterable
 from typing import Any, Sequence
 from cicero_prompter import topics_big, load_account_names
-from databricks import sql
 from cicero_shared import sql_call
 
-import streamlit as st
 import pandas as pd
-import numpy as np
 import altair as alt
 
 def to_sql_tuple_string(x: Sequence[str]) -> str:
@@ -111,7 +107,7 @@ internal_account_name_to_external_account_name = { #many-to-one relationship
   'CSS: Georgia Values Fund' : 'George Values Fund',
   'CSS: Honor Pennsylvania' : 'Honor Pennsylvania',
   'CSS: Keystone Renewal PAC' : 'Keystone Renewal',
-  'CSS: Keystone Renewal PAC' : 'Keystone Renewal PAC',
+  'CSS: Keystone Renewal PAC' : 'Keystone Renewal PAC', #TODO: well, which is it, Alex?
   'CSS: Opportunity Matters Fund' : 'OMF',
   'CSS: Opportunity Matters Fund Action' : 'OMFA',
   'CSS: Protecting Ohio Values PAC' : 'Protecting Ohio Values PAC',
@@ -459,7 +455,7 @@ def main() -> None:
         col1, col2 = st.columns([0.1, 0.9])
         with col1:
           color_code = topics_big[t]["color"]
-          m = st.markdown(f' <div style="color:{color_code}" title="{t}, {color_code}">&#9632;</div>', unsafe_allow_html=True)
+          st.markdown(f' <div style="color:{color_code}" title="{t}, {color_code}">&#9632;</div>', unsafe_allow_html=True)
         with col2:
           topics_gigaselect[t] = st.checkbox(t, value=st.session_state["topics_gigaselect_opinion"][t])
 
