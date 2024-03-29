@@ -29,7 +29,7 @@ def google_email_from_nonce(nonce: str) -> str|None: #The nonce here is the nons
   sql_call("CREATE TABLE IF NOT EXISTS cicero.default.nonce_to_google_email (nonce string, google_email string)")
   value = sql_call("SELECT google_email FROM cicero.default.nonce_to_google_email WHERE nonce = %(nonce)s", {"nonce": nonce})
   if len(value):
-    return value[0]
+    return str(value[0])
   else:
     return None
 def set_google_email_from_nonce(google_email: str, nonce: str) -> None:

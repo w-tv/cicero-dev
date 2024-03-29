@@ -6,7 +6,6 @@ import streamlit as st
 import pandas as pd
 import requests
 import json
-from databricks import sql # Spooky that this is not the same name as the pypi package databricks-sql-connector, but is the way to refer to the same thing.
 from datetime import datetime, date
 import faiss
 from sentence_transformers import SentenceTransformer # Weird that this is how you reference the sentence-transformers package on pypi, too. Well, whatever.
@@ -14,6 +13,7 @@ from sentence_transformers import SentenceTransformer # Weird that this is how y
 from transformers import GenerationConfig
 from typing import TypedDict
 from zoneinfo import ZoneInfo as z
+from cicero_shared import sql_call
 
 # This is the 'big' of topics, the authoritative record of various facts and mappings about topics.
 Topics_Big_Payload = TypedDict("Topics_Big_Payload", {'color': str, 'internal name': str, 'show in prompter?': bool})
@@ -99,35 +99,24 @@ def external_topic_names_to_internal_topic_names_list_mapping(external_topic_nam
 
 @st.cache_data()
 def load_model_permissions(useremail: str|None) -> list[str]:
-  with sql.connect(server_hostname=st.secrets["DATABRICKS_SERVER_HOSTNAME"], http_path=st.secrets["DATABRICKS_HTTP_PATH"], access_token=st.secrets["databricks_api_token"]) as connection: #These secrets should be in the root level of the .streamlit/secrets.toml
-    with connection.cursor() as cursor:
-      results = cursor.execute(
-        "SELECT DISTINCT modelname FROM models.default.permissions WHERE useremail = %(useremail)s", {'useremail': useremail}
-      ).fetchall()
-      return [result[0].lower() for result in results]
+  results = sql_call("SELECT DISTINCT modelname FROM models.default.permissions WHERE useremail = %(useremail)s", {'useremail': useremail})
+  return [result[0].lower() for result in results]
 
 @st.cache_data() #Necessity demands we do a manual cache of this function's result anyway in the one place we call it, but (for some reason) it seems like our deployed environment is messed up in some way I cannot locally replicate, which causes it to run this function once every five minutes. So, we cache it as well, to prevent waking up our server and costing us money.
 def count_from_activity_log_times_used_today(useremail: str|None = st.experimental_user['email']) -> int: #this goes by whatever the datetime default timezone is because we don't expect the exact boundary to matter much.
   try: # This can fail if the table doesn't exist (at least not yet, as we create it on insert if it doesn't exist), so it's nice to have a default
-    with sql.connect(server_hostname=st.secrets["DATABRICKS_SERVER_HOSTNAME"], http_path=st.secrets["DATABRICKS_HTTP_PATH"], access_token=st.secrets["databricks_api_token"]) as connection: #These secrets should be in the root level of the .streamlit/secrets.toml
-      with connection.cursor() as cursor:
-        return cursor.execute(
-          f"SELECT COUNT(*) FROM main.default.activity_log WHERE useremail = %(useremail)s AND datetime LIKE '{date.today()}%%'",
-          {'useremail': useremail}
-        ).fetchone()[0]
+    return sql_call(f"SELECT COUNT(*) FROM main.default.activity_log WHERE useremail = %(useremail)s AND datetime LIKE '{date.today()}%%'", {'useremail': useremail})[0][0]
   except Exception as e:
-    print("There was an exception in count_from_activity_log_times_used_today, so I'm just returning a value of 0. Here's the exception:", str(e))
-    return 0
+    print("There was an exception in count_from_activity_log_times_used_today, so I'm just returning a value of -1. Here's the exception:", str(e))
+    return -1
 
-def write_to_activity_log_table(datetime: str, useremail: str|None, promptsent: str, responsegiven: str, modelparams: str) -> int:
-  """The most sensical thing for this function to return is the closest thing to a result value that an insert command produces: the .rowcount variable of the cursor, which is "the number of rows that the last .execute*() [...] affected (for DML statements like UPDATE or INSERT)." <https://peps.python.org/pep-0249/#rowcount>. However, that PEP also states that "The attribute is -1 in case no .execute*() has been performed on the cursor or the rowcount of the last operation is cannot be determined by the interface." And the implementation of databricks-sql-connector seems to have taken this liberty to, indeed, always return -1. So this return value is useless."""
-  with sql.connect(server_hostname=st.secrets["DATABRICKS_SERVER_HOSTNAME"], http_path=st.secrets["DATABRICKS_HTTP_PATH"], access_token=st.secrets["databricks_api_token"]) as connection: #These should be in the root level of the .streamlit/secrets.toml
-    with connection.cursor() as cursor:
-      cursor.execute("CREATE TABLE IF NOT EXISTS main.default.activity_log (datetime string, useremail string, promptsent string, responsegiven string, modelparams string)")
-      return cursor.execute(
+def write_to_activity_log_table(datetime: str, useremail: str|None, promptsent: str, responsegiven: str, modelparams: str) -> None:
+  """The most sensical thing for this function to return would be the closest thing to a result value that an insert command produces: the .rowcount variable of the cursor, which is "the number of rows that the last .execute*() [...] affected (for DML statements like UPDATE or INSERT)." <https://peps.python.org/pep-0249/#rowcount>. However, that PEP also states that "The attribute is -1 in case no .execute*() has been performed on the cursor or the rowcount of the last operation is cannot be determined by the interface." And the implementation of databricks-sql-connector seems to have taken this liberty to, indeed, always return -1. So this return value is useless. Anyway, I chose not to return anything, for simplicity."""
+  sql_call("CREATE TABLE IF NOT EXISTS main.default.activity_log (datetime string, useremail string, promptsent string, responsegiven string, modelparams string)")
+  sql_call(
         "INSERT INTO main.default.activity_log VALUES (%(datetime)s, %(useremail)s, %(promptsent)s, %(responsegiven)s, %(modelparams)s)",
         {'datetime': datetime, 'useremail': useremail, 'promptsent': promptsent, 'responsegiven': responsegiven, 'modelparams': modelparams} #this probably could be a kwargs, but I couldn't figure out how to do that neatly the particular way I wanted so whatever, you just have to change this 'signature' four times in this function if you want to change it.
-      ).rowcount
+      )
 
 @st.cache_data()
 def load_bios() -> dict[str, str]:
@@ -139,32 +128,13 @@ def load_account_names() -> list[str]:
   return list(pd.read_csv("Client_List.csv")['ACCOUNT_NAME'])
 
 @st.cache_data()
-def load_headlines(get_all:bool=False, past_days:int=7) -> list[str]:
+def load_headlines(get_all: bool = False, past_days: int = 7) -> list[str]:
   try: # This can fail if the table doesn't exist (at least not yet, as we create it on insert if it doesn't exist), so it's nice to have a default
-    with sql.connect(server_hostname=st.secrets["DATABRICKS_SERVER_HOSTNAME"], http_path=st.secrets["DATABRICKS_HTTP_PATH"], access_token=st.secrets["databricks_api_token"]) as connection: #These secrets should be in the root level of the .streamlit/secrets.toml
-      with connection.cursor() as cursor:
-        results = cursor.execute(
-          "SELECT DISTINCT headline FROM cicero.default.headline_log" if get_all else
-          f"""WITH SortedHeadlines AS (
-                SELECT
-                    datetime,
-                    headline,
-                    ROW_NUMBER() OVER (PARTITION BY headline ORDER BY datetime DESC, headline) AS row_num
-                FROM
-                    cicero.default.headline_log
-                )
-              SELECT
-                headline
-              FROM
-                SortedHeadlines
-              WHERE
-                row_num = 1
-                AND datetime >= NOW() - INTERVAL {past_days} DAY
-              ORDER BY
-                datetime DESC, headline;
-          """ # The (arbitrary) requirement is that we return results from the last 7 days, and this is the easiest way to do it. Might not be the most performant query, but it works. COULD: review performance, see if there are any alternative queries that could be faster.
-        ).fetchall()
-        return [result[0] for result in results]
+    results = sql_call(
+      "SELECT DISTINCT headline FROM cicero.default.headline_log" if get_all else
+      f"SELECT headline FROM cicero.default.headline_log WHERE datetime >= NOW() - INTERVAL {past_days} DAY ORDER BY datetime DESC, headline" # The (arbitrary) requirement is that we return results from the last 7 days.
+    )
+    return [result[0] for result in results]
   except Exception as e:
     print("There was an exception in load_headlines, so I'm just returning this. Here's the exception:", str(e))
     return ["There was an exception in load_headlines, so I'm just returning this. Here's the exception: "+str(e)]
