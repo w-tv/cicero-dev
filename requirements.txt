@@ -14,4 +14,4 @@ mypy
 mypy-extensions
 typing-extensions
 pipreqs
-deptry
+deptry >= 0.14.1
