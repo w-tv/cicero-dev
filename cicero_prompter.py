@@ -105,7 +105,7 @@ def load_model_permissions(useremail: str|None) -> list[str]:
 @st.cache_data() #Necessity demands we do a manual cache of this function's result anyway in the one place we call it, but (for some reason) it seems like our deployed environment is messed up in some way I cannot locally replicate, which causes it to run this function once every five minutes. So, we cache it as well, to prevent waking up our server and costing us money.
 def count_from_activity_log_times_used_today(useremail: str|None = st.experimental_user['email']) -> int: #this goes by whatever the datetime default timezone is because we don't expect the exact boundary to matter much.
   try: # This can fail if the table doesn't exist (at least not yet, as we create it on insert if it doesn't exist), so it's nice to have a default
-    return sql_call(f"SELECT COUNT(*) FROM main.default.activity_log WHERE useremail = %(useremail)s AND datetime LIKE '{date.today()}%%'", {'useremail': useremail})[0][0]
+    return int( sql_call(f"SELECT COUNT(*) FROM main.default.activity_log WHERE useremail = %(useremail)s AND datetime LIKE '{date.today()}%%'", {'useremail': useremail})[0][0] )
   except Exception as e:
     print("There was an exception in count_from_activity_log_times_used_today, so I'm just returning a value of -1. Here's the exception:", str(e))
     return -1
@@ -220,7 +220,7 @@ def send(model_uri: str, databricks_token: str, data: dict[str, list[bool|str]],
       raise Exception(response.json()["message"])
     else:
       raise Exception(f"Request failed with status {response.status_code}, {response.text}")
-  return response.json()["predictions"][0]["0"]
+  return [str(r) for r in response.json()["predictions"][0]["0"]] # This list comprehension is just for appeasing the type-checker.
 
 def main() -> None:
 
