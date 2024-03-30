@@ -125,15 +125,13 @@ def load_account_names() -> list[str]:
 
 @st.cache_data()
 def load_headlines(get_all: bool = False, past_days: int = 7) -> list[str]:
-  try: # This can fail if the table doesn't exist (at least not yet, as we create it on insert if it doesn't exist), so it's nice to have a default
-    results = sql_call(
-      "SELECT DISTINCT headline FROM cicero.default.headline_log" if get_all else
-      f"SELECT headline FROM cicero.default.headline_log WHERE datetime >= NOW() - INTERVAL {past_days} DAY ORDER BY datetime DESC, headline" # The (arbitrary) requirement is that we return results from the last 7 days.
-    )
-    return [result[0] for result in results]
-  except Exception as e:
-    print("There was an exception in load_headlines, so I'm just returning this. Here's the exception:", str(e))
-    return ["There was an exception in load_headlines, so I'm just returning this. Here's the exception: "+str(e)]
+   # The (arbitrary) requirement is that we return results from the last 7 days by default.
+  sql_call("CREATE TABLE IF NOT EXISTS cicero.default.headline_log (datetime string, headline string)")
+  if get_all: # Nota bene: it is unusual for get_all to be true.
+    results = sql_call("SELECT DISTINCT headline FROM cicero.default.headline_log")
+  else:
+    results = sql_call(f"SELECT headline FROM cicero.default.headline_log WHERE datetime >= NOW() - INTERVAL {past_days} DAY ORDER BY datetime DESC, headline")
+  return [result[0] for result in results]
 
 @st.cache_data()
 def sort_headlines_semantically(headlines: list[str], query: str, number_of_results_to_return:int=1) -> list[str]:
@@ -244,7 +242,7 @@ def main() -> None:
 
   account_names = load_account_names()
 
-  headlines : list[str] = load_headlines(get_all=False) #COULD: if we don't need to allow the user this list all the time, we could move this line to the expander, in some kind of `if` statement, possibly a checkbox, to save maybe 2 seconds on app load times. (Unfortunately, the expansion state of the expander is not programmatically available to `if` upon. Also, we do kind of want the user to be able to access this list all the time, without sorting or searching necessarily being in play.)
+  headlines : list[str] = load_headlines(get_all=False)
   headlines_overdrive : list[str] = load_headlines(get_all=False, past_days=3)
 
   if not st.session_state.get("initted"):
