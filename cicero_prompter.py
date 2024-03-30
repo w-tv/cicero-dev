@@ -104,19 +104,15 @@ def load_model_permissions(useremail: str|None) -> list[str]:
 
 @st.cache_data() #Necessity demands we do a manual cache of this function's result anyway in the one place we call it, but (for some reason) it seems like our deployed environment is messed up in some way I cannot locally replicate, which causes it to run this function once every five minutes. So, we cache it as well, to prevent waking up our server and costing us money.
 def count_from_activity_log_times_used_today(useremail: str|None = st.experimental_user['email']) -> int: #this goes by whatever the datetime default timezone is because we don't expect the exact boundary to matter much.
-  try: # This can fail if the table doesn't exist (at least not yet, as we create it on insert if it doesn't exist), so it's nice to have a default
-    return int( sql_call(f"SELECT COUNT(*) FROM main.default.activity_log WHERE useremail = %(useremail)s AND datetime LIKE '{date.today()}%%'", {'useremail': useremail})[0][0] )
-  except Exception as e:
-    print("There was an exception in count_from_activity_log_times_used_today, so I'm just returning a value of -1. Here's the exception:", str(e))
-    return -1
+  sql_call("CREATE TABLE IF NOT EXISTS cicero.default.activity_log (datetime string, useremail string, promptsent string, responsegiven string, modelparams string)")
+  return int( sql_call(f"SELECT COUNT(*) FROM cicero.default.activity_log WHERE useremail = %(useremail)s AND datetime LIKE '{date.today()}%%'", {'useremail': useremail})[0][0] )
 
 def write_to_activity_log_table(datetime: str, useremail: str|None, promptsent: str, responsegiven: str, modelparams: str) -> None:
-  """The most sensical thing for this function to return would be the closest thing to a result value that an insert command produces: the .rowcount variable of the cursor, which is "the number of rows that the last .execute*() [...] affected (for DML statements like UPDATE or INSERT)." <https://peps.python.org/pep-0249/#rowcount>. However, that PEP also states that "The attribute is -1 in case no .execute*() has been performed on the cursor or the rowcount of the last operation is cannot be determined by the interface." And the implementation of databricks-sql-connector seems to have taken this liberty to, indeed, always return -1. So this return value is useless. Anyway, I chose not to return anything, for simplicity."""
-  sql_call("CREATE TABLE IF NOT EXISTS main.default.activity_log (datetime string, useremail string, promptsent string, responsegiven string, modelparams string)")
+  sql_call("CREATE TABLE IF NOT EXISTS cicero.default.activity_log (datetime string, useremail string, promptsent string, responsegiven string, modelparams string)")
   sql_call(
-        "INSERT INTO main.default.activity_log VALUES (%(datetime)s, %(useremail)s, %(promptsent)s, %(responsegiven)s, %(modelparams)s)",
-        {'datetime': datetime, 'useremail': useremail, 'promptsent': promptsent, 'responsegiven': responsegiven, 'modelparams': modelparams} #this probably could be a kwargs, but I couldn't figure out how to do that neatly the particular way I wanted so whatever, you just have to change this 'signature' four times in this function if you want to change it.
-      )
+    "INSERT INTO main.default.activity_log VALUES (%(datetime)s, %(useremail)s, %(promptsent)s, %(responsegiven)s, %(modelparams)s)",
+    {'datetime': datetime, 'useremail': useremail, 'promptsent': promptsent, 'responsegiven': responsegiven, 'modelparams': modelparams} #this probably could be a kwargs, but I couldn't figure out how to do that neatly the particular way I wanted so whatever, you just have to change this 'signature' four times in this function if you want to change it.
+  )
 
 @st.cache_data()
 def load_bios() -> dict[str, str]:
@@ -408,7 +404,9 @@ def main() -> None:
     if 'history' not in st.session_state: st.session_state['history'] = []
     st.dataframe( pd.DataFrame(reversed( st.session_state['history'] ),columns=(["Outputs"])), hide_index=True, use_container_width=True)
 
-  login_activity_counter_container.write( f"You are logged in as {st.experimental_user['email']} . You have queried {st.session_state['use_count']} {'time' if st.session_state['use_count'] == 1 else 'times'} today, out of a limit of {use_count_limit}."+(" You are in developer mode." if st.session_state["developer_mode"] else "") )
+  login_activity_counter_container.write(
+    f"""You are logged in as {st.experimental_user['email']} . You have prompted {st.session_state['use_count']} time{'s' if st.session_state['use_count'] != 1 else ''} today, out of a limit of {use_count_limit}. {"You are in developer mode." if st.session_state["developer_mode"] else ""}"""
+  )
   if st.session_state["developer_mode"]:
     scratchpad = st.text_area("Scratchpad", st.session_state.get("scratchpad") or "", help="This text area does nothing to the prompter; it's only here to allow you to paste outputs here and edit them slightly, for your own convenience.")
     st.caption(f"Scratchpad character count: {len(scratchpad)}. (CTRL-ENTER in the box above to recalculate character count.)")
