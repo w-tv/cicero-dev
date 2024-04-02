@@ -12,6 +12,8 @@ https://archives.bulbagarden.net/wiki/File:0069Bellsprout.png Ken Sugimori / Fai
 
 im very based id like a few dollars.png This is an edit, by Wyatt S Carpenter, of a screencap (captured by someone unknown), from John Mulaney's stand-up special _John Mulaney: New in Town_.
 
-freaking markers.png This is an edit, by Wyatt S Carpenter, of a screencap (captured by someone unknown) (possibly a frame of an animated gif), from John Mulaney's stand-up special _John Mulaney: The Comeback Kid_.
+freaking markers.png This is an edit, by Wyatt S Carpenter, of a screencap (captured by someone unknown) (possibly a frame of an animated gif), from John Mulaney's stand-up special _John Mulaney: The Comeback Kid_
 
 welcome to cicero.jpg Wyatt S Carpenter (photographer)
+
+static typing expanding brain.png Meme (the captions) by Wyatt S Carpenter, collage by someone unknown of images by someone unknown
