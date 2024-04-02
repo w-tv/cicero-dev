@@ -21,8 +21,9 @@ def get_base_url() -> str:
   """Gets the url where the streamlit app is currently running, not including any page paths underneath. In testing, for example, this value is probably http://localhost:8501 . This function is from BramVanroy https://github.com/streamlit/streamlit/issues/798#issuecomment-1647759949 , with modifications. “WARNING: I found that in multi-page apps, this will always only return the base url and not the sub-page URL with the page appended to the end.”"""
   try:
     session = st.runtime.get_instance()._session_mgr.list_active_sessions()[0] # There's occasionally a harmless IndexError: list index out of range from this line of code on Streamlit Community Cloud, which I'd like to suppress via this try-catch for the convenience of the reader of the logs.
+    r = session.client.request #type: ignore[attr-defined] #MYPY-BUG-WORKAROUND mypy has various bugs about abstract classes and dataclasses, possibly this one: https://github.com/python/mypy/issues/16613
     return str(
-      urllib.parse.urlunparse([session.client.request.protocol, session.client.request.host, "", "", "", ""]) #type: ignore[attr-defined, list-item] #session.client.request is basically dark magic in streamlit so it's no wonder that I have to ignore an attr-defined type error about it. The list-item one just fixes a bug in either mypy or (less likely (since the type annotation looks alright) typeshed, though. (It wants all the arguments to be None for some reason.) The str call also is just to appease mypy's misconception. MYPY-BUG-WORKAROUND
+      urllib.parse.urlunparse([r.protocol, r.host, "", "", "", ""]) #, list-item] #session.client.request is basically dark magic in streamlit so it's no wonder that I have to ignore an attr-defined type error about it. The list-item one just fixes a bug in either mypy or (less likely (since the type annotation looks alright) typeshed, though. (It wants all the arguments to be None for some reason.) The str call also is just to appease mypy's misconception. ), https://github.com/python/mypy/issues/17082
     )
   except IndexError as e:
     return str(e)
