@@ -298,7 +298,7 @@ def main() -> None:
       temperature : float = st.slider("Output Variance:", min_value=0.0, max_value=1.0, key="temperature") #temperature: slider between 0 and 1, defaults to 0.7, float
       #character count max, min: int, cannot be negative or 0, starts at 40. floor divide by 4 to get token count to pass to model:
       target_charcount_min = st.number_input("Min Target Characters:", min_value=40, format='%d', step=1, key="target_charcount_min")
-      target_charcount_max = st.number_input("Max Target Characters:", min_value=40, format='%d', step=1, key="target_charcount_max")
+      target_charcount_max = st.number_input("Max Target Characters:", min_value=40, format='%d', step=1, key="target_charcount_max", help="Short: <=160 | Medium: >160, <400 | Long: >=400")
       if st.session_state["developer_mode"]:
         with st.expander("Advanced Parameters"):
           num_beams = int( st.number_input("num_beams:", min_value=1, format='%d', step=1, key="num_beams", help="Number of beams for beam search. 1 means no beam search. Beam search is a particular strategy for generating text that the model can elect to use or not use. It can use more or fewer beams in the beam search, as well. More beams basically means it considers more candidate possibilities.") )
@@ -322,9 +322,9 @@ def main() -> None:
   if model_name != 'gpt-short-medium-long':
     text_length = ""
   else:
-    if target_charcount_max < 160:
+    if target_charcount_max <= 160:
       text_length = " short"
-    elif target_charcount_max >=160 and target_charcount_max < 400:
+    elif target_charcount_max > 160 and target_charcount_max < 400:
       text_length = " medium"
     elif target_charcount_max >= 400:
       text_length = " long"
