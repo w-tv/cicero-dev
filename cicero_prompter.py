@@ -153,7 +153,31 @@ def sort_headlines_semantically(headlines: list[str], query: str, number_of_resu
 #Make default state, and other presets, so we can manage presets and resets.
 # Ah, finally, I've figured out how you're actually supposed to do it: https://docs.streamlit.io/library/advanced-features/button-behavior-and-examples#option-1-use-a-key-for-the-button-and-put-the-logic-before-the-widget
 #IMPORTANT: these field names are the same field names as what we eventually submit. HOWEVER, these are just the default values, and are only used for that, and are stored in this particular data structure, and do not overwrite the other variables of the same names that represent the returned values.
-presets: dict[ str, dict[str, float|int|bool|str|list[str]|None] ] = {
+class PresetsPayload(TypedDict):
+  temperature: float
+  target_charcount_min: int
+  target_charcount_max: int
+  num_beams: int
+  top_k: int
+  top_p: float
+  repetition_penalty: float
+  no_repeat_ngram_size: int
+  num_return_sequences: int
+  early_stopping: bool
+  do_sample: bool
+  output_scores: bool
+  model: str
+  account: str | None
+  ask_type: str
+  tone: list[str]
+  topics: list[str]
+  additional_topics: str
+  semantic_query: str
+  headline: str | None
+  overdrive: bool
+  exact_match: bool
+
+presets: dict[str, PresetsPayload] = {
   "default": {
     "temperature": 0.7,
     "target_charcount_min": 80,
@@ -182,8 +206,8 @@ presets: dict[ str, dict[str, float|int|bool|str|list[str]|None] ] = {
 
 def set_ui_to_preset(preset_name: str) -> None:
   preset = presets[preset_name]
-  for i in preset: #this iterates over the keys
-    st.session_state[i] = preset[i]
+  for key, value in preset.items():
+    st.session_state[key] = value
 
 def list_from_cicero_tone_format_to_human_format(l: list[str]) -> list[str]:
   return [x.replace("_", " ").title() for x in l]
