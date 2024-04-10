@@ -248,7 +248,7 @@ def main() -> None:
   if not st.session_state.get("initted"):
     set_ui_to_preset("default")
     #Exploit the fact that the streamlit community cloud apparently regularly reruns our code invisibly somewhere in order to keep the endpoint alive during business hours, because a user disliked waiting.
-    if 8 <= datetime.now(z("US/Eastern")).hour <= 19 and datetime.now().weekday() < 5: #the weekday int is 0 (Monday) to 6 (Sunday)
+    if 8 <= datetime.now(z("US/Eastern")).hour <= 19 and datetime.now(z("US/Eastern")).weekday() < 5: #the weekday int is 0 (Monday) to 6 (Sunday)
       send(models[presets["default"]["model"]], st.secrets["databricks_api_token"], {}, dummy=True) # This line just tries to wake up the gpt-short-medium-long model slightly faster, therefore slightly conveniencing the user, probably. #possibly due to a streamlit community cloud bug, this line seems to cause our scale-to-zero model to get pinged often enough to always be awake, when the condition is met.
     st.session_state["initted"] = True
     #st.rerun() #STREAMLIT-BUG-WORKAROUND: this rerun actually has nothing to do with initing, it's just convenient to do here, since we need to do it exactly once, on app startup. It prevents the expander from experiencing a streamlit bug (<https://github.com/streamlit/streamlit/issues/2360>) that is only present in the initial run state. Anyway, this rerun is really fast and breaks nothing (except the developer mode initial performance timer readout, which is now clobbered) so it's a good workaround. #TODO: I've disabled the rerun-workaround on the hunch that it will fix something about google sign-in and cookies.
