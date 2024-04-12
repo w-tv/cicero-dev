@@ -1,7 +1,7 @@
 from databricks import sql # Spooky that this is not the same name as the pypi package databricks-sql-connector, but is the way to refer to the same thing.
 from databricks.sql.types import Row
 import streamlit as st
-from typing import Any, cast
+from typing import Any
 
 @st.cache_data()
 def sql_call(query: str, sql_params_dict:dict[str, Any]|None=None) -> list[Row]: #The returned values are usually str, but occasionally might be int (as when getting the count) or float or perhaps any of these https://docs.databricks.com/en/dev-tools/python-sql-connector.html#type-conversions

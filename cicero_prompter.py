@@ -146,7 +146,7 @@ def sort_headlines_semantically(headlines: list[str], query: str, number_of_resu
   faiss.normalize_L2(query_vector)
   top_results = index_content.search(query_vector, number_of_results_to_return)
   ids = top_results[1][0].tolist()
-  similarities = top_results[0][0].tolist() # COULD: return this, for whatever we want.
+  _similarities = top_results[0][0].tolist() # COULD: return this, for whatever we want.
   results = [headlines[i] for i in ids]
   return results
 
@@ -224,7 +224,7 @@ def send(model_uri: str, databricks_token: str, data: dict[str, list[bool|str]],
   if dummy: # If this is a dummy prompt, we're trying to wake up the endpoint, which means we don't want to wait for a response (the request *will* hold up the entire program unless you tell it to time out.)
     try: # When the dummy prompt fails (ie, the endpoint is waking up), it raises an exception, which is harmless except that it screws up the rest of the page render a bit sometimes, so we catch the error to suppress it.
       requests.request(method='POST', headers=headers, url=model_uri, data=data_json, timeout=1)
-    except requests.exceptions.ReadTimeout as e:
+    except requests.exceptions.ReadTimeout as _e:
       pass
     return []
   response = requests.request(method='POST', headers=headers, url=model_uri, data=data_json)
