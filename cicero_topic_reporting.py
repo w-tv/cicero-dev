@@ -106,8 +106,7 @@ internal_account_name_to_external_account_name = { #many-to-one relationship
   'CSS: Bolton PAC' : 'Bolton PAC',
   'CSS: Georgia Values Fund' : 'George Values Fund',
   'CSS: Honor Pennsylvania' : 'Honor Pennsylvania',
-  'CSS: Keystone Renewal PAC' : 'Keystone Renewal',
-  'CSS: Keystone Renewal PAC' : 'Keystone Renewal PAC', #TODO: well, which is it, Alex?
+  'CSS: Keystone Renewal PAC' : 'Keystone Renewal PAC',
   'CSS: Opportunity Matters Fund' : 'OMF',
   'CSS: Opportunity Matters Fund Action' : 'OMFA',
   'CSS: Protecting Ohio Values PAC' : 'Protecting Ohio Values PAC',
