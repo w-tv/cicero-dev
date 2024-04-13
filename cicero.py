@@ -68,7 +68,7 @@ def main() -> None:
     pass #The streamlit app is running "locally", which means everywhere but the streamlit community cloud. We probably won't end up relying on this behavior. This should eventually use the google email stuff, or we should have a firm idea about how the google email should override or be overridden by the streamlit community cloud email. Either way, we will only do this when we are ready, as it will make local testing slightly more inconvenient.
 
   if st.session_state['developer_mode']: #dev-mode out the entirety of google sign-in
-    #TODO: why doesn't this work?
+    #TODO: why doesn't this work? It seems to work locally, so maybe the google permission granting settings are wrong?
     # Google sign-in logic, adapted from Miguel_Hentoux here https://discuss.streamlit.io/t/google-authentication-in-a-streamlit-app/43252/18
     # Set up the flow (which is just an api call or something I guess. For the first argument, the secrets, use your json credentials from your google auth app (Web Client). You must place them, adapting their format, in secrets.toml under a heading (you'll note that everything in the json is in an object with the key "installed", so from that you should be able to figure out the rest.
     # previous versions of this code used [google_signin_secrets.installed], because, of course, the only us-defined portion is the google_signin_secrets portion
