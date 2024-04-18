@@ -127,10 +127,11 @@ def load_account_names() -> list[str]:
 def load_headlines(get_all: bool = False, past_days: int = 7) -> list[str]:
    # The (arbitrary) requirement is that we return results from the last 7 days by default.
   sql_call("CREATE TABLE IF NOT EXISTS cicero.default.headline_log (datetime string, headline string)")
-  if get_all: # Nota bene: it is unusual for get_all to be true.
-    results = sql_call("SELECT DISTINCT headline FROM cicero.default.headline_log")
-  else:
-    results = sql_call(f"SELECT headline FROM cicero.default.headline_log WHERE datetime >= NOW() - INTERVAL {past_days} DAY ORDER BY datetime DESC, headline")
+  results = sql_call(
+    "SELECT headline FROM cicero.default.headline_log " +
+    (f"WHERE datetime >= NOW() - INTERVAL {past_days} DAY " if not get_all else "") +
+    "GROUP BY headline ORDER BY min(datetime) DESC"
+  )
   return [result[0] for result in results]
 
 @st.cache_data()
