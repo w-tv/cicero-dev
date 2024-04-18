@@ -17,3 +17,5 @@ freaking markers.png This is an edit, by Wyatt S Carpenter, of a screencap (capt
 welcome to cicero.jpg Wyatt S Carpenter (photographer)
 
 static typing expanding brain.png Meme (the captions) by Wyatt S Carpenter, collage by someone unknown of images by someone unknown
+
+https://en.wikipedia.org/wiki/File:Cicero-bust-1.png Own work of Derrick Andes / CC BY-SA 4.0
