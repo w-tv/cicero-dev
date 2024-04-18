@@ -14,6 +14,8 @@ from transformers import GenerationConfig
 from typing import TypedDict
 from zoneinfo import ZoneInfo as z
 from cicero_shared import sql_call
+from databricks_genai_inference import ChatSession
+from os import environ
 
 # This is the 'big' of topics, the authoritative record of various facts and mappings about topics.
 Topics_Big_Payload = TypedDict("Topics_Big_Payload", {'color': str, 'internal name': str, 'show in prompter?': bool})
@@ -432,6 +434,30 @@ def main() -> None:
   )
   if st.session_state["developer_mode"]:
     scratchpad = st.text_area("Scratchpad", st.session_state.get("scratchpad") or "", help="This text area does nothing to the prompter; it's only here to allow you to paste outputs here and edit them slightly, for your own convenience.")
+
+    # For some reason this is how databricks wants me to provide these secrets for this API. #COULD: I'm fairly certain st already puts these in the environ, so we could save these lines if we changed the secrets variable names slightly... on the other hand, this is more explicit I guess.
+    environ['DATABRICKS_HOST'] = "https://"+st.secrets['DATABRICKS_SERVER_HOSTNAME']
+    environ['DATABRICKS_TOKEN'] = st.secrets["databricks_api_token"]
+    chat = ChatSession(model="databricks-mixtral-8x7b-instruct", system_message="You are an excellent fundraising copywriter for Republican candidates and causes.", max_tokens=128, )
+    reply = "Write me a fundraising text message for Marco Rubio about the Southern Border."
+    while reply != '':
+      chat.reply(reply)
+      print(chat.last)
+      reply = input()
+      if reply.lower() == 'done' or reply.lower() == 'exit':
+        break
+
+# chat.history
+# return: [
+#     {'role': 'system', 'content': 'You are a helpful assistant.'},
+#     {'role': 'user', 'content': 'Knock, knock.'},
+#     {'role': 'assistant', 'content': "Hello! Who's there?"},
+#     {'role': 'user', 'content': 'Guess who!'},
+#     {'role': 'assistant', 'content': "Okay, I'll play along! Is it a person, a place, or a thing?"}
+# ]
+
+# at the end of a session, we can return the whole history and write it to the activity log... somehow...
+
     st.caption(f"Scratchpad character count: {len(scratchpad)}. (CTRL-ENTER in the box above to recalculate character count.)")
   #activity logging takes a bit, so I've put it last to preserve immediate-feeling performance and responses for the user making a query
   if did_a_query:
