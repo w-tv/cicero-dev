@@ -438,14 +438,31 @@ def main() -> None:
     # For some reason this is how databricks wants me to provide these secrets for this API. #COULD: I'm fairly certain st already puts these in the environ, so we could save these lines if we changed the secrets variable names slightly... on the other hand, this is more explicit I guess.
     environ['DATABRICKS_HOST'] = "https://"+st.secrets['DATABRICKS_SERVER_HOSTNAME']
     environ['DATABRICKS_TOKEN'] = st.secrets["databricks_api_token"]
-    chat = ChatSession(model="databricks-mixtral-8x7b-instruct", system_message="You are an excellent fundraising copywriter for Republican candidates and causes.", max_tokens=128, )
+    if not st.session_state.get("chat"): st.session_state.chat = ChatSession(model="databricks-mixtral-8x7b-instruct", system_message="You are an excellent fundraising copywriter for Republican candidates and causes.", max_tokens=128)
+    chat = st.session_state.chat
     reply = "Write me a fundraising text message for Marco Rubio about the Southern Border."
-    while reply != '':
-      chat.reply(reply)
-      print(chat.last)
-      reply = input()
-      if reply.lower() == 'done' or reply.lower() == 'exit':
-        break
+    # Initialize chat history
+    if "messages" not in st.session_state:
+        st.session_state.messages = []
+
+    # Display chat messages from history on app rerun
+    for message in st.session_state.messages:
+        with st.chat_message(message["role"]):
+            st.markdown(message["content"])
+
+    # Accept user input #TODO: let user send down text from prompt, Initially prompt the model with this is the message repeat it back to the user and ask what they want to change.
+    if prompt := st.chat_input("What is up?"):
+        # Add user message to chat history
+        st.session_state.messages.append({"role": "user", "content": prompt})
+        # Display user message in chat message container
+        with st.chat_message("user"):
+            st.markdown(prompt)
+
+        with st.chat_message("assistant"):
+            stream = chat.reply(prompt)
+            #help(chat)
+            response = st.write(chat.last)
+        st.session_state.messages.append({"role": "assistant", "content": chat.last})
 
 # chat.history
 # return: [
