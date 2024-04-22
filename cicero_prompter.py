@@ -438,9 +438,9 @@ def main() -> None:
     # For some reason this is how databricks wants me to provide these secrets for this API. #COULD: I'm fairly certain st already puts these in the environ, so we could save these lines if we changed the secrets variable names slightly... on the other hand, this is more explicit I guess.
     environ['DATABRICKS_HOST'] = "https://"+st.secrets['DATABRICKS_SERVER_HOSTNAME']
     environ['DATABRICKS_TOKEN'] = st.secrets["databricks_api_token"]
-    if not st.session_state.get("chat"): st.session_state.chat = ChatSession(model="databricks-mixtral-8x7b-instruct", system_message="You are an excellent fundraising copywriter for Republican candidates and causes.", max_tokens=128)
+    # TODO: let dev user view and change model and system prompt in this ChatSession
+    if not st.session_state.get("chat"): st.session_state.chat = ChatSession(model="databricks-dbrx-instruct", system_message="You are a helpful, expert copywriter who specializes in writing text messages and emails for conservative candidates.", max_tokens=3000)
     chat = st.session_state.chat
-    reply = "Write me a fundraising text message for Marco Rubio about the Southern Border."
     # Initialize chat history
     if "messages" not in st.session_state:
         st.session_state.messages = []
