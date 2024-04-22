@@ -10,10 +10,19 @@ google-api-python-client
 extra-streamlit-components
 databricks-genai-inference
 
-#dev-only requirements (tooling)
+# Dev-only requirements (tooling)
 uv >= 0.1.35 # I'm not sure the exact version that added uv run, but that's really all we need.
 mypy >= 1.9.0
 mypy-extensions >= 1.0.0
 typing-extensions
 pipreqs
 deptry >= 0.14.1
+
+## These are typically installed by mypy --install-types if you don't install them here.
+types-cachetools
+types-decorator
+types-protobuf
+types-pycurl
+types-requests
+types-six
+types-toml
