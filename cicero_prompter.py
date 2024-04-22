@@ -410,16 +410,32 @@ def main() -> None:
     if 'developer-facing_prompt' in st.session_state and st.session_state["developer_mode"]:
       st.caption("Developer Mode Message: the prompt passed to the model is: "+ st.session_state['developer-facing_prompt'].replace("$", r"\$"))
 
+  # For some reason this is how databricks wants me to provide these secrets for this API. #COULD: I'm fairly certain st already puts these in the environ, so we could save these lines if we changed the secrets variable names slightly... on the other hand, this is more explicit I guess.
+  environ['DATABRICKS_HOST'] = "https://"+st.secrets['DATABRICKS_SERVER_HOSTNAME']
+  environ['DATABRICKS_TOKEN'] = st.secrets["databricks_api_token"]
+  # TODO: let dev user view and change model and system prompt in this ChatSession
+  if not st.session_state.get("chat"): st.session_state.chat = ChatSession(model="databricks-dbrx-instruct", system_message="You are a helpful, expert copywriter who specializes in writing text messages and emails for conservative candidates. When responding, don't mention any part of the preceding sentence. Do not mention that you are a helpful, expert copywriter.", max_tokens=3000)
+  chat = st.session_state.chat
+  # Initialize chat history
+  if "messages" not in st.session_state:
+    st.session_state.messages = []
+
+  st.session_state['cicero_ai']='False'
   st.error("WARNING! Outputs have not been fact checked. CICERO is not responsible for inaccuracies in deployed copy. Please check all *names*, *places*, *counts*, *times*, *events*, and *titles* (esp. military titles) for accuracy.  \nAll numbers included in outputs are suggestions only and should be updated. They are NOT analytically optimized to increase conversions (yet) and are based solely on frequency in past copy.", icon="⚠️")
   if 'outputs' in st.session_state:
     if st.session_state["developer_mode"]:
       for output in st.session_state['outputs']:
-        col1, col2 = st.columns([.94, .06])
+        col1, col2, col3 = st.columns([.90, .05, .05])
         with col1:
           st.write( output.replace("$", r"\$") ) #this prevents us from entering math mode when we ask about money.
         with col2:
           if st.button("📝", key="📝"+output, help="Send down to scratchpad"):
             st.session_state["scratchpad"] = output
+        with col3:
+          if st.button("📜", key="📜"+output, help="Send down to Cicero (THE REAL DUDE)"):
+            prompt_start = output
+            st.session_state['cicero_ai']='True'
+            
     else:
       st.dataframe(pd.DataFrame(st.session_state['outputs'], columns=["Model outputs (double click any output to expand it)"]), hide_index=True, use_container_width=True) #Styling this dataframe doesn't seem to work, for some reason. Well, whatever.
   if 'character_counts_caption' in st.session_state: st.caption(st.session_state['character_counts_caption'])
@@ -433,36 +449,33 @@ def main() -> None:
     f"""You are logged in as {st.experimental_user['email']} . You have prompted {st.session_state['use_count']} time{'s' if st.session_state['use_count'] != 1 else ''} today, out of a limit of {use_count_limit}. {"You are in developer mode." if st.session_state["developer_mode"] else ""}"""
   )
   if st.session_state["developer_mode"]:
-    scratchpad = st.text_area("Scratchpad", st.session_state.get("scratchpad") or "", help="This text area does nothing to the prompter; it's only here to allow you to paste outputs here and edit them slightly, for your own convenience.")
-
-    # For some reason this is how databricks wants me to provide these secrets for this API. #COULD: I'm fairly certain st already puts these in the environ, so we could save these lines if we changed the secrets variable names slightly... on the other hand, this is more explicit I guess.
-    environ['DATABRICKS_HOST'] = "https://"+st.secrets['DATABRICKS_SERVER_HOSTNAME']
-    environ['DATABRICKS_TOKEN'] = st.secrets["databricks_api_token"]
-    # TODO: let dev user view and change model and system prompt in this ChatSession
-    if not st.session_state.get("chat"): st.session_state.chat = ChatSession(model="databricks-dbrx-instruct", system_message="You are a helpful, expert copywriter who specializes in writing text messages and emails for conservative candidates.", max_tokens=3000)
-    chat = st.session_state.chat
-    # Initialize chat history
-    if "messages" not in st.session_state:
-        st.session_state.messages = []
-
     # Display chat messages from history on app rerun
     for message in st.session_state.messages:
-        with st.chat_message(message["role"]):
-            st.markdown(message["content"])
+      with st.chat_message(message["role"]):
+        st.markdown(message["content"])
 
-    # Accept user input #TODO: let user send down text from prompt, Initially prompt the model with this is the message repeat it back to the user and ask what they want to change.
-    if prompt := st.chat_input("What is up?"):
-        # Add user message to chat history
-        st.session_state.messages.append({"role": "user", "content": prompt})
-        # Display user message in chat message container
-        with st.chat_message("user"):
-            st.markdown(prompt)
-
-        with st.chat_message("assistant"):
-            stream = chat.reply(prompt)
-            #help(chat)
-            response = st.write(chat.last)
-        st.session_state.messages.append({"role": "assistant", "content": chat.last})
+    # Accept user input
+    # TODO: make sure the chat input always stays on the bottom!
+    # TODO: see if you can make the avatar be the scroll consistently, if not, just go back to the assistant
+    if st.session_state.cicero_ai == 'True':
+      with st.chat_message(name = 'Cicero', avatar='📜'):
+        st.write(prompt_start.replace("$", r"\$"))
+        st.session_state.messages.append({"role": "user", "content": prompt_start})
+        chat.reply(f"Here is the fundraising text under consideration: [{prompt_start}]. Ask the user, 'How can I help you with this message?' Do not repeat the message. Do not mention that you are a helpful, expert copywriter in your responses.")
+        st.write(chat.last.replace("$", r"\$"))
+        st.session_state.messages.append({"role": "Cicero", "content": chat.last})
+    
+    if prompt := st.chat_input("How can I help?"):
+      # Add user message to chat history
+      st.session_state.messages.append({"role": "user", "content": prompt})
+      # Display user message in chat message container
+      with st.chat_message("user"):
+        st.write(prompt)
+      with st.chat_message(name = 'Cicero', avatar='📜'):
+        stream = chat.reply(prompt)
+        #help(chat)
+        response = st.write(chat.last.replace("$", r"\$"))
+      st.session_state.messages.append({"role": "Cicero", "content": chat.last})
 
 # chat.history
 # return: [
@@ -474,8 +487,6 @@ def main() -> None:
 # ]
 
 # at the end of a session, we can return the whole history and write it to the activity log... somehow...
-
-    st.caption(f"Scratchpad character count: {len(scratchpad)}. (CTRL-ENTER in the box above to recalculate character count.)")
   #activity logging takes a bit, so I've put it last to preserve immediate-feeling performance and responses for the user making a query
   if did_a_query:
     dict_prompt.pop('prompt')
