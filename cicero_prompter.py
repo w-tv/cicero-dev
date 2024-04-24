@@ -110,10 +110,12 @@ def count_from_activity_log_times_used_today(useremail: str|None = st.experiment
   return int( sql_call(f"SELECT COUNT(*) FROM cicero.default.activity_log WHERE useremail = %(useremail)s AND datetime LIKE '{date.today()}%%'", {'useremail': useremail})[0][0] )
 
 def write_to_activity_log_table(datetime: str, useremail: str|None, promptsent: str, responsegiven: str, modelparams: str, modelname: str, modelurl: str) -> None:
-  sql_call("CREATE TABLE IF NOT EXISTS cicero.default.activity_log (datetime string, useremail string, promptsent string, responsegiven string, modelparams string, modelname string, modelurl string)")
+  """Write the arguments into the activity_log table. If you change the arguments this function takes, you must change two sql_calls in the function. It wasn't worth generating them programmatically. (You must also change the caller function of this function, of course.)"""
+  keyword_arguments = locals() # This is a dict of the arguments passed to the function. It must be called at the top of the function, because if it is called later then it will list any other local variables as well. (The docstring isn't included; I guess it's the __doc__ attribute of the enclosing function, not a local variable. <https://docs.python.org/3.11/glossary.html#term-docstring>)
+  sql_call("CREATE TABLE IF NOT EXISTS cicero.default.activity_log (datetime string, useremail string, promptsent string, responsegiven string, modelparams string, modelname string, modelurl string)") 
   sql_call(
     "INSERT INTO cicero.default.activity_log VALUES (%(datetime)s, %(useremail)s, %(promptsent)s, %(responsegiven)s, %(modelparams)s, %(modelname)s, %(modelurl)s)",
-    {'datetime': datetime, 'useremail': useremail, 'promptsent': promptsent, 'responsegiven': responsegiven, 'modelparams': modelparams, 'modelname': modelname, 'modelurl': modelurl} #this probably could be a kwargs, but I couldn't figure out how to do that neatly the particular way I wanted so whatever, you just have to change this 'signature' four times in this function if you want to change it.
+    keyword_arguments
   )
 
 @st.cache_data()
