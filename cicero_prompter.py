@@ -112,7 +112,7 @@ def count_from_activity_log_times_used_today(useremail: str|None = st.experiment
 def write_to_activity_log_table(datetime: str, useremail: str|None, promptsent: str, responsegiven: str, modelparams: str, modelname: str, modelurl: str) -> None:
   """Write the arguments into the activity_log table. If you change the arguments this function takes, you must change two sql_calls in the function. It wasn't worth generating them programmatically. (You must also change the caller function of this function, of course.)"""
   keyword_arguments = locals() # This is a dict of the arguments passed to the function. It must be called at the top of the function, because if it is called later then it will list any other local variables as well. (The docstring isn't included; I guess it's the __doc__ attribute of the enclosing function, not a local variable. <https://docs.python.org/3.11/glossary.html#term-docstring>)
-  sql_call("CREATE TABLE IF NOT EXISTS cicero.default.activity_log (datetime string, useremail string, promptsent string, responsegiven string, modelparams string, modelname string, modelurl string)") 
+  sql_call("CREATE TABLE IF NOT EXISTS cicero.default.activity_log (datetime string, useremail string, promptsent string, responsegiven string, modelparams string, modelname string, modelurl string)")
   sql_call(
     "INSERT INTO cicero.default.activity_log VALUES (%(datetime)s, %(useremail)s, %(promptsent)s, %(responsegiven)s, %(modelparams)s, %(modelname)s, %(modelurl)s)",
     keyword_arguments
@@ -437,7 +437,7 @@ def main() -> None:
           if st.button("📜", key="📜"+output, help="Send down to Cicero (THE REAL DUDE)"):
             prompt_start = output
             st.session_state['cicero_ai']='True'
-            
+
     else:
       st.dataframe(pd.DataFrame(st.session_state['outputs'], columns=["Model outputs (double click any output to expand it)"]), hide_index=True, use_container_width=True) #Styling this dataframe doesn't seem to work, for some reason. Well, whatever.
   if 'character_counts_caption' in st.session_state: st.caption(st.session_state['character_counts_caption'])
@@ -466,7 +466,7 @@ def main() -> None:
         chat.reply(f"Here is the fundraising text under consideration: [{prompt_start}]. Ask the user, 'How can I help you with this message?' Do not repeat the message. Do not mention that you are a helpful, expert copywriter in your responses.")
         st.write(chat.last.replace("$", r"\$"))
         st.session_state.messages.append({"role": "Cicero", "content": chat.last})
-    
+
     if chat_prompt := st.chat_input("How can I help?"):
       # Add user message to chat history
       st.session_state.messages.append({"role": "user", "content": chat_prompt})
