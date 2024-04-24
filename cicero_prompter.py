@@ -465,14 +465,14 @@ def main() -> None:
         st.write(chat.last.replace("$", r"\$"))
         st.session_state.messages.append({"role": "Cicero", "content": chat.last})
     
-    if prompt := st.chat_input("How can I help?"):
+    if chat_prompt := st.chat_input("How can I help?"):
       # Add user message to chat history
-      st.session_state.messages.append({"role": "user", "content": prompt})
+      st.session_state.messages.append({"role": "user", "content": chat_prompt})
       # Display user message in chat message container
       with st.chat_message("user"):
-        st.write(prompt)
+        st.write(chat_prompt)
       with st.chat_message(name = 'Cicero', avatar='📜'):
-        stream = chat.reply(prompt)
+        stream = chat.reply(chat_prompt)
         #help(chat)
         response = st.write(chat.last.replace("$", r"\$"))
       st.session_state.messages.append({"role": "Cicero", "content": chat.last})
