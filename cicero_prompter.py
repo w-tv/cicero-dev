@@ -109,11 +109,11 @@ def count_from_activity_log_times_used_today(useremail: str|None = st.experiment
   sql_call("CREATE TABLE IF NOT EXISTS cicero.default.activity_log (datetime string, useremail string, promptsent string, responsegiven string, modelparams string)")
   return int( sql_call(f"SELECT COUNT(*) FROM cicero.default.activity_log WHERE useremail = %(useremail)s AND datetime LIKE '{date.today()}%%'", {'useremail': useremail})[0][0] )
 
-def write_to_activity_log_table(datetime: str, useremail: str|None, promptsent: str, responsegiven: str, modelparams: str) -> None:
-  sql_call("CREATE TABLE IF NOT EXISTS cicero.default.activity_log (datetime string, useremail string, promptsent string, responsegiven string, modelparams string)")
+def write_to_activity_log_table(datetime: str, useremail: str|None, promptsent: str, responsegiven: str, modelparams: str, modelname: str, modelurl: str) -> None:
+  sql_call("CREATE TABLE IF NOT EXISTS cicero.default.activity_log (datetime string, useremail string, promptsent string, responsegiven string, modelparams string, modelname string, modelurl string)")
   sql_call(
-    "INSERT INTO cicero.default.activity_log VALUES (%(datetime)s, %(useremail)s, %(promptsent)s, %(responsegiven)s, %(modelparams)s)",
-    {'datetime': datetime, 'useremail': useremail, 'promptsent': promptsent, 'responsegiven': responsegiven, 'modelparams': modelparams} #this probably could be a kwargs, but I couldn't figure out how to do that neatly the particular way I wanted so whatever, you just have to change this 'signature' four times in this function if you want to change it.
+    "INSERT INTO cicero.default.activity_log VALUES (%(datetime)s, %(useremail)s, %(promptsent)s, %(responsegiven)s, %(modelparams)s, %(modelname)s, %(modelurl)s)",
+    {'datetime': datetime, 'useremail': useremail, 'promptsent': promptsent, 'responsegiven': responsegiven, 'modelparams': modelparams, 'modelname': modelname, 'modelurl': modelurl} #this probably could be a kwargs, but I couldn't figure out how to do that neatly the particular way I wanted so whatever, you just have to change this 'signature' four times in this function if you want to change it.
   )
 
 @st.cache_data()
@@ -491,7 +491,7 @@ def main() -> None:
   if did_a_query:
     dict_prompt.pop('prompt')
     no_prompt_dict_str = str(dict_prompt)
-    write_to_activity_log_table(datetime=str(datetime.now()), useremail=st.experimental_user['email'], promptsent=prompt, responsegiven=json.dumps(outputs), modelparams=no_prompt_dict_str)
+    write_to_activity_log_table(datetime=str(datetime.now()), useremail=st.experimental_user['email'], promptsent=prompt, responsegiven=json.dumps(outputs), modelparams=no_prompt_dict_str, modelname=model_name, modelurl=model_uri)
 
   # st.components.v1.html('<!--<script>//you can include arbitrary html and javascript this way</script>-->') #or, use st.markdown, if you want arbitrary html but javascript isn't needed.
 if __name__ == "__main__": main()
