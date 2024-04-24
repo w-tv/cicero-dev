@@ -394,7 +394,7 @@ def main() -> None:
       unpsycho_dict_prompt = {k:v[0] for (k,v) in dict_prompt.items()}
       try:
         GenerationConfig(**unpsycho_dict_prompt)# This validates the parameters, throwing an exception that displays to the user and explains the problem if the parameters are wrong.
-        with st.spinner("Submitting the prompt to the model. This may process quickly, or take approximately five minutes if the model hasn't been used in a while..."):
+        with st.spinner("Prompting the model.  Please alert the Optimization Team if this process takes longer than 1 minute."):
           outputs = send(model_uri, st.secrets["databricks_api_token"], dict_prompt)
         st.session_state['outputs'] = outputs
         if 'history' not in st.session_state: st.session_state['history'] = []
