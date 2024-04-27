@@ -104,17 +104,62 @@ def load_model_permissions(useremail: str|None) -> list[str]:
   results = sql_call("SELECT DISTINCT modelname FROM models.default.permissions WHERE useremail = %(useremail)s", {'useremail': useremail})
   return [result[0].lower() for result in results]
 
-@st.cache_data() #Necessity demands we do a manual cache of this function's result anyway in the one place we call it, but (for some reason) it seems like our deployed environment is messed up in some way I cannot locally replicate, which causes it to run this function once every five minutes. So, we cache it as well, to prevent waking up our server and costing us money.
+def ensure_existence_of_activity_log() -> None:
+  sql_call("CREATE TABLE IF NOT EXISTS cicero.default.activity_log (datetime string, useremail string, promptsent string, responsegiven string, modelparams string, modelname string, modelurl string, pod string)")
+
+def pod_from_email(email: str) -> str:
+  return { #TODO: verify these pods against actual text.
+    "aisaac@targetedvictory.com": "RSLC",
+    "akhamma@targetedvictory.com": "NRCC",
+    "asmall@targetedvictory.com": "JEFF",
+    "astevens@targetedvictory.com": "JEFF",
+    "bbenko@targetedvictory.com": "American Voice",
+    "bgulick@targetedvictory.com": "RSLC",
+    "bjourdan@targetedvictory.com": "WHITNEY",
+    "cabrams@targetedvictory.com": "RSLC",
+    "cbote@targetedvictory.com": "LAROSE",
+    "ckennedy@targetedvictory.com": "NRCC",
+    "dharmon@targetedvictory.com": "NRCC",
+    "eayad@targetedvictory.com": "JEFF",
+    "fborealis@targetedvictory.com": "CLF",
+    "greynolds@targetedvictory.com": "MCCANN",
+    "jbrown@targetedvictory.com": "WHITNEY",
+    "jcohen-doron@targetedvictory.com": "CLF",
+    "jenders@targetedvictory.com": "CLF",
+    "jkoltisko@targetedvictory.com": "CLF",
+    "jlongust@targetedvictory.com": "JEFF",
+    "jreed@targetedvictory.com": "MCCANN",
+    "jtorres@targetedvictory.com": "WHITNEY",
+    "kdamato@targetedvictory.com": "KEYSTONE",
+    "ldario@targetedvictory.com": "JEFF",
+    "ltaylor@targetedvictory.com": "CLF",
+    "maquila@targetedvictory.com": "TMA",
+    "mtaylor@targetedvictory.com": "CLF",
+    "mwilkins@targetedvictory.com": "WHITNEY",
+    "pcox@targetedvictory.com": "CLF",
+    "pteodorescu@targetedvictory.com": "SAMI",
+    "sgoh@targetedvictory.com": "SAMI",
+    "slutzke@targetedvictory.com": "NRCC",
+    "srowan@targetedvictory.com": "SAMI",
+    "sspooner@targetedvictory.com": "CLF",
+    "tveach@targetedvictory.com": "NRCC",
+    "wrierson@targetedvictory.com": "CLF",
+    "zmccray@targetedvictory.com": "WHITNEY",
+    "zspringer@targetedvictory.com": "CAVPAC",
+  }.get(email) or "Pod unknown"
+
+@st.cache_data() #STREAMLIT-BUG-WORKAROUND: Necessity demands we do a manual cache of this function's result anyway in the one place we call it, but (for some reason) it seems like our deployed environment is messed up in some way I cannot locally replicate, which causes it to run this function once every five minutes. So, we cache it as well, to prevent waking up our server and costing us money.
+# TODO (low priority) I'm not quite happy with the type signatures in the next two functions taking None for user email, as I don't think that's valid. Once we fully figure out email, change them.
 def count_from_activity_log_times_used_today(useremail: str|None = st.experimental_user['email']) -> int: #this goes by whatever the datetime default timezone is because we don't expect the exact boundary to matter much.
-  sql_call("CREATE TABLE IF NOT EXISTS cicero.default.activity_log (datetime string, useremail string, promptsent string, responsegiven string, modelparams string)")
+  ensure_existence_of_activity_log()
   return int( sql_call(f"SELECT COUNT(*) FROM cicero.default.activity_log WHERE useremail = %(useremail)s AND datetime LIKE '{date.today()}%%'", {'useremail': useremail})[0][0] )
 
-def write_to_activity_log_table(datetime: str, useremail: str|None, promptsent: str, responsegiven: str, modelparams: str, modelname: str, modelurl: str) -> None:
-  """Write the arguments into the activity_log table. If you change the arguments this function takes, you must change two sql_calls in the function. It wasn't worth generating them programmatically. (You must also change the caller function of this function, of course.)"""
+def write_to_activity_log_table(datetime: str, useremail: str|None, promptsent: str, responsegiven: str, modelparams: str, modelname: str, modelurl: str, pod: str) -> None:
+  """Write the arguments into the activity_log table. If you change the arguments this function takes, you must change the sql_call in the function and in ensure_existence_of_activity_log. It wasn't worth generating them programmatically. (You must also change the caller function of this function, of course.)"""
   keyword_arguments = locals() # This is a dict of the arguments passed to the function. It must be called at the top of the function, because if it is called later then it will list any other local variables as well. (The docstring isn't included; I guess it's the __doc__ attribute of the enclosing function, not a local variable. <https://docs.python.org/3.11/glossary.html#term-docstring>)
-  sql_call("CREATE TABLE IF NOT EXISTS cicero.default.activity_log (datetime string, useremail string, promptsent string, responsegiven string, modelparams string, modelname string, modelurl string)")
+  ensure_existence_of_activity_log()
   sql_call(
-    "INSERT INTO cicero.default.activity_log VALUES (%(datetime)s, %(useremail)s, %(promptsent)s, %(responsegiven)s, %(modelparams)s, %(modelname)s, %(modelurl)s)",
+    "INSERT INTO cicero.default.activity_log VALUES (%(datetime)s, %(useremail)s, %(promptsent)s, %(responsegiven)s, %(modelparams)s, %(modelname)s, %(modelurl)s, %(pod)s)",
     keyword_arguments
   )
 
@@ -493,7 +538,7 @@ def main() -> None:
   if did_a_query:
     dict_prompt.pop('prompt')
     no_prompt_dict_str = str(dict_prompt)
-    write_to_activity_log_table(datetime=str(datetime.now()), useremail=st.experimental_user['email'], promptsent=prompt, responsegiven=json.dumps(outputs), modelparams=no_prompt_dict_str, modelname=model_name, modelurl=model_uri)
+    write_to_activity_log_table( datetime=str(datetime.now()), useremail=st.experimental_user['email'], promptsent=prompt, responsegiven=json.dumps(outputs), modelparams=no_prompt_dict_str, modelname=model_name, modelurl=model_uri, pod=pod_from_email(st.experimental_user['email']) )
 
   # st.components.v1.html('<!--<script>//you can include arbitrary html and javascript this way</script>-->') #or, use st.markdown, if you want arbitrary html but javascript isn't needed.
 if __name__ == "__main__": main()
