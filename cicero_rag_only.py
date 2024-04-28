@@ -1,17 +1,10 @@
 #!/usr/bin/env -S streamlit run
 
 import streamlit as st
-import pandas as pd
-import requests
-import json
-from datetime import datetime, date
-import faiss
-from typing import TypedDict
-from zoneinfo import ZoneInfo as z
 from databricks_genai_inference import ChatSession
 from os import environ
 
-def main():
+def main() -> None:
     # For some reason this is how databricks wants me to provide these secrets for this API. #COULD: I'm fairly certain st already puts these in the environ, so we could save these lines if we changed the secrets variable names slightly... on the other hand, this is more explicit I guess.
     environ['DATABRICKS_HOST'] = "https://"+st.secrets['DATABRICKS_SERVER_HOSTNAME']
     environ['DATABRICKS_TOKEN'] = st.secrets["databricks_api_token"]
@@ -32,8 +25,10 @@ def main():
         with st.chat_message(message["role"]):
             st.markdown(message["content"])
     
-    def query_api(example_prompt) -> str:
+    def query_api(example_prompt: str) -> str:
         chat.reply(example_prompt)
+        reveal_type(chat)
+        reveal_type(chat.last)
         return chat.last
 
     # TODO: create a function that queries the model, and then query the model in here, and then just do the markdown stuff, maybe that will work
