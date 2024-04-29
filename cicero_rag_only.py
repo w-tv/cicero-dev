@@ -13,7 +13,7 @@ def grow_chat() -> None:
   p = st.session_state.user_input_for_chatbot_this_frame
   chat.reply(p)
   st.session_state.messages.append({"role": "user", "content": p})
-  st.session_state.messages.append({"avatar": '📜', "role": "assistant", "content": chat.last})
+  st.session_state.messages.append({"avatar": 'https://upload.wikimedia.org/wikipedia/commons/4/41/Cicero.PNG', "role": "assistant", "content": chat.last}) #another possible avatar is '📜' #TODO: replace this wikipedia link with a local link(?)
 
 def clear_chat() -> None:
   st.session_state.generated = []
