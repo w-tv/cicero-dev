@@ -30,6 +30,13 @@ def main(streamlit_key_suffix: str = "") -> None:
   # For some reason this is how databricks wants me to provide these secrets for this API. #COULD: I'm fairly certain st already puts these in the environ, so we could save these lines if we changed the secrets variable names slightly... on the other hand, this is more explicit I guess.
   environ['DATABRICKS_HOST'] = "https://"+st.secrets['DATABRICKS_SERVER_HOSTNAME']
   environ['DATABRICKS_TOKEN'] = st.secrets["databricks_api_token"]
+
+  task = st.radio(
+    "What do you need help with?",
+    ["Rewrite a Text/Email", "Create a Text/Email", "Something Else"],
+    index=None,
+    horizontal=True
+  ) 
   # Display chat messages from history on app reload; this is how we get the messages to display, and then the chat box.
   if st.session_state.get("messages"):
     for message in st.session_state.messages:
