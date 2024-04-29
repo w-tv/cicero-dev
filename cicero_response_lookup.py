@@ -2,7 +2,6 @@
 
 import streamlit as st
 from cicero_shared import sql_call
-from json import loads
 
 def main() -> None:
   r = str(st.radio("Search method", ["Substring", "Case-insensitive substring", "Exact, total match", "Levenshtein"]))[0] #this [0] just saves us verbosity later. The str() call suppresses the obscure possibility that no option is selected, by giving us "None" in that case.
@@ -13,7 +12,7 @@ def main() -> None:
   st.write(query)
   if query:
     results = sql_call(
-      f"""WITH s AS ( SELECT explode(from_json(responsegiven, "array<string>")), *  from cicero.default.activity_log ) -- Note: the explode produces a cartesian product. Col is the automatically-assigned name of the exploded json array.
+      f"""WITH s AS ( SELECT explode(from_json(responsegiven, "array<string>")), *  from cicero.default.activity_log ) -- Note: the explode produces a cartesian product between the responses and the singleton of the row. So, if you have five responses per row, you will get 5 rows in the final results for each row in the activity log, corresponing to (_1, _2, _3, _4, _5)×(row). This also means every result contains a specific result, and a json of all the results. Col is the automatically-assigned name of the column of exploded json array response.
        SELECT * from s WHERE {
         {
           'E': "col == %(query)s",

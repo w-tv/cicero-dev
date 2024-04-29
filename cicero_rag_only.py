@@ -27,8 +27,8 @@ def main() -> None:
     
     def query_api(example_prompt: str) -> str:
         chat.reply(example_prompt)
-        reveal_type(chat)
-        reveal_type(chat.last)
+        #reveal_type(chat)
+        #reveal_type(chat.last)
         return chat.last
 
     # TODO: create a function that queries the model, and then query the model in here, and then just do the markdown stuff, maybe that will work
