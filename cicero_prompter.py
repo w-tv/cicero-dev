@@ -105,9 +105,6 @@ def load_model_permissions(useremail: str|None) -> list[str]:
   results = sql_call("SELECT DISTINCT modelname FROM models.default.permissions WHERE useremail = %(useremail)s", {'useremail': useremail})
   return [result[0].lower() for result in results]
 
-def ensure_existence_of_activity_log() -> None:
-  sql_call("CREATE TABLE IF NOT EXISTS cicero.default.activity_log (datetime string, useremail string, promptsent string, responsegiven string, modelparams string, modelname string, modelurl string, pod string)")
-
 def pod_from_email(email: str) -> str:
   return { #TODO: verify these pods against actual text.
     "aisaac@targetedvictory.com": "RSLC",
@@ -148,6 +145,9 @@ def pod_from_email(email: str) -> str:
     "zmccray@targetedvictory.com": "WHITNEY",
     "zspringer@targetedvictory.com": "CAVPAC",
   }.get(email) or "Pod unknown"
+
+def ensure_existence_of_activity_log() -> None:
+  sql_call("CREATE TABLE IF NOT EXISTS cicero.default.activity_log (datetime string, useremail string, promptsent string, responsegiven string, modelparams string, modelname string, modelurl string, pod string)")
 
 @st.cache_data() #STREAMLIT-BUG-WORKAROUND: Necessity demands we do a manual cache of this function's result anyway in the one place we call it, but (for some reason) it seems like our deployed environment is messed up in some way I cannot locally replicate, which causes it to run this function once every five minutes. So, we cache it as well, to prevent waking up our server and costing us money.
 # TODO (low priority) I'm not quite happy with the type signatures in the next two functions taking None for user email, as I don't think that's valid. Once we fully figure out email, change them.
