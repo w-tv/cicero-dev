@@ -106,7 +106,7 @@ def load_model_permissions(useremail: str|None) -> list[str]:
   return [result[0].lower() for result in results]
 
 def pod_from_email(email: str) -> str:
-  return { #TODO: verify these pods against actual text.
+  return {
     "aisaac@targetedvictory.com": "RSLC",
     "akhamma@targetedvictory.com": "NRCC",
     "asmall@targetedvictory.com": "JEFF",
@@ -144,7 +144,19 @@ def pod_from_email(email: str) -> str:
     "wrierson@targetedvictory.com": "CLF",
     "zmccray@targetedvictory.com": "WHITNEY",
     "zspringer@targetedvictory.com": "CAVPAC",
-  }.get(email) or "Pod unknown"
+    "thall@targetedvictory.com": "Admin",
+    "test@example.com": "Admin",
+    "abrady@targetedvictory.com": "Admin",
+    "achang@targetedvictory.com": "Admin",
+    "wcarpenter@targetedvictory.com": "Admin",
+    "akrishnan@targetedvictory.com": "Admin",
+    "lheekin@targetedvictory.com": "Admin",
+    "lmunschauer@targetedvictory.com": "Admin",
+    "awong@targetedvictory.com": "Admin",
+    "smorrow@targetedvictory.com": "Admin",
+    "afuhrer@targetedvictory.com": "Admin",
+    "rmeerstein@targetedvictory.com": "Admin",
+  }.get(email.lower()) or "Pod unknown"
 
 def ensure_existence_of_activity_log() -> None:
   sql_call("CREATE TABLE IF NOT EXISTS cicero.default.activity_log (datetime string, useremail string, promptsent string, responsegiven string, modelparams string, modelname string, modelurl string, pod string)")
