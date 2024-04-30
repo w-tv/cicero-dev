@@ -12,7 +12,6 @@ import urllib.parse
 from typing import NoReturn
 import cicero_prompter, cicero_topic_reporting, cicero_response_lookup, cicero_rag_only
 from cicero_shared import sql_call, exit_error
-import extra_streamlit_components as stx
 import secrets #TODO: could use this for nonce if we don't just the auth code?
 import google_auth_oauthlib.flow
 from googleapiclient.discovery import build
@@ -49,7 +48,16 @@ def blank_the_page_and_redirect(authorization_url: str) -> NoReturn: #ideally we
 
 def main() -> None:
   st.set_page_config(layout="wide", page_title="Cicero", page_icon="favicon.png") # Use wide mode in Cicero, mostly so that results display more of their text by default. Also, set title and favicon. #NOTE: "`set_page_config()` can only be called once per app page, and must be called as the first Streamlit command in your script."
-  cookie_manager = stx.CookieManager()
+  class FakeCookieManager: #TODO: had to remove the actual cookie manager, so only this fake one remains. It does not actually persist state.
+    def __init__(self, di = {}):
+      self.d = di
+    def get(self, x):
+      return self.d.get(x)
+    def set(self, x, y):
+      self.d[x] = y
+    def get_all(self):
+      return self.d
+  cookie_manager = FakeCookieManager()
   title_and_loading_columns = st.columns(2)
   with title_and_loading_columns[0]:
     st.markdown('<h1><img src="https://targetedvictory.com/wp-content/uploads/2019/07/favicon.png" alt="💬" style="display:inline-block; height:1em; width:auto;"> CICERO</h1>', unsafe_allow_html=True)
