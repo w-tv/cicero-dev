@@ -312,7 +312,7 @@ def main() -> None:
     use_count_limit = 100_000_000
   if st.session_state['use_count'] >= use_count_limit:
     st.write(f"You cannot use this service more than {use_count_limit} times a day, and you have reached that limit. Please contact the team if this is in error or if you wish to expand the limit.")
-    exit() # When a user hits the limit it completely locks them out of the ui using an error message. This wasn't a requirement, but it seems fine.
+    exit_error(52) # When a user hits the limit it completely locks them out of the ui using an error message. This wasn't a requirement, but it seems fine.
 
   model_permissions = load_model_permissions(st.experimental_user['email']) #model_permissions stores model names as ***all lowercase***
   if presets["default"]["model"] not in model_permissions: #We want everyone to want to have access to this default, at least at time of writing this comment.

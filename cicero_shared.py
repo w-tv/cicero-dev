@@ -1,7 +1,11 @@
 from databricks import sql # Spooky that this is not the same name as the pypi package databricks-sql-connector, but is the way to refer to the same thing.
 from databricks.sql.types import Row
 import streamlit as st
-from typing import Any
+from typing import Any, NoReturn
+
+def exit_error(exit_code: int) -> NoReturn:
+  st.write("*Ego vero consisto. Accede, veterane, et, si hoc saltim potes recte facere, incide cervicem.*")
+  exit(exit_code)
 
 @st.cache_data()
 def sql_call(query: str, sql_params_dict:dict[str, Any]|None=None) -> list[Row]:
@@ -14,4 +18,4 @@ def sql_call(query: str, sql_params_dict:dict[str, Any]|None=None) -> list[Row]:
     print(e.args)
     st.write(f"There was a database error, and the application could not continue. Sorry.") #COULD: this usually prints to the second tab, because we load it first, which is not ideal...
     st.code(e.args)
-    exit(4)
+    exit_error(4)

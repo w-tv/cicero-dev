@@ -35,7 +35,7 @@ def main(streamlit_key_suffix: str = "") -> None:
     "What do you need help with?",
     ["Rewrite a Text/Email", "Create a Text/Email", "Something Else"],
     index=None,
-    horizontal=True
+    horizontal=True, key="its_ya_boy_the_radio"+streamlit_key_suffix
   ) 
   # Display chat messages from history on app reload; this is how we get the messages to display, and then the chat box.
   if st.session_state.get("messages"):
