@@ -13,11 +13,13 @@ def grow_chat(streamlit_key_suffix: str = "", alternate_content: str = "") -> No
   if not st.session_state.get("messages"):
       st.session_state.messages = []
   p = alternate_content or st.session_state["user_input_for_chatbot_this_frame"+streamlit_key_suffix]
-  print("before chat", chat, chat.last)
-  chat.reply(p)
-  print("after chat", chat, chat.last)
-  st.session_state.messages.append({"role": "user", "content": p})
-  st.session_state.messages.append({"avatar": "https://upload.wikimedia.org/wikipedia/commons/3/3d/Cicero-head.png", "role": "assistant", "content": chat.last}) #another possible avatar is '📜' or 'https://upload.wikimedia.org/wikipedia/commons/4/41/Cicero.PNG' #TODO: replace this wikipedia link with a local link(?) 
+  #BUG-WORKAROUND: not really sure why, but sometimes the rag man seems to nod off an not process a prompt. This while loop forces him to confront reality:
+  old_messages_len = len(st.session_state.messages)
+  #old_chat_last = chat.last
+  while old_messages_len == len(st.session_state.messages):
+    chat.reply(p)
+    st.session_state.messages.append({"role": "user", "content": p})
+    st.session_state.messages.append({"avatar": "https://upload.wikimedia.org/wikipedia/commons/3/3d/Cicero-head.png", "role": "assistant", "content": chat.last}) #another possible avatar is '📜' or 'https://upload.wikimedia.org/wikipedia/commons/4/41/Cicero.PNG' #TODO: replace this wikipedia link with a local link(?) 
 
 # chat.history
 # return: [
