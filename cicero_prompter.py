@@ -140,6 +140,7 @@ def pod_from_email(email: str) -> str:
     "slutzke@targetedvictory.com": "NRCC",
     "srowan@targetedvictory.com": "SAMI",
     "sspooner@targetedvictory.com": "CLF",
+    "tdardick@targetedvictory.com": "JEFF",
     "tveach@targetedvictory.com": "NRCC",
     "wrierson@targetedvictory.com": "CLF",
     "zmccray@targetedvictory.com": "WHITNEY",
