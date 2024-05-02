@@ -13,7 +13,7 @@ from sentence_transformers import SentenceTransformer # Weird that this is how y
 from transformers import GenerationConfig
 from typing import TypedDict
 from zoneinfo import ZoneInfo as z
-from cicero_shared import sql_call
+from cicero_shared import sql_call, exit_error
 import cicero_rag_only
 from databricks_genai_inference import ChatSession
 from os import environ
@@ -101,7 +101,7 @@ def external_topic_names_to_internal_topic_names_list_mapping(external_topic_nam
   return [topics_big[e]["internal name"] for e in external_topic_names]
 
 @st.cache_data()
-def load_model_permissions(useremail: str|None) -> list[str]:
+def load_model_permissions(useremail: str) -> list[str]:
   results = sql_call("SELECT DISTINCT modelname FROM models.default.permissions WHERE useremail = %(useremail)s", {'useremail': useremail})
   return [result[0].lower() for result in results]
 
@@ -163,12 +163,11 @@ def ensure_existence_of_activity_log() -> None:
   sql_call("CREATE TABLE IF NOT EXISTS cicero.default.activity_log (datetime string, useremail string, promptsent string, responsegiven string, modelparams string, modelname string, modelurl string, pod string)")
 
 @st.cache_data() #STREAMLIT-BUG-WORKAROUND: Necessity demands we do a manual cache of this function's result anyway in the one place we call it, but (for some reason) it seems like our deployed environment is messed up in some way I cannot locally replicate, which causes it to run this function once every five minutes. So, we cache it as well, to prevent waking up our server and costing us money.
-# TODO (low priority) I'm not quite happy with the type signatures in the next two functions taking None for user email, as I don't think that's valid. Once we fully figure out email, change them.
-def count_from_activity_log_times_used_today(useremail: str|None = st.experimental_user['email']) -> int: #this goes by whatever the datetime default timezone is because we don't expect the exact boundary to matter much.
+def count_from_activity_log_times_used_today(useremail: str) -> int: #this goes by whatever the datetime default timezone is because we don't expect the exact boundary to matter much.
   ensure_existence_of_activity_log()
   return int( sql_call(f"SELECT COUNT(*) FROM cicero.default.activity_log WHERE useremail = %(useremail)s AND datetime LIKE '{date.today()}%%'", {'useremail': useremail})[0][0] )
 
-def write_to_activity_log_table(datetime: str, useremail: str|None, promptsent: str, responsegiven: str, modelparams: str, modelname: str, modelurl: str, pod: str) -> None:
+def write_to_activity_log_table(datetime: str, useremail: str, promptsent: str, responsegiven: str, modelparams: str, modelname: str, modelurl: str, pod: str) -> None:
   """Write the arguments into the activity_log table. If you change the arguments this function takes, you must change the sql_call in the function and in ensure_existence_of_activity_log. It wasn't worth generating them programmatically. (You must also change the caller function of this function, of course.)"""
   keyword_arguments = locals() # This is a dict of the arguments passed to the function. It must be called at the top of the function, because if it is called later then it will list any other local variables as well. (The docstring isn't included; I guess it's the __doc__ attribute of the enclosing function, not a local variable. <https://docs.python.org/3.11/glossary.html#term-docstring>)
   ensure_existence_of_activity_log()
@@ -305,17 +304,19 @@ def send(model_uri: str, databricks_token: str, data: dict[str, list[bool|str]],
   return [str(r) for r in response.json()["predictions"][0]["0"]] # This list comprehension is just for appeasing the type-checker.
 
 def main() -> None:
-
+  
+  if not st.session_state.get('email'): #TODO: this line is of dubious usefulness. It's supposed to let you run cicero_prompter.py locally and stand-alone without cicero.py, however.
+    st.session_state["email"] = str(st.experimental_user["email"]) #this str call also accounts for if the user email is None.
   if 'use_count' not in st.session_state:
-    st.session_state['use_count'] = count_from_activity_log_times_used_today()
+    st.session_state['use_count'] = count_from_activity_log_times_used_today(st.session_state["email"])
   use_count_limit = 100 #arbitrary but reasonable choice of limit
-  if st.experimental_user['email'] in ["abrady@targetedvictory.com", "thall@targetedvictory.com" "test@example.com"]: # Give certain users nigh-unlimited uses.
+  if st.session_state['email'] in ["abrady@targetedvictory.com", "thall@targetedvictory.com", "test@example.com"]: # Give certain users nigh-unlimited uses.
     use_count_limit = 100_000_000
   if st.session_state['use_count'] >= use_count_limit:
     st.write(f"You cannot use this service more than {use_count_limit} times a day, and you have reached that limit. Please contact the team if this is in error or if you wish to expand the limit.")
     exit_error(52) # When a user hits the limit it completely locks them out of the ui using an error message. This wasn't a requirement, but it seems fine.
 
-  model_permissions = load_model_permissions(st.experimental_user['email']) #model_permissions stores model names as ***all lowercase***
+  model_permissions = load_model_permissions(st.session_state['email']) #model_permissions stores model names as ***all lowercase***
   if presets["default"]["model"] not in model_permissions: #We want everyone to want to have access to this default, at least at time of writing this comment.
     model_permissions.insert(0, presets["default"]["model"])
   #NOTE: these model secrets have to begin the secrets.toml as, like:
@@ -501,14 +502,14 @@ def main() -> None:
     st.dataframe( pd.DataFrame(reversed( st.session_state['history'] ),columns=(["Outputs"])), hide_index=True, use_container_width=True)
 
   login_activity_counter_container.write(
-    f"""You are logged in as {st.experimental_user['email']} . You have prompted {st.session_state['use_count']} time{'s' if st.session_state['use_count'] != 1 else ''} today, out of a limit of {use_count_limit}. {"You are in developer mode." if st.session_state["developer_mode"] else ""}"""
+    f"""You are logged in as {st.session_state['email']}{" (internally, "+str(st.experimental_user['email'])+")" if st.session_state["developer_mode"] else ""}. You have prompted {st.session_state['use_count']} time{'s' if st.session_state['use_count'] != 1 else ''} today, out of a limit of {use_count_limit}. {"You are in developer mode." if st.session_state["developer_mode"] else ""}"""
   )
 
   # Activity logging takes a bit, so I've put it last to preserve immediate-feeling performance and responses for the user making a query.
   if did_a_query:
     dict_prompt.pop('prompt')
     no_prompt_dict_str = str(dict_prompt)
-    write_to_activity_log_table( datetime=str(datetime.now()), useremail=st.experimental_user['email'], promptsent=prompt, responsegiven=json.dumps(outputs), modelparams=no_prompt_dict_str, modelname=model_name, modelurl=model_uri, pod=pod_from_email(st.experimental_user['email']) )
+    write_to_activity_log_table( datetime=str(datetime.now()), useremail=st.session_state['email'], promptsent=prompt, responsegiven=json.dumps(outputs), modelparams=no_prompt_dict_str, modelname=model_name, modelurl=model_uri, pod=pod_from_email(st.session_state['email']) )
 
   # st.components.v1.html('<!--<script>//you can include arbitrary html and javascript this way</script>-->') #or, use st.markdown, if you want arbitrary html but javascript isn't needed.
 if __name__ == "__main__": main()
