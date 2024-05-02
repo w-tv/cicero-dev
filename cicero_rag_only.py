@@ -19,7 +19,7 @@ def grow_chat(streamlit_key_suffix: str = "", alternate_content: str = "") -> No
   while old_messages_len == len(st.session_state.messages):
     chat.reply(p)
     st.session_state.messages.append({"role": "user", "content": p})
-    st.session_state.messages.append({"avatar": "https://upload.wikimedia.org/wikipedia/commons/3/3d/Cicero-head.png", "role": "assistant", "content": chat.last}) #another possible avatar is '📜' or 'https://upload.wikimedia.org/wikipedia/commons/4/41/Cicero.PNG' #TODO: replace this wikipedia link with a local link(?) 
+    st.session_state.messages.append({"avatar": "assets/cicero_head.png", "role": "assistant", "content": chat.last}) #another possible avatar is '📜' or '🖋️'
 
 # chat.history
 # return: [
