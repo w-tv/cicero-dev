@@ -19,3 +19,7 @@ welcome to cicero.jpg Wyatt S Carpenter (photographer)
 static typing expanding brain.png Meme (the captions) by Wyatt S Carpenter, collage by someone unknown of images by someone unknown
 
 https://en.wikipedia.org/wiki/File:Cicero-bust-1.png Own work of Derrick Andes / CC BY-SA 4.0
+
+https://upload.wikimedia.org/wikipedia/commons/4/41/Cicero.PNG (I can't tell the exact source of this image, in part because the information is in German) / Public domain
+
+https://commons.wikimedia.org/wiki/File:Cicero-head.png extracted from Cicero.PNG, presumably by an unnamed wikipedian / Public doamin
