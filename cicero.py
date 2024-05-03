@@ -9,18 +9,19 @@ import streamlit as st
 from streamlit.components.v1 import html
 import os, psutil, platform
 import urllib.parse
-from typing import NoReturn
+from typing import Any, NoReturn
 import cicero_prompter, cicero_topic_reporting, cicero_response_lookup, cicero_rag_only
 from cicero_shared import sql_call, exit_error
-import secrets #TODO: could use this for nonce if we don't just the auth code?
+#import secrets #COULD: use this for nonce if we don't just the auth code?
 import google_auth_oauthlib.flow
 from googleapiclient.discovery import build
 from streamlit_cookies_controller import CookieController
 
-def assert_always(x, message_to_assert) -> None | NoReturn:
+def assert_always(x: Any, message_to_assert: str|None = None) -> None | NoReturn:
   """This function is equivalent to assert, but cannot be disabled by -O"""
   if not x:
     raise AssertionError(message_to_assert or x)
+  return None
 
 def get_base_url() -> str:
   """Gets the url where the streamlit app is currently running, not including any page paths underneath. In testing, for example, this value is probably http://localhost:8501 . This function is from BramVanroy https://github.com/streamlit/streamlit/issues/798#issuecomment-1647759949 , with modifications. “WARNING: I found that in multi-page apps, this will always only return the base url and not the sub-page URL with the page appended to the end.”"""
@@ -43,7 +44,7 @@ def google_email_from_nonce(nonce: str) -> str|None: #The nonce here is the nons
 def set_google_email_from_nonce(google_email: str, nonce: str) -> None:
   sql_call("CREATE TABLE IF NOT EXISTS cicero.default.nonce_to_google_email (nonce string, google_email string)")
   sql_call("INSERT INTO cicero.default.nonce_to_google_email (nonce, google_email) VALUES (%(nonce)s, %(google_email)s)", {"nonce": nonce, "google_email": google_email})
-def remove_google_email_from_nonce(nonce: str) -> None: # Technically this is optional, but we might as well clear up the table.
+def remove_google_email_from_nonce(nonce: str) -> None: # Technically this step is optional, but we might as well clear up the table.
   sql_call("CREATE TABLE IF NOT EXISTS cicero.default.nonce_to_google_email (nonce string, google_email string)")
   sql_call("DELETE FROM cicero.default.nonce_to_google_email WHERE nonce = %(nonce)s", {"nonce": nonce})
 
@@ -75,7 +76,7 @@ def main() -> None:
       user_info = user_info_service.userinfo().get().execute()
       assert_always(user_info.get("email"), "Email not found in google OAuth info")
       st.session_state["email"] = user_info.get("email")
-      set_google_email_from_nonce(google_email=st.session_state["email"], nonce=auth_code)
+      set_google_email_from_nonce(google_email=st.session_state["email"], nonce=auth_code or "") #COULD: replace this ‘ or "" ’ with some sophisticated typeguard (possibly parameterized) or something. But I haven't bothered.
       cookie_manager.set("google_account_nonce", auth_code)
       st.query_params.clear()
     except Exception as e: #if we aren't actively logging in, and we aren't already logged in, give the user the option to log in:
