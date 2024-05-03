@@ -30,7 +30,7 @@ def main(streamlit_key_suffix: str = "") -> None:
   # For some reason this is how databricks wants me to provide these secrets for this API. #COULD: I'm fairly certain st already puts these in the environ, so we could save these lines if we changed the secrets variable names slightly... on the other hand, this is more explicit I guess.
   environ['DATABRICKS_HOST'] = "https://"+st.secrets['DATABRICKS_SERVER_HOSTNAME']
   environ['DATABRICKS_TOKEN'] = st.secrets["databricks_api_token"]
-
+  st.write("*A computer can never be held accountable. Therefore a computer must never make a management decision.*[꙳](https://twitter.com/bumblebike/status/832394003492564993)")
   task = st.radio(
     "What do you need help with?",
     ["Rewrite a Text/Email", "Create a Text/Email", "Something Else"],
