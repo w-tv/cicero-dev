@@ -377,7 +377,7 @@ def main() -> None:
         headlines_sorted = sort_headlines_semantically(h, semantic_query, 10) # The limit of 10 is arbitrary. No need to let the user change it.
     else:
       headlines_sorted = h # I forget if this is actually sorted in any way by default. Possibly date?
-    headline = st.selectbox("Selected headlines will be added to your prompt below.", [""]+list(headlines_sorted), key="headline") #STREAMLIT-BUG-WORKAROUND: see other [""] STREAMLIT-BUG-WORKAROUND in file.
+    headline = st.selectbox("Selected headlines will be added to your prompt below.", list(headlines_sorted), key="headline")
 
   st.text("") # Just for vertical spacing.
 
@@ -401,7 +401,7 @@ def main() -> None:
           output_scores = st.checkbox("output_scores", key="output_scores" , help="Whether or not to return the prediction scores. See scores under returned tensors for more details. In other words: This will not only give you back responses, like normal, it will also tell you how likely the model thinks the response is. Usually useless, and there's probably no need to check this box.")
     model_name = str( st.selectbox(r"$\textsf{\Large COPYWRITING MODEL}$", models, key="model") )
     model_uri = models[model_name]
-    account = st.selectbox("Account (required)", [""]+list(account_names), key="account" ) #STREAMLIT-BUG-WORKAROUND: For some reason, in the current version of streamlit, st.selectbox ends up returning the first value if the index has value is set to None via the key in the session_state, which is a bug (<https://github.com/streamlit/streamlit/issues/7649>), but anyway we work around it using this ridiculous workaround. This does leave a first blank option in there. But whatever.
+    account = st.selectbox("Account (required)", list(account_names), key="account")
     ask_type = str( st.selectbox("Ask Type", ['Hard Ask', 'Medium Ask', 'Soft Ask', 'Soft Ask Petition', 'Soft Ask Poll', 'Soft Ask Survey'], key="ask_type") )
     topics = st.multiselect("Topics", sorted([t for t, d in topics_big.items() if d["show in prompter?"]]), key="topics" )
     additional_topics = [x.strip() for x in st.text_input("Additional Topics (examples: Biden, survey, deadline)", key="additional_topics" ).split(",") if x.strip()] # The list comprehension is to filter out empty strings on split, because otherwise this fails to make a truly empty list in the default case, instead having a list with an empty string in, because split changes its behavior when you give it arguments. Anyway, this also filters out trailing comma edge-cases and such.
