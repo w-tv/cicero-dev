@@ -7,7 +7,7 @@ psutil
 transformers
 google_auth_oauthlib
 google-api-python-client
-streamlit-cookies-controller
+streamlit-cookies-controller @ git+https://github.com/wyattscarpenter/streamlit-cookies-controller #TODO: remove this once https://github.com/NathanChen198/streamlit-cookies-controller/pull/1 is merged
 databricks-genai-inference
 
 # Dev-only requirements (tooling)
