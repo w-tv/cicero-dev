@@ -31,7 +31,7 @@ def get_base_url() -> str:
     if r.protocol == "http" and not r.host.startswith("localhost:"): # STREAMLIT-BUG-WORKAROUND (?) for some reason even when we're in an https connection the r.protocol is http. https://github.com/streamlit/streamlit/issues/8600
       r.protocol = "https"
     return str(
-      urllib.parse.urlunparse([r.protocol, r.host, "", "", "", ""]) #, list-item] #session.client.request is basically dark magic in streamlit so it's no wonder that I have to ignore an attr-defined type error about it. The list-item one just fixes a bug in either mypy or (less likely (since the type annotation looks alright) typeshed, though. (It wants all the arguments to be None for some reason.) The str call also is just to appease mypy's misconception. ), https://github.com/python/mypy/issues/17082
+      urllib.parse.urlunparse([r.protocol, r.host, "", "", "", ""])# see also: https://github.com/python/mypy/issues/17082
     )
   except IndexError as e:
     return str(e)
