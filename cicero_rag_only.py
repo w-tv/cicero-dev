@@ -4,11 +4,15 @@ import streamlit as st
 from databricks_genai_inference import ChatSession
 from os import environ
 
+default_sys_prompt = "You are a helpful, expert copywriter who specializes in writing text messages and emails for conservative candidates. Do not mention that you are a helpful, expert copywriter. Be polite and direct with your responses."
+rewrite_sys_prompt = "You are a helpful, expert copywriter who specializes in writing text messages and emails for conservative candidates. Do not mention that you are a helpful, expert copywriter. Be polite and direct with your responses. If a user asks you to rewrite a message, include how the rewritten messages is better than before. Make sure to incorporate the four elements of fundraising: Hook, Urgency, Stakes, and Agency. The hook is the central focus of your content, the main subject that grabs the audience's attention. It is more beneficial to have a specific hook rather than a general one, as it allows for a more targeted and engaging narrative. Urgency explains why a donor needs to act NOW and act on your specific ask; it relays the significance of your email and sets you apart from others. Your call to action should be time sensitive with a defined goal. Stakes refers to the specific consequences of action or inaction.  "
+analyze_sys_prompt = ""
+
 def grow_chat(streamlit_key_suffix: str = "", alternate_content: str = "") -> None:
   # the streamlit_key_suffix is only necessary because we use this code in two places #TODO: actually, it's not clear that we want to do that. And, the chat histories overlap, currently... So, maybe rethink this concept later. I don't even know why we have two of them. Maybe they were supposed to mutate in concept independently?
   if not st.session_state.get("chat"):
     # TODO: let dev user view and change model and system prompt in this ChatSession
-    st.session_state.chat = ChatSession(model="databricks-dbrx-instruct", system_message="You are a helpful, expert copywriter who specializes in writing text messages and emails for conservative candidates. When responding, don't mention any part of the preceding sentence. Do not mention that you are a helpful, expert copywriter.", max_tokens=3000)
+    st.session_state.chat = ChatSession(model="databricks-dbrx-instruct", system_message=default_sys_prompt, max_tokens=3000)
   chat = st.session_state.chat
   if not st.session_state.get("messages"):
       st.session_state.messages = []
@@ -30,13 +34,16 @@ def main(streamlit_key_suffix: str = "") -> None:
   # For some reason this is how databricks wants me to provide these secrets for this API. #COULD: I'm fairly certain st already puts these in the environ, so we could save these lines if we changed the secrets variable names slightly... on the other hand, this is more explicit I guess.
   environ['DATABRICKS_HOST'] = "https://"+st.secrets['DATABRICKS_SERVER_HOSTNAME']
   environ['DATABRICKS_TOKEN'] = st.secrets["databricks_api_token"]
-  st.write("*A computer can never be held accountable. Therefore a computer must never make a management decision.*[꙳](https://twitter.com/bumblebike/status/832394003492564993)")
+  st.error("*A computer can never be held accountable. Therefore a computer must never make a management decision.*[꙳](https://twitter.com/bumblebike/status/832394003492564993)")
+  
+  st.markdown("What do you need help with? Cicero can help you: <ul><li>Rewrite a message<li>Analyze a message<li>_**MORE!**_</ul>", unsafe_allow_html=True)
   task = st.radio(
     "What do you need help with?",
-    ["Rewrite a Text/Email", "Create a Text/Email", "Something Else"],
+    ["Rewrite a Text/Email", "Analyze a Text/Email", "Something Else"],
     index=None,
     horizontal=True, key="its_ya_boy_the_radio"+streamlit_key_suffix
-  ) 
+  )
+
   # Display chat messages from history on app reload; this is how we get the messages to display, and then the chat box.
   if st.session_state.get("messages"):
     for message in st.session_state.messages:
