@@ -183,7 +183,7 @@ def load_bios() -> dict[str, str]:
 
 @st.cache_data()
 def load_account_names() -> list[str]:
-  return list(pd.read_csv("Client_List.csv")['ACCOUNT_NAME'])
+  return [row[0] for row in sql_call("SELECT * FROM cicero.default.client_list")]
 
 @st.cache_data()
 def load_headlines(get_all: bool = False, past_days: int = 7) -> list[str]:
