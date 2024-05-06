@@ -21,7 +21,7 @@ The current development workflow for this project is that changes are made in th
 
 ```
 git remote add prod https://github.com/achangtv/cicero # Set prod as an additional upstream in my local-machine version of dev. Only have to do this once.
-git push prod # This will push the current history to prod (instead of the default `git push`, which will still push to dev)
+git push prod # This will push the current history to prod (instead of the default `git push`, which will still push to dev). If you need to push to a branch on prod with a different name than the local branch, you can use git push prod local_branch_name:remote_branch_name, where local_branch_name is probably master.
 ```
 
 Edit `cicero.py` to customize this app to your heart's desire. However, it should be pretty much entirely as customized as we need it to be, at this point. Maybe a couple features left.
