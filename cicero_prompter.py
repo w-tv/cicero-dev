@@ -178,8 +178,7 @@ def write_to_activity_log_table(datetime: str, useremail: str, promptsent: str, 
 
 @st.cache_data()
 def load_bios() -> dict[str, str]:
-  bios : dict[str, str] = dict(pd.read_csv("Candidate_Bios.csv", index_col="ID").to_dict('split')['data'])
-  return bios
+  return {row["candidate"]:row["bio"] for row in sql_call("SELECT candidate, bio FROM cicero.default.ref_bios")}
 
 @st.cache_data()
 def load_account_names() -> list[str]:
