@@ -72,7 +72,7 @@ def main() -> None:
     auth_code = st.query_params.get("code")
     flow = google_auth_oauthlib.flow.Flow.from_client_config( st.secrets["google_signin_secrets"], scopes=["https://www.googleapis.com/auth/userinfo.email", "openid"], redirect_uri=get_base_url() )
     try:
-      assert_always(auth_code, "This assert detects whether the current url has '&code=' in it (in which case we're actively signing in during this step). It is expected to fail pretty often, and in fact is just used for flow control here.")
+      assert_always(auth_code) # This  detects whether the current url has '&code=' in it (in which case we're actively signing in during this step). It is expected to fail pretty often, and in fact is just used for flow control here.")
       flow.fetch_token(code=auth_code)
       user_info_service = build(serviceName="oauth2", version="v2", credentials=flow.credentials)
       user_info = user_info_service.userinfo().get().execute()
@@ -82,7 +82,7 @@ def main() -> None:
       cookie_manager.set("google_account_nonce", auth_code)
       st.query_params.clear()
     except Exception as e: #if we aren't actively logging in, and we aren't already logged in, give the user the option to log in:
-      print(e)
+      st.error(e.args)
       authorization_url, state = flow.authorization_url(access_type="offline", include_granted_scopes="true") #ignore the fact that this says the access_type is "offline", that's not relevant to our deployment (which is both online and offline, so to speak); it's about something different.
       #st.write(secrets.token_hex(256))
       st.button("Sign in with Google", on_click=lambda: blank_the_page_and_redirect(authorization_url))
