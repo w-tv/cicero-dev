@@ -1,3 +1,6 @@
+#!/usr/bin/env -S streamlit run
+"""It's useless to run this stand-alone. But I guess you can."""
+
 from databricks import sql # Spooky that this is not the same name as the pypi package databricks-sql-connector, but is the way to refer to the same thing.
 from databricks.sql.types import Row
 import streamlit as st
