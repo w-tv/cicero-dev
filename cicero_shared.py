@@ -12,6 +12,10 @@ def exit_error(exit_code: int) -> NoReturn:
 
 @st.cache_data()
 def sql_call(query: str, sql_params_dict:dict[str, Any]|None=None) -> list[Row]:
+  """This is a wrapper function for sql_call_cacheless that *is* cached. See that other function for more information about the actual functionality."""
+  return sql_call_cacheless(query, sql_params_dict)
+
+def sql_call_cacheless(query: str, sql_params_dict:dict[str, Any]|None=None) -> list[Row]:
   """Make a call to the database, returning a list of Rows. The returned values within the Rows are usually str, but occasionally might be int (as when getting the count) or float or perhaps any of these https://docs.databricks.com/en/dev-tools/python-sql-connector.html#type-conversions"""
   # COULD: (but probably won't) there is a minor problem where we'd like to ensure that a query to a table x only occurs after a call to CREATE TABLE IF NOT EXISTS x (parameters of x). Technically, we could ensure this by creating a new function ensure_table(table_name, table_types) which then returns an TableEnsurance object, which then must be passed in as a parameter to SQL call. However, then we would want to check if it were the correct table (and possibly the right parameter types) which would greatly complicate the function signature of sql_call, because we'd have to pass the table name(s) in too, and then string-replace them into the query(?). So, doesn't seem worth it.
   try:

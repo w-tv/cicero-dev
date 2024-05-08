@@ -106,58 +106,10 @@ def load_model_permissions(useremail: str) -> list[str]:
   return [result[0].lower() for result in results]
 
 def pod_from_email(email: str) -> str:
-  return {
-    "aisaac@targetedvictory.com": "RSLC",
-    "akhamma@targetedvictory.com": "NRCC",
-    "asmall@targetedvictory.com": "JEFF",
-    "astevens@targetedvictory.com": "JEFF",
-    "bbenko@targetedvictory.com": "American Voice",
-    "bgulick@targetedvictory.com": "RSLC",
-    "bjourdan@targetedvictory.com": "WHITNEY",
-    "cabrams@targetedvictory.com": "RSLC",
-    "cbote@targetedvictory.com": "LAROSE",
-    "ckennedy@targetedvictory.com": "NRCC",
-    "dharmon@targetedvictory.com": "NRCC",
-    "eayad@targetedvictory.com": "JEFF",
-    "fborealis@targetedvictory.com": "CLF",
-    "greynolds@targetedvictory.com": "MCCANN",
-    "jbrown@targetedvictory.com": "WHITNEY",
-    "jcohen-doron@targetedvictory.com": "CLF",
-    "jenders@targetedvictory.com": "CLF",
-    "jkoltisko@targetedvictory.com": "CLF",
-    "jlongust@targetedvictory.com": "JEFF",
-    "jreed@targetedvictory.com": "MCCANN",
-    "jtorres@targetedvictory.com": "WHITNEY",
-    "kdamato@targetedvictory.com": "KEYSTONE",
-    "ldario@targetedvictory.com": "JEFF",
-    "ltaylor@targetedvictory.com": "CLF",
-    "maquila@targetedvictory.com": "TMA",
-    "mtaylor@targetedvictory.com": "CLF",
-    "mwilkins@targetedvictory.com": "WHITNEY",
-    "pcox@targetedvictory.com": "CLF",
-    "pteodorescu@targetedvictory.com": "SAMI",
-    "sgoh@targetedvictory.com": "SAMI",
-    "slutzke@targetedvictory.com": "NRCC",
-    "srowan@targetedvictory.com": "SAMI",
-    "sspooner@targetedvictory.com": "CLF",
-    "tdardick@targetedvictory.com": "JEFF",
-    "tveach@targetedvictory.com": "NRCC",
-    "wrierson@targetedvictory.com": "CLF",
-    "zmccray@targetedvictory.com": "WHITNEY",
-    "zspringer@targetedvictory.com": "CAVPAC",
-    "thall@targetedvictory.com": "Admin",
-    "test@example.com": "Admin",
-    "abrady@targetedvictory.com": "Admin",
-    "achang@targetedvictory.com": "Admin",
-    "wcarpenter@targetedvictory.com": "Admin",
-    "akrishnan@targetedvictory.com": "Admin",
-    "lheekin@targetedvictory.com": "Admin",
-    "lmunschauer@targetedvictory.com": "Admin",
-    "awong@targetedvictory.com": "Admin",
-    "smorrow@targetedvictory.com": "Admin",
-    "afuhrer@targetedvictory.com": "Admin",
-    "rmeerstein@targetedvictory.com": "Admin",
-  }.get(email.lower()) or "Pod unknown"
+  """This could probably be done in sql in the activity log insert, using a common table expression or something."""
+  keyword_arguments = locals() # This is a dict of the arguments passed to the function. It must be called at the top of the function, because if it is called later then it will list any other local variables as well.
+  sql_call("CREATE TABLE IF NOT EXISTS cicero.default.user_pods (user_email string, user_pod string)")
+  return sql_call("SELECT user_pod FROM cicero.default.user_pods WHERE user_email ilike %(email)s", keyword_arguments)[0][0] or "Pod unknown"
 
 def ensure_existence_of_activity_log() -> None:
   sql_call("CREATE TABLE IF NOT EXISTS cicero.default.activity_log (datetime string, useremail string, promptsent string, responsegiven string, modelparams string, modelname string, modelurl string, pod string)")
