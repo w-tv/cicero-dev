@@ -37,12 +37,6 @@ def main(streamlit_key_suffix: str = "") -> None:
   st.error("*A computer can never be held accountable. Therefore a computer must never make a management decision.*[꙳](https://twitter.com/bumblebike/status/832394003492564993)")
   
   st.markdown("What do you need help with? Cicero can help you: <ul><li>Rewrite a message<li>Analyze a message<li>_**MORE!**_</ul>", unsafe_allow_html=True)
-  task = st.radio(
-    "What do you need help with?",
-    ["Rewrite a Text/Email", "Analyze a Text/Email", "Something Else"],
-    index=None,
-    horizontal=True, key="its_ya_boy_the_radio"+streamlit_key_suffix
-  )
 
   # Display chat messages from history on app reload; this is how we get the messages to display, and then the chat box.
   if st.session_state.get("messages"):
