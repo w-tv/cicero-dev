@@ -349,15 +349,15 @@ def main() -> None:
     set_ui_to_preset("default")
 
   # setting default values for advanced parameters for our non-developer end-user
-  num_beams=1
-  top_k=50
-  top_p=1.0
-  repetition_penalty=1.2
-  no_repeat_ngram_size=4
-  num_return_sequences=5
-  early_stopping=False
-  do_sample=True
-  output_scores=False
+  num_beams: int = 1
+  top_k: int = 50
+  top_p: float = 1.0
+  repetition_penalty: float = 1.2
+  no_repeat_ngram_size: int = 4
+  num_return_sequences: int = 5
+  early_stopping: bool = False
+  do_sample: bool = True
+  output_scores: bool = False
 
   #For technical reasons (various parts of it update when other parts of it are changed, iirc) this can't go within the st.form
 
