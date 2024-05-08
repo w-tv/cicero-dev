@@ -21,7 +21,7 @@ steps:
   - name: 'gcr.io/google.com/cloudsdktool/cloud-sdk:slim'
     id: Deploy
     entrypoint: bash 
-    args: ['-c', 'gcloud run services update ${_APP} --project ${_CR_PROJECT} --image ${_REGISTRY}/${_APP}:unstable --region ${_CR_REGION}']
+    args: ['-c', 'gcloud run services update ${_APP} --project ${_CR_PROJECT} --image ${_REGISTRY}/${_APP}:${_TAG} --region ${_CR_REGION}']
 
 options:
   logging: CLOUD_LOGGING_ONLY
