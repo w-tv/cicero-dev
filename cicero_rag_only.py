@@ -3,6 +3,9 @@
 import streamlit as st
 from databricks_genai_inference import ChatSession
 from os import environ
+from cicero_shared import sql_call_cacheless, pod_from_email
+from zoneinfo import ZoneInfo as z
+from datetime import datetime
 
 default_sys_prompt = "You are a helpful, expert copywriter who specializes in writing text messages and emails for conservative candidates. Do not mention that you are a helpful, expert copywriter. Be polite and direct with your responses."
 rewrite_sys_prompt = "You are a helpful, expert copywriter who specializes in writing text messages and emails for conservative candidates. Do not mention that you are a helpful, expert copywriter. Be polite and direct with your responses. If a user asks you to rewrite a message, include how the rewritten messages is better than before. Make sure to incorporate the four elements of fundraising: Hook, Urgency, Stakes, and Agency. The hook is the central focus of your content, the main subject that grabs the audience's attention. It is more beneficial to have a specific hook rather than a general one, as it allows for a more targeted and engaging narrative. Urgency explains why a donor needs to act NOW and act on your specific ask; it relays the significance of your email and sets you apart from others. Your call to action should be time sensitive with a defined goal. Stakes refers to the specific consequences of action or inaction.  "
@@ -13,13 +16,18 @@ def grow_chat(streamlit_key_suffix: str = "", alternate_content: str = "") -> No
   if not st.session_state.get("chat"):
     # TODO: let dev user view and change model and system prompt in this ChatSession
     st.session_state.chat = ChatSession(model="databricks-dbrx-instruct", system_message=default_sys_prompt, max_tokens=3000)
-  chat = st.session_state.chat
   if not st.session_state.get("messages"):
       st.session_state.messages = []
   p = alternate_content or st.session_state["user_input_for_chatbot_this_frame"+streamlit_key_suffix]
-  chat.reply(p)
+  st.session_state.chat.reply(p)
   st.session_state.messages.append({"role": "user", "content": p})
-  st.session_state.messages.append({"avatar": "assets/cicero_head.png", "role": "assistant", "content": chat.last}) #another possible avatar is '📜' or '🖋️'
+  st.session_state.messages.append({"avatar": "assets/cicero_head.png", "role": "assistant", "content": st.session_state.chat.last}) #another possible avatar is '📜' or '🖋️'
+  # Write to the chatbot activity log:
+  sql_call_cacheless("CREATE TABLE IF NOT EXISTS cicero.default.activity_log_chatbot (timestamp timestamp, user_email string, user_pod string, model_name string, model_parameters string, system_prompt string, user_prompt string, response_given string)") # There's no model_uri field because I don't know how to access that 
+  sql_call_cacheless( # It probably doesn't matter whether this is cacheless or not, ultimately.
+    "INSERT INTO cicero.default.activity_log_chatbot VALUES (:timestamp, :user_email, :user_pod, :model_name, :model_parameters, :system_prompt, :user_prompt, :response_given)", # Apparently the old %(whatever)s-style is deprecated... https://github.com/databricks/databricks-sql-python/blob/v3.1.2/docs/parameters.md # COULD: replace those everywhere?
+    {"timestamp": datetime.now(z("US/Eastern")), "user_email": st.session_state["email"], "user_pod": pod_from_email(st.session_state["email"]), "model_name": st.session_state.chat.model, "model_parameters": str(st.session_state.chat.parameters), "system_prompt": st.session_state.chat.system_message, "user_prompt": p, "response_given": st.session_state.chat.last} # Note that you can `SET TIME ZONE "US/Eastern";` in sql to get the timezones in non-UTC (UTC being the default) (Specifically this gets them in US Eastern time.)
+  )
 
 # chat.history
 # return: [

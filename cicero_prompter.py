@@ -13,7 +13,7 @@ from sentence_transformers import SentenceTransformer # Weird that this is how y
 from transformers import GenerationConfig
 from typing import TypedDict
 from zoneinfo import ZoneInfo as z
-from cicero_shared import sql_call, exit_error
+from cicero_shared import sql_call, sql_call_cacheless, exit_error, pod_from_email
 import cicero_rag_only
 from databricks_genai_inference import ChatSession
 from os import environ
@@ -105,12 +105,6 @@ def load_model_permissions(useremail: str) -> list[str]:
   results = sql_call("SELECT DISTINCT modelname FROM models.default.permissions WHERE useremail = %(useremail)s", {'useremail': useremail})
   return [result[0].lower() for result in results]
 
-def pod_from_email(email: str) -> str:
-  """This could probably be done in sql in the activity log insert, using a common table expression or something."""
-  keyword_arguments = locals() # This is a dict of the arguments passed to the function. It must be called at the top of the function, because if it is called later then it will list any other local variables as well.
-  sql_call("CREATE TABLE IF NOT EXISTS cicero.default.user_pods (user_email string, user_pod string)")
-  return sql_call("SELECT user_pod FROM cicero.default.user_pods WHERE user_email ilike %(email)s", keyword_arguments)[0][0] or "Pod unknown"
-
 def ensure_existence_of_activity_log() -> None:
   sql_call("CREATE TABLE IF NOT EXISTS cicero.default.activity_log (datetime string, useremail string, promptsent string, responsegiven string, modelparams string, modelname string, modelurl string, pod string)")
 
@@ -123,7 +117,7 @@ def write_to_activity_log_table(datetime: str, useremail: str, promptsent: str, 
   """Write the arguments into the activity_log table. If you change the arguments this function takes, you must change the sql_call in the function and in ensure_existence_of_activity_log. It wasn't worth generating them programmatically. (You must also change the caller function of this function, of course.)"""
   keyword_arguments = locals() # This is a dict of the arguments passed to the function. It must be called at the top of the function, because if it is called later then it will list any other local variables as well. (The docstring isn't included; I guess it's the __doc__ attribute of the enclosing function, not a local variable. <https://docs.python.org/3.11/glossary.html#term-docstring>)
   ensure_existence_of_activity_log()
-  sql_call(
+  sql_call_cacheless( # It probably doesn't matter whether this is cacheless or not, ultimately.
     "INSERT INTO cicero.default.activity_log VALUES (%(datetime)s, %(useremail)s, %(promptsent)s, %(responsegiven)s, %(modelparams)s, %(modelname)s, %(modelurl)s, %(pod)s)",
     keyword_arguments
   )

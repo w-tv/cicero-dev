@@ -16,6 +16,7 @@ from cicero_shared import sql_call, exit_error
 import google_auth_oauthlib.flow
 from googleapiclient.discovery import build
 from streamlit_cookies_controller import CookieController
+from streamlit.web.server.websocket_headers import _get_websocket_headers
 
 def assert_always(x: Any, message_to_assert: str|None = None) -> None | NoReturn:
   """This function is equivalent to assert, but cannot be disabled by -O"""
@@ -101,8 +102,11 @@ def main() -> None:
     st.write("Your user email is None, which implies we are currently running publicly on Streamlit Community Cloud. https://docs.streamlit.io/library/api-reference/personalization/st.experimental_user#public-app-on-streamlit-community-cloud. This app is configured to function only privately and permissionedly, so we will now exit. Good day.")
     exit_error(34)
   if st.session_state['email'] == 'test@example.com': # In this case, the streamlit app is running "locally", which means everywhere but the streamlit community cloud.
-    st.write("Please sign in to continue.")
-    exit()
+    if st.secrets["email_spoof"]: #TODO: this is a temporary(?) measure to help me locally test-run the program while google sign in is in flux. This should be added to the secrets.toml. The value doesn't matter, so long as it's truthy.
+      pass
+    else:
+      st.write("Please sign in to continue.")
+      exit()
 
   title_and_loading_columns = st.columns(2)
   with title_and_loading_columns[0]:
@@ -113,7 +117,7 @@ def main() -> None:
 
 
 
-  st.session_state['developer_mode'] = st.session_state['email'] in ["achang@targetedvictory.com", "abrady@targetedvictory.com", "thall@targetedvictory.com", "afuhrer@targetedvictory.com", "wcarpenter@targetedvictory.com", "cmahon@targetedvictory.com"] and not st.session_state.get("developer_mode_disabled")
+  st.session_state['developer_mode'] = st.session_state['email'] in ["achang@targetedvictory.com", "abrady@targetedvictory.com", "thall@targetedvictory.com", "afuhrer@targetedvictory.com", "wcarpenter@targetedvictory.com", "cmahon@targetedvictory.com", "test@example.com"] and not st.session_state.get("developer_mode_disabled")
   def disable_developer_mode() -> None: st.session_state["developer_mode_disabled"] = True
 
   if st.session_state['developer_mode']: #dev-mode out the entirety of topic reporting (some day it will be perfect and the users will be ready for us to un-dev-mode it) # also dev-mode out response-lookup, which will probably be permanently dev-moded
@@ -143,7 +147,41 @@ def main() -> None:
       st.caption("Cookies:")
       cookies = cookie_manager.getAll()
       st.write(cookies)
+      st.caption("Web headers:")
+      h = _get_websocket_headers()
+      st.write(_get_websocket_headers())
+      if h:
+        st.write("X-Goog-Authenticated-User-Email", h.get("X-Goog-Authenticated-User-Email"))
+        st.write("X-Goog-IAP-JWT-Assertion", h.get("X-Goog-IAP-JWT-Assertion"))
+      """
+      from google.auth.transport import requests
+from google.oauth2 import id_token
 
+
+def validate_iap_jwt(iap_jwt, expected_audience):
+    "Validate an IAP JWT.
+
+    Args:
+      iap_jwt: The contents of the X-Goog-IAP-JWT-Assertion header.
+      expected_audience: The Signed Header JWT audience. See
+          https://cloud.google.com/iap/docs/signed-headers-howto
+          for details on how to get this value.
+
+    Returns:
+      (user_id, user_email, error_str).
+    "
+
+    try:
+        decoded_jwt = id_token.verify_token(
+            iap_jwt,
+            requests.Request(),
+            audience=expected_audience,
+            certs_url="https://www.gstatic.com/iap/verify/public_key",
+        )
+        return (decoded_jwt["sub"], decoded_jwt["email"], "")
+    except Exception as e:
+        return (None, None, f"**ERROR: JWT validation error {e}**")
+"""
       if st.button("Crash the program."):
         exit_error(27)
 
