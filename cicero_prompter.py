@@ -16,7 +16,6 @@ from zoneinfo import ZoneInfo as z
 from cicero_shared import sql_call, sql_call_cacheless, exit_error, pod_from_email
 import cicero_rag_only
 from databricks_genai_inference import ChatSession
-from os import environ
 
 # This is the 'big' of topics, the authoritative record of various facts and mappings about topics.
 Topics_Big_Payload = TypedDict("Topics_Big_Payload", {'color': str, 'internal name': str, 'show in prompter?': bool})
@@ -429,6 +428,7 @@ def main() -> None:
             reply_one = "Here is a conservative fundraising text: [" + output + "] DO NOT immediately suggest revisions to the text. Directly ask the user what assistance they need with the text."
             reply_two = "Here is a conservative fundraising text: [" + output + "] Analyze the quality of the text based off of these five fundraising elements: the Hook, Urgency, Agency, Stakes, and the Call to Action (CTA). Do not assign scores to the elements. It's possible one or more of these elements is missing from the text provided. If so, please point that out. Then, directly ask the user what assistance they need with the text. Additionally, mention that you can also help edit the text to be shorter or longer, and convert the text into an email."
             st.session_state['cicero_ai']=reply_two
+            st.session_state['display_only_this_at_first_blush'] = "«"+output+"»"
       if st.session_state.get('cicero_ai'):
         if isinstance(st.session_state['cicero_ai'], int): # Arbitrary truthy value that isn't a string (so thus can't be from the responses above, which are text)
           cicero_rag_only.main(streamlit_key_suffix="_prompter")
@@ -436,7 +436,7 @@ def main() -> None:
           #clear previous chat history
           st.session_state.chat = None
           st.session_state.messages = None
-          cicero_rag_only.grow_chat(streamlit_key_suffix="_prompter", alternate_content=st.session_state['cicero_ai'])
+          cicero_rag_only.grow_chat(streamlit_key_suffix="_prompter", alternate_content=st.session_state['cicero_ai'], display_only_this_at_first_blush=st.session_state['display_only_this_at_first_blush'])
           cicero_rag_only.main(streamlit_key_suffix="_prompter")
           st.session_state['cicero_ai'] = 2 # This sets the arbitrary value discussed above.
     else:

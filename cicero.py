@@ -69,7 +69,7 @@ def main() -> None:
 
   if st.session_state['developer_mode']: #dev-mode out the entirety of topic reporting (some day it will be perfect and the users will be ready for us to un-dev-mode it) # also dev-mode out response-lookup, which will probably be permanently dev-moded
     tab1, tab2, tab3, tab4 = st.tabs(["🗣️ Prompter", "🌈 Topic Reporting", "🔍 Response Lookup", "🎰 The RAG Man"])
-    with tab2: # We load this first because it's less onerous, so a person trying to use topic reporting quickly can simply switch to that tab to do so.
+    with tab2: # We load this first because it takes less time, so a person trying to use topic reporting quickly can simply switch to that tab to do so.
       cicero_topic_reporting.main()
     with tab1:
       cicero_prompter.main()

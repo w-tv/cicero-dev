@@ -12,7 +12,7 @@ rewrite_sys_prompt = "You are a helpful, expert copywriter who specializes in wr
 analyze_sys_prompt = ""
 model_name = 'databricks-meta-llama-3-70b-instruct'
 
-def grow_chat(streamlit_key_suffix: str = "", alternate_content: str = "") -> None:
+def grow_chat(streamlit_key_suffix: str = "", alternate_content: str = "", display_only_this_at_first_blush: str|None = None) -> None:
   # the streamlit_key_suffix is only necessary because we use this code in two places #TODO: actually, it's not clear that we want to do that. And, the chat histories overlap, currently... So, maybe rethink this concept later. I don't even know why we have two of them. Maybe they were supposed to mutate in concept independently?
   if not st.session_state.get("chat"):
     # TODO: let dev user view and change model and system prompt in this ChatSession
@@ -22,7 +22,7 @@ def grow_chat(streamlit_key_suffix: str = "", alternate_content: str = "") -> No
       st.session_state.messages = []
   p = alternate_content or st.session_state["user_input_for_chatbot_this_frame"+streamlit_key_suffix]
   st.session_state.chat.reply(p)
-  st.session_state.messages.append({"role": "user", "content": p})
+  st.session_state.messages.append({"role": "user", "content": display_only_this_at_first_blush or p})
   st.session_state.messages.append({"avatar": "assets/cicero_head.png", "role": "assistant", "content": st.session_state.chat.last}) #another possible avatar is '📜' or '🖋️'
   # Write to the chatbot activity log:
   sql_call_cacheless("CREATE TABLE IF NOT EXISTS cicero.default.activity_log_chatbot (timestamp timestamp, user_email string, user_pod string, model_name string, model_parameters string, system_prompt string, user_prompt string, response_given string)") # There's no model_uri field because I don't know how to access that 
