@@ -425,8 +425,10 @@ def main() -> None:
         with col1:
           st.write( output.replace("$", r"\$") ) #this prevents us from entering math mode when we ask about money.
         with col2:
-          if st.button("🖋️", key="🖋️"+output, help="Send down to Cicero (THE REAL DUDE)"):
-            st.session_state['cicero_ai']=output
+          if st.button("🖋️", key="🖋️"+output, help="Send down to Cicero"):
+            reply_one = "Here is a conservative fundraising text: [" + output + "] DO NOT immediately suggest revisions to the text. Directly ask the user what assistance they need with the text."
+            reply_two = "Here is a conservative fundraising text: [" + output + "] Analyze the quality of the text based off of these five fundraising elements: the Hook, Urgency, Agency, Stakes, and the Call to Action (CTA). Do not assign scores to the elements. It's possible one or more of these elements is missing from the text provided. If so, please point that out. Then, directly ask the user what assistance they need with the text. Additionally, mention that you can also help edit the text to be shorter or longer, and convert the text into an email."
+            st.session_state['cicero_ai']=reply_two
       if st.session_state.get('cicero_ai'):
         if isinstance(st.session_state['cicero_ai'], int): # Arbitrary truthy value that isn't a string (so thus can't be from the responses above, which are text)
           cicero_rag_only.main(streamlit_key_suffix="_prompter")
