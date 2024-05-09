@@ -10,6 +10,13 @@ def exit_error(exit_code: int) -> NoReturn:
   st.write("*Ego vero consisto. Accede, veterane, et, si hoc saltim potes recte facere, incide cervicem.*")
   exit(exit_code)
 
+@st.experimental_dialog("Database error")
+def die_with_database_error_popup(e_args: tuple[Any, ...]) -> NoReturn:
+  print("Database error", e_args)
+  st.write("There was a database error, and the application could not continue. Sorry.")
+  st.code(e_args)
+  exit_error(4)
+
 @st.cache_data()
 def sql_call(query: str, sql_params_dict:dict[str, Any]|None=None) -> list[Row]:
   """This is a wrapper function for sql_call_cacheless that *is* cached. See that other function for more information about the actual functionality."""
@@ -23,10 +30,7 @@ def sql_call_cacheless(query: str, sql_params_dict:dict[str, Any]|None=None) -> 
       with connection.cursor() as cursor:
         return cursor.execute(query, sql_params_dict).fetchall()
   except Exception as e:
-    print(e.args)
-    st.write(f"There was a database error, and the application could not continue. Sorry.") #COULD: this usually prints to the second tab, because we load it first, which is not ideal...
-    st.code(e.args)
-    exit_error(4)
+    die_with_database_error_popup(e.args)
 
 def pod_from_email(email: str) -> str:
   """TODO: (low priority) This could probably be done in sql in the activity log insert, using a common table expression or something."""

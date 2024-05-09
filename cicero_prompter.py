@@ -15,7 +15,6 @@ from typing import TypedDict
 from zoneinfo import ZoneInfo as z
 from cicero_shared import sql_call, sql_call_cacheless, exit_error, pod_from_email
 import cicero_rag_only
-from databricks_genai_inference import ChatSession
 
 # This is the 'big' of topics, the authoritative record of various facts and mappings about topics.
 Topics_Big_Payload = TypedDict("Topics_Big_Payload", {'color': str, 'internal name': str, 'show in prompter?': bool})
@@ -425,7 +424,7 @@ def main() -> None:
           st.write( output.replace("$", r"\$") ) #this prevents us from entering math mode when we ask about money.
         with col2:
           if st.button("🖋️", key="🖋️"+output, help="Send down to Cicero"):
-            reply_one = "Here is a conservative fundraising text: [" + output + "] DO NOT immediately suggest revisions to the text. Directly ask the user what assistance they need with the text."
+            _reply_one = "Here is a conservative fundraising text: [" + output + "] DO NOT immediately suggest revisions to the text. Directly ask the user what assistance they need with the text."
             reply_two = "Here is a conservative fundraising text: [" + output + "] Analyze the quality of the text based off of these five fundraising elements: the Hook, Urgency, Agency, Stakes, and the Call to Action (CTA). Do not assign scores to the elements. It's possible one or more of these elements is missing from the text provided. If so, please point that out. Then, directly ask the user what assistance they need with the text. Additionally, mention that you can also help edit the text to be shorter or longer, and convert the text into an email."
             st.session_state['cicero_ai']=reply_two
             st.session_state['display_only_this_at_first_blush'] = "«"+output+"»"

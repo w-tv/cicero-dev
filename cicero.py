@@ -6,12 +6,12 @@ Check the cicero_*.py files for various functionalities of Cicero.
 from time import perf_counter_ns
 nanoseconds_base : int = perf_counter_ns()
 import streamlit as st
-from streamlit.components.v1 import html
+#from streamlit.components.v1 import html
 import os, psutil, platform
 import urllib.parse
 from typing import Any, NoReturn
 import cicero_prompter, cicero_topic_reporting, cicero_response_lookup, cicero_rag_only
-from cicero_shared import sql_call, exit_error
+from cicero_shared import exit_error
 from google.auth.transport import requests
 from google.oauth2 import id_token
 from streamlit.web.server.websocket_headers import _get_websocket_headers
@@ -40,10 +40,8 @@ def main() -> None:
   st.session_state["email"] = str(st.experimental_user["email"]) #this str call also accounts for if the user email is None.
 
   # Google sign-in logic, using IAP. From https://cloud.google.com/iap/docs/signed-headers-howto, with modifications. Will set the email to a new value iff it succeeds.
-  h = _get_websocket_headers()
-  if h:
-    iap_jwt = h.get("X-Goog-IAP-JWT-Assertion")
-    if iap_jwt:
+  if h := _get_websocket_headers():
+    if iap_jwt := h.get("X-Goog-IAP-JWT-Assertion"):
       try: #TODO: I need to get aud from Sean
         decoded_jwt = id_token.verify_token(iap_jwt, requests.Request(), audience=st.secrets["aud"], certs_url="https://www.gstatic.com/iap/verify/public_key")
         st.session_state["email"] = decoded_jwt["email"]
@@ -90,11 +88,18 @@ def main() -> None:
         Streamlit version: {st.version.STREAMLIT_VERSION_STRING}<br>
         Base url: {get_base_url()}
       """, unsafe_allow_html=True)
-
+      
+      @st.experimental_dialog("Test")
+      def f() -> None:
+        st.write(":)")
+      if st.button("test streamlit pop-up (experimental_dialog)"):
+        f()
+      
       st.caption("Web headers:")
-      st.write(_get_websocket_headers())
-      st.write("X-Goog-Authenticated-User-Email", h.get("X-Goog-Authenticated-User-Email"))
-      st.write("X-Goog-IAP-JWT-Assertion", h.get("X-Goog-IAP-JWT-Assertion"))
+      st.write(h := _get_websocket_headers())
+      if h:
+        st.write("X-Goog-Authenticated-User-Email", h.get("X-Goog-Authenticated-User-Email"))
+        st.write("X-Goog-IAP-JWT-Assertion", h.get("X-Goog-IAP-JWT-Assertion"))
 
       if st.button("Crash the program."):
         exit_error(27)

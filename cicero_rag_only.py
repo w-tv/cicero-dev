@@ -17,7 +17,6 @@ def grow_chat(streamlit_key_suffix: str = "", alternate_content: str = "", displ
   if not st.session_state.get("chat"):
     # TODO: let dev user view and change model and system prompt in this ChatSession
     st.session_state.chat = ChatSession(model=model_name, system_message=default_sys_prompt, max_tokens=4096)
-  chat = st.session_state.chat
   if not st.session_state.get("messages"):
       st.session_state.messages = []
   p = alternate_content or st.session_state["user_input_for_chatbot_this_frame"+streamlit_key_suffix]
