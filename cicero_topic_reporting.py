@@ -461,7 +461,7 @@ def main() -> None:
 
   col1, col2, col3, col4 = st.columns(4) #possibly refactor this into non-unpacking for-loop type thing if I need to keep editing it.
   with col1:
-    past_days = st.radio("Date range", [1, 7, 14, 30], index=1, format_func=lambda x: "Yesterday" if x == 1 else f"Last {x} days", help="The date range from which to display data. This will display data from any calendar day greater than or equal to (the present day minus the number of days specified). That is, 'Yesterday' will display data from both yesterday and today (and possibly, in rare circumstances, from the future).\n\nUnlike the rest of the controls in this row, this control only controls the top graph, and is never applied to the bottom graph.")
+    past_days = st.radio("Date range", [1, 7, 14, 30, 30*6], index=1, format_func=lambda x: "Yesterday" if x == 1 else f"Last {x} days", help="The date range from which to display data. This will display data from any calendar day greater than or equal to (the present day minus the number of days specified). That is, 'Yesterday' will display data from both yesterday and today (and possibly, in rare circumstances, from the future).\n\nUnlike the rest of the controls in this row, this control only controls the top graph, and is never applied to the bottom graph.")
   with col2:
     accounts = st.multiselect("Account", load_account_names(), help="This control allows you to filter on the account name. If nothing is selected in this control all of the accounts will be presented.")
     accounts = external_account_names_to_internal_account_names_list_mapping(load_account_names() if not accounts else accounts)
