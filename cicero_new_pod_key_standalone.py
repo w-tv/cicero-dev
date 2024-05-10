@@ -14,8 +14,8 @@ from pandas import read_excel
 def do_one(email: str, pod: str) -> None:
   keyword_arguments = locals() # This is a dict of the arguments passed to the function. It must be called at the top of the function, because if it is called later then it will list any other local variables as well.
   # DATABRICKS-SQL-CONNECTOR?-BUG-WORKAROUND I got some kind of crazy syntax error trying to do these in the same string. (Even though an analogous command works fine in the databricks query editor.)
-  sql_call("""DELETE FROM cicero.default.user_pods WHERE user_email ilike %(email)s""", keyword_arguments)
-  sql_call("""INSERT INTO cicero.default.user_pods (user_email, user_pod) VALUES (%(email)s, %(pod)s)""", keyword_arguments)
+  sql_call("DELETE FROM cicero.default.user_pods WHERE user_email ilike :email", keyword_arguments)
+  sql_call("INSERT INTO cicero.default.user_pods (user_email, user_pod) VALUES (:email, :pod)", keyword_arguments)
 
 def main() -> None:
   st.set_page_config(layout="wide", page_title="Cicero", page_icon="favicon.png") # Use wide mode in Cicero, mostly so that results display more of their text by default. Also, set title and favicon. #NOTE: "`set_page_config()` can only be called once per app page, and must be called as the first Streamlit command in your script."
@@ -52,13 +52,13 @@ def main() -> None:
   with c[3]:
     st.caption("enticing button 2")
     if st.button("update the activity log with that one new email and pod") and one_new_email and one_new_pod:
-      sql_call("UPDATE cicero.default.activity_log SET pod = %(pod)s WHERE useremail ilike %(email)s", {"email": one_new_email, "pod": one_new_pod})
+      sql_call("UPDATE cicero.default.activity_log SET pod = :pod WHERE useremail ilike :email", {"email": one_new_email, "pod": one_new_pod})
 
   st.write("🙜")
 
   if st.button("update the activity log retroactively to match the file contents"):
     for t in new_pods_tuples:
-      sql_call("UPDATE cicero.default.activity_log SET pod = %(pod)s WHERE useremail ilike %(email)s", {"email": t[0], "pod": t[1]})
+      sql_call("UPDATE cicero.default.activity_log SET pod = :pod WHERE useremail ilike :email", {"email": t[0], "pod": t[1]})
 
   st.write("## activity log (main, not chatbot)")
   st.write(f"""activity log entries where the pod is NULL, suggesting you need to run the retroactive application (above) if there are any: ***{sql_call("SELECT count(*) FROM cicero.default.activity_log WHERE pod IS NULL")[0][0]}***""")

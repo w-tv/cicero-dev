@@ -15,10 +15,10 @@ def main() -> None:
       f"""WITH s AS ( SELECT explode(from_json(responsegiven, "array<string>")), *  from cicero.default.activity_log ) -- Note: the explode produces a cartesian product between the responses and the singleton of the row. So, if you have five responses per row, you will get 5 rows in the final results for each row in the activity log, corresponing to (_1, _2, _3, _4, _5)×(row). This also means every result contains a specific result, and a json of all the results. Col is the automatically-assigned name of the column of exploded json array response.
        SELECT * from s WHERE {
         {
-          'E': "col == %(query)s",
-          'S': "col LIKE CONCAT('%', %(query)s, '%')",
-          'C': "col ILIKE CONCAT('%', %(query)s, '%')",
-          'L': "levenshtein(col, %(query)s) < len(col) * .69 SORT BY levenshtein(col, %(query)s) DESC -- the * .69 thing is just an arbitrary heuristic; a little over half of the length of the response. Brief and non-exhaustive empirical investigation yielded this number; it could probably be refined.",
+          'E': "col == :query",
+          'S': "col LIKE CONCAT('%', :query, '%')",
+          'C': "col ILIKE CONCAT('%', :query, '%')",
+          'L': "levenshtein(col, :query) < len(col) * .69 SORT BY levenshtein(col, :query) DESC -- the * .69 thing is just an arbitrary heuristic; a little over half of the length of the response. Brief and non-exhaustive empirical investigation yielded this number; it could probably be refined.",
           'N': "true -- N is an extremely obscure edge-case I don't even know how to trigger, but true is a sensible default for it I suppose"
         }[r]
       }""",

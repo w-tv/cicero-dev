@@ -491,7 +491,7 @@ def main() -> None:
   topics = external_topic_names_to_internal_hooks_list_mapping(topics)
   search = st.text_input("Search", help="This box, if filled in, makes the below graph only include results that have text (in the clean_text or clean_email field) matching the contents of this box, as a regex (Java flavor regex; see https://regex101.com/?flavor=java&regex=biden|trump&flags=gm&testString=example%20non-matching%20text%0Asome%20trump%20stuff%0Abiden!%0Atrumpbiden for more details and to experiment interactively). This ***is*** case sensitive, and if you enter a regex that doesn't match any text appearing anywhere then the below graph might become nonsensical.") # Java flavor mentioned here: https://docs.databricks.com/en/sql/language-manual/functions/regexp.html # I've only seen the nonsensical graph (it's wrong axes) occur during testing, and haven't seen it in a while, but I guess it might still happen.
   if search:
-    search_string = "(clean_email regexp %(regexp)s or clean_text regexp %(regexp)s)"
+    search_string = "(clean_email regexp :regexp or clean_text regexp :regexp)"
   else:
     search_string = "true"
 

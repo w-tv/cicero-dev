@@ -36,4 +36,4 @@ def pod_from_email(email: str) -> str:
   """TODO: (low priority) This could probably be done in sql in the activity log insert, using a common table expression or something."""
   keyword_arguments = locals() # This is a dict of the arguments passed to the function. It must be called at the top of the function, because if it is called later then it will list any other local variables as well.
   sql_call("CREATE TABLE IF NOT EXISTS cicero.default.user_pods (user_email string, user_pod string)")
-  return sql_call("SELECT user_pod FROM cicero.default.user_pods WHERE user_email ilike %(email)s", keyword_arguments)[0][0] or "Pod unknown"
+  return sql_call("SELECT user_pod FROM cicero.default.user_pods WHERE user_email ilike :email", keyword_arguments)[0][0] or "Pod unknown"
