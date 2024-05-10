@@ -271,8 +271,6 @@ def main() -> None:
   # Or some other way of making a dict in toml
   models: dict[str,str] = { k:v for k, v in st.secrets['models'].items() if k.lower() in [m.lower() for m in model_permissions] } #filter for what the actual permissions are for the user.
 
-  st.error('REMINDER! Please tag all projects with "optimization" in the LABELS field in Salesforce.')
-
   bios: dict[str, str] = load_bios()
 
   account_names = load_account_names()
@@ -443,7 +441,9 @@ def main() -> None:
           st.session_state['cicero_ai'] = 2 # This sets the arbitrary value discussed above.
     else:
       st.dataframe(pd.DataFrame(st.session_state['outputs'], columns=["Model outputs (double click any output to expand it)"]), hide_index=True, use_container_width=True) #Styling this dataframe doesn't seem to work, for some reason. Well, whatever.
-  if 'character_counts_caption' in st.session_state: st.caption(st.session_state['character_counts_caption'])
+  if 'character_counts_caption' in st.session_state:
+    st.caption(st.session_state['character_counts_caption'])
+  st.error('**REMINDER!** Please tag all projects with "**optimization**" in the LABELS field in Salesforce.')
 
   with st.sidebar: #The history display includes a result of the logic of the script, that has to be updated in the middle of the script where the button press is (when the button is in fact pressed), so the code to display it has to be after all the logic of the script or else it will lag behind the actual state of the history by one time step.
     st.header("History of replies:")
