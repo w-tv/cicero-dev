@@ -13,7 +13,7 @@ from sentence_transformers import SentenceTransformer # Weird that this is how y
 from transformers import GenerationConfig
 from typing import TypedDict
 from zoneinfo import ZoneInfo as z
-from cicero_shared import sql_call, sql_call_cacheless, exit_error, pod_from_email
+from cicero_shared import sql_call, sql_call_cacheless, exit_error
 import cicero_rag_only
 
 # This is the 'big' of topics, the authoritative record of various facts and mappings about topics.
@@ -111,14 +111,15 @@ def count_from_activity_log_times_used_today(useremail: str) -> int: #this goes 
   ensure_existence_of_activity_log()
   return int( sql_call(f"SELECT COUNT(*) FROM cicero.default.activity_log WHERE useremail = :useremail AND datetime LIKE '{date.today()}%%'", {'useremail': useremail})[0][0] )
 
-def write_to_activity_log_table(datetime: str, useremail: str, promptsent: str, responsegiven: str, modelparams: str, modelname: str, modelurl: str, pod: str) -> None:
+def write_to_activity_log_table(datetime: str, useremail: str, promptsent: str, responsegiven: str, modelparams: str, modelname: str, modelurl: str) -> None:
   """Write the arguments into the activity_log table. If you change the arguments this function takes, you must change the sql_call in the function and in ensure_existence_of_activity_log. It wasn't worth generating them programmatically. (You must also change the caller function of this function, of course.)"""
   keyword_arguments = locals() # This is a dict of the arguments passed to the function. It must be called at the top of the function, because if it is called later then it will list any other local variables as well. (The docstring isn't included; I guess it's the __doc__ attribute of the enclosing function, not a local variable. <https://docs.python.org/3.11/glossary.html#term-docstring>)
   ensure_existence_of_activity_log()
   sql_call_cacheless(
-    "INSERT INTO cicero.default.activity_log\
-             ( datetime,  useremail,  promptsent,  responsegiven,  modelparams,  modelname,  modelurl,  pod)\
-      VALUES (:datetime, :useremail, :promptsent, :responsegiven, :modelparams, :modelname, :modelurl, :pod)",
+    "WITH tmp(pod) AS (SELECT user_pod FROM cicero.default.user_pods WHERE user_email ilike :useremail)\
+    INSERT INTO cicero.default.activity_log\
+            ( datetime,  useremail,  promptsent,  responsegiven,  modelparams,  modelname,  modelurl,  pod)\
+      SELECT :datetime, :useremail, :promptsent, :responsegiven, :modelparams, :modelname, :modelurl,  pod FROM tmp",
     keyword_arguments
   )
 
@@ -457,7 +458,7 @@ def main() -> None:
   if did_a_query:
     dict_prompt.pop('prompt')
     no_prompt_dict_str = str(dict_prompt)
-    write_to_activity_log_table( datetime=str(datetime.now()), useremail=st.session_state['email'], promptsent=prompt, responsegiven=json.dumps(outputs), modelparams=no_prompt_dict_str, modelname=model_name, modelurl=model_uri, pod=pod_from_email(st.session_state['email']) )
+    write_to_activity_log_table( datetime=str(datetime.now()), useremail=st.session_state['email'], promptsent=prompt, responsegiven=json.dumps(outputs), modelparams=no_prompt_dict_str, modelname=model_name, modelurl=model_uri )
 
   # st.components.v1.html('<!--<script>//you can include arbitrary html and javascript this way</script>-->') #or, use st.markdown, if you want arbitrary html but javascript isn't needed.
 if __name__ == "__main__": main()
