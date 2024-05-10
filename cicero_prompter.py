@@ -7,8 +7,6 @@ import pandas as pd
 import requests
 import json
 from datetime import datetime, date
-import faiss
-from sentence_transformers import SentenceTransformer # Weird that this is how you reference the sentence-transformers package on pypi, too. Well, whatever.
 #COULD: use https://pypi.org/project/streamlit-profiler/ for profiling
 from transformers import GenerationConfig
 from typing import TypedDict
@@ -142,23 +140,6 @@ def load_headlines(get_all: bool = False, past_days: int = 7) -> list[str]:
   )
   return [result[0] for result in results]
 
-@st.cache_data()
-def sort_headlines_semantically(headlines: list[str], query: str, number_of_results_to_return:int=1) -> list[str]:
-  """This is a sentence-transformers model: It maps sentences & paragraphs to a 384 dimensional dense vector space and can be used for tasks like clustering or semantic search. This function will return the top k news results for a given query."""
-  model = SentenceTransformer("sentence-transformers/all-MiniLM-L6-v2")
-  faiss_title_embedding = model.encode(headlines)
-  faiss.normalize_L2(faiss_title_embedding)
-  # Index1DMap translates search results to IDs: https://faiss.ai/cpp_api/file/IndexIDMap_8h.html#_CPPv4I0EN5faiss18IndexIDMapTemplateE ; The IndexFlatIP below builds index.
-  index_content = faiss.IndexIDMap(faiss.IndexFlatIP(len(faiss_title_embedding[0])))
-  index_content.add_with_ids(faiss_title_embedding, range(len(headlines)))
-  query_vector = model.encode([query])
-  faiss.normalize_L2(query_vector)
-  top_results = index_content.search(query_vector, number_of_results_to_return)
-  ids = top_results[1][0].tolist()
-  _similarities = top_results[0][0].tolist() # COULD: return this, for whatever we want.
-  results = [headlines[i] for i in ids]
-  return results
-
 #Make default state, and other presets, so we can manage presets and resets.
 # Ah, finally, I've figured out how you're actually supposed to do it: https://docs.streamlit.io/library/advanced-features/button-behavior-and-examples#option-1-use-a-key-for-the-button-and-put-the-logic-before-the-widget
 #IMPORTANT: these field names are the same field names as what we eventually submit. HOWEVER, these are just the default values, and are only used for that, and are stored in this particular data structure, and do not overwrite the other variables of the same names that represent the returned values.
@@ -181,7 +162,7 @@ class PresetsPayload(TypedDict):
   tone: list[str]
   topics: list[str]
   additional_topics: str
-  semantic_query: str
+  exact_match_query: str
   headline: str | None
   overdrive: bool
   exact_match: bool
@@ -206,7 +187,7 @@ presets: dict[str, PresetsPayload] = {
     "tone" : [],
     "topics" : [],
     "additional_topics" : "",
-    "semantic_query": "",
+    "exact_match_query": "",
     "headline": None,
     "overdrive": False,
     "exact_match": False
@@ -275,9 +256,6 @@ def main() -> None:
 
   account_names = load_account_names()
 
-  headlines : list[str] = load_headlines(get_all=False)
-  headlines_overdrive : list[str] = load_headlines(get_all=False, past_days=3)
-
   if not st.session_state.get("initted"):
     set_ui_to_preset("default")
     #Exploit the fact that the streamlit community cloud apparently regularly reruns our code invisibly somewhere in order to keep the endpoint alive during business hours, because a user disliked waiting.
@@ -307,21 +285,12 @@ def main() -> None:
   #For technical reasons (various parts of it update when other parts of it are changed, iirc) this can't go within the st.form
 
   with st.expander(r"$\textsf{\Large FOX NEWS HEADLINES}$"if st.session_state["developer_mode"] else r"$\textsf{\Large NEWS HEADLINES}$"):
-    semantic_query = st.text_input("Semantic Search  \n*Returns headlines matching the meaning of the search terms, not necessarily exact matches. Must hit Enter.*  \n*Example: searching for 'border' will also return headlines for 'immigration', 'migrants', 'border crossings', 'deportation', etc.*", key="semantic_query")
-    col1, col2 = st.columns(2) #this column setup arguably looks worse than the default, and we've already blown the vertical-single-screen idea when you open this expander, so maybe you don't have to keep this formatting idk.
-    with col1:
-      exact_match: bool = st.checkbox("Use exact match instead of semantic match.", key="exact_match") #an option for persnickety people ohoho
-    with col2:
-      overdrive: bool = st.checkbox("Only search headlines from the last 3 days.", key="overdrive")
-    h = headlines if not overdrive else headlines_overdrive
-    if semantic_query:
-      if exact_match:
-        headlines_sorted = only_those_strings_of_the_list_that_contain_the_given_substring_case_insensitively(h, semantic_query)
-      else:
-        headlines_sorted = sort_headlines_semantically(h, semantic_query, 10) # The limit of 10 is arbitrary. No need to let the user change it.
-    else:
-      headlines_sorted = h # I forget if this is actually sorted in any way by default. Possibly date?
-    headline = st.selectbox("Selected headlines will be added to your prompt below.", list(headlines_sorted), key="headline")
+    exact_match_query = st.text_input("Headline Search  \n*Returns headlines containing the search terms. Hit Enter to filter the headlines.*", key="exact_match_query")
+    overdrive: bool = st.checkbox("Only search headlines from the last 3 days.", key="overdrive")
+    h: list[str] = load_headlines(get_all=False) if not overdrive else load_headlines(get_all=False, past_days=3)
+    if exact_match_query:
+      h = only_those_strings_of_the_list_that_contain_the_given_substring_case_insensitively(h, exact_match_query)
+    headline = st.selectbox("Selected headlines will be added to your prompt below.", list(h), key="headline")
 
   st.text("") # Just for vertical spacing.
 
