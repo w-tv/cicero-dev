@@ -115,8 +115,10 @@ def write_to_activity_log_table(datetime: str, useremail: str, promptsent: str, 
   """Write the arguments into the activity_log table. If you change the arguments this function takes, you must change the sql_call in the function and in ensure_existence_of_activity_log. It wasn't worth generating them programmatically. (You must also change the caller function of this function, of course.)"""
   keyword_arguments = locals() # This is a dict of the arguments passed to the function. It must be called at the top of the function, because if it is called later then it will list any other local variables as well. (The docstring isn't included; I guess it's the __doc__ attribute of the enclosing function, not a local variable. <https://docs.python.org/3.11/glossary.html#term-docstring>)
   ensure_existence_of_activity_log()
-  sql_call_cacheless( # It probably doesn't matter whether this is cacheless or not, ultimately.
-    "INSERT INTO cicero.default.activity_log VALUES (:datetime, :useremail, :promptsent, :responsegiven, :modelparams, :modelname, :modelurl, :pod)",
+  sql_call_cacheless(
+    "INSERT INTO cicero.default.activity_log\
+             ( datetime,  useremail,  promptsent,  responsegiven,  modelparams,  modelname,  modelurl,  pod)\
+      VALUES (:datetime, :useremail, :promptsent, :responsegiven, :modelparams, :modelname, :modelurl, :pod)",
     keyword_arguments
   )
 

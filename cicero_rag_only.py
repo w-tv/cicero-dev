@@ -24,10 +24,14 @@ def grow_chat(streamlit_key_suffix: str = "", alternate_content: str = "", displ
   st.session_state.messages.append({"role": "user", "content": display_only_this_at_first_blush or p})
   st.session_state.messages.append({"avatar": "assets/cicero_head.png", "role": "assistant", "content": st.session_state.chat.last}) #another possible avatar is '📜' or '🖋️'
   # Write to the chatbot activity log:
-  sql_call_cacheless("CREATE TABLE IF NOT EXISTS cicero.default.activity_log_chatbot (timestamp timestamp, user_email string, user_pod string, model_name string, model_parameters string, system_prompt string, user_prompt string, response_given string)") # There's no model_uri field because I don't know how to access that 
-  sql_call_cacheless( # It probably doesn't matter whether this is cacheless or not, ultimately.
-    "INSERT INTO cicero.default.activity_log_chatbot VALUES (:timestamp, :user_email, :user_pod, :model_name, :model_parameters, :system_prompt, :user_prompt, :response_given)",
-    {"timestamp": datetime.now(z("US/Eastern")), "user_email": st.session_state["email"], "user_pod": pod_from_email(st.session_state["email"]), "model_name": st.session_state.chat.model, "model_parameters": str(st.session_state.chat.parameters), "system_prompt": st.session_state.chat.system_message, "user_prompt": p, "response_given": st.session_state.chat.last} # Note that you can `SET TIME ZONE "US/Eastern";` in sql to get the timezones in non-UTC (UTC being the default) (Specifically this gets them in US Eastern time.)
+  # (There's no model_uri field because I don't know how to access that from here.)
+  # (Note that this table uses a real timestamp object instead of a mere string datetime. You can `SET TIME ZONE "US/Eastern";` in sql to read the timestamps in some non-UTC timezone. (UTC being the default) (Specifically this gets them in US Eastern time.))
+  sql_call_cacheless("CREATE TABLE IF NOT EXISTS cicero.default.activity_log_chatbot (timestamp timestamp, user_email string, user_pod string, model_name string, model_parameters string, system_prompt string, user_prompt string, response_given string)")
+  sql_call_cacheless(
+    "INSERT INTO cicero.default.activity_log_chatbot\
+             ( timestamp,  user_email,  user_pod,  model_name,  model_parameters,  system_prompt,  user_prompt,  response_given)\
+      VALUES (:timestamp, :user_email, :user_pod, :model_name, :model_parameters, :system_prompt, :user_prompt, :response_given)",
+    {"timestamp": datetime.now(z("US/Eastern")), "user_email": st.session_state["email"], "user_pod": pod_from_email(st.session_state["email"]), "model_name": st.session_state.chat.model, "model_parameters": str(st.session_state.chat.parameters), "system_prompt": st.session_state.chat.system_message, "user_prompt": p, "response_given": st.session_state.chat.last}
   )
 
 # chat.history
