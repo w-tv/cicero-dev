@@ -429,6 +429,8 @@ def main() -> None:
     ROAS (%): SUM([TV_FUNDS]) / SUM([SPEND_AMOUNT]) PERCENT
     Sent: SUM of Sent
     Result_Count: Count Distinct of Result Name
+
+    (Since FPM is Funds per mille, I think the symbol should be $‰, but Alex nixed this idea.)
   """
 
   with st.expander("Topics..."):
@@ -495,9 +497,14 @@ def main() -> None:
   else:
     search_string = "true"
 
-  day_data_per_topic = sql_call(f"""WITH stats(date, funds, topic) AS (SELECT SEND_DATE, SUM(TV_FUNDS), Hooks FROM hook_reporting.default.hook_data_prod WHERE {project_types_string} and account_name in {to_sql_tuple_string(accounts)} and hooks in {to_sql_tuple_string(topics)} and {askgoal_string} and SEND_DATE >= NOW() - INTERVAL 30 DAY and SEND_DATE < NOW() and Hook_Bool=true and {search_string} GROUP BY SEND_DATE, Hooks) SELECT date, funds, topic from stats""", {"regexp": search})
+  day_data_per_topic = sql_call(f"""WITH stats(date, funds, sent, spend, topic) AS (SELECT SEND_DATE, SUM(TV_FUNDS), SUM(SENT), SUM(SPEND_AMOUNT), Hooks FROM hook_reporting.default.hook_data_prod WHERE {project_types_string} and account_name in {to_sql_tuple_string(accounts)} and hooks in {to_sql_tuple_string(topics)} and {askgoal_string} and SEND_DATE >= NOW() - INTERVAL 30 DAY and SEND_DATE < NOW() and Hook_Bool=true and {search_string} GROUP BY SEND_DATE, Hooks) SELECT date, funds, cast( try_divide(funds, sent)*1000*100 as int )/100, cast( try_divide(funds, spend)*100 as int ), topic from stats""", {"regexp": search})
   if len(day_data_per_topic):
-    st.line_chart(to_graphable_dict(day_data_per_topic, "Day", "TV Funds ($)", "Topic"), x='Day', y='TV Funds ($)', color='Topic', height=500) #COULD: make colors match above. Not sure if it's important.
+    tv_funds_graph = [(row[0], row[1], row[4]) for row in day_data_per_topic]
+    fpm_graph = [(row[0], row[2], row[4]) for row in day_data_per_topic]
+    roas_graph = [(row[0], row[3], row[4]) for row in day_data_per_topic]
+    st.line_chart(to_graphable_dict(fpm_graph, "Day", "FPM ($)", "Topic"), x='Day', y='FPM ($)', color='Topic', height=500) #COULD: make colors match above. Not sure if it's important.
+    st.line_chart(to_graphable_dict(roas_graph, "Day", "ROAS (%)", "Topic"), x='Day', y='ROAS (%)', color='Topic', height=500) #COULD: make colors match above. Not sure if it's important.
+    st.line_chart(to_graphable_dict(tv_funds_graph, "Day", "TV Funds ($)", "Topic"), x='Day', y='TV Funds ($)', color='Topic', height=500) #COULD: make colors match above. Not sure if it's important.
   else:
     st.info("No data points are selected by the values indicated by the controls. Therefore, there is nothing to graph. Please broaden your criteria.")
 if __name__ == "__main__": main()
