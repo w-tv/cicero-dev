@@ -22,6 +22,11 @@ from langchain.prompts import PromptTemplate
 from langchain.chat_models import ChatDatabricks
 from langchain.schema.output_parser import StrOutputParser
 
+from pyspark.context import SparkContext #TODO: I vaguely remember discussions about how we could maybe remove spark from this program whilst porting it over. Possibly using sql_call() instead.
+from pyspark.sql.session import SparkSession
+sc = SparkContext('local')
+spark = SparkSession(sc)
+
 # This is the 'big' of topics, the authoritative record of various facts and mappings about topics.
 Topics_Big_Payload = TypedDict("Topics_Big_Payload", {'color': str, 'internal name': str, 'show in prompter?': bool})
 topics_big: dict[str, Topics_Big_Payload] = {
