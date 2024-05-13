@@ -420,7 +420,7 @@ def everything_from_wes() -> None:
       results_found.update(results) # add the found primary key values to the results_found set
       # Perform a similarity search using the target_prompt defined beforehand. Filter for only the results we found earlier in this current iteration.
       vs_search = text_index.similarity_search(
-          num_results=len(results),
+          num_results=min(len(results), 10000),
           columns=["Final_Text"],
           filters={primary_key: results},
           query_text=target_prompt
