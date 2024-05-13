@@ -385,13 +385,8 @@ def everything_from_wes() -> None:
 
   # Wes 7. Find as Many Relevant Documents as Possible
 
-  # Initialize Vector Search Client with either service principal or PAT authentication
-  vsc = VectorSearchClient(
-      workspace_url=workspace_url,
-      service_principal_client_id=sp_client_id,
-      service_principal_client_secret=sp_client_secret
-      # personal_access_token=os.environ["DATABRICKS_TOKEN"] #TODO: (urgent) use this, actually
-  )
+  # Initialize Vector Search Client with (either service principal or) PAT authentication
+  vsc = VectorSearchClient( personal_access_token=st.secrets["databricks_api_token"] )
 
   text_index = vsc.get_index(endpoint_name=vs_endpoint_name, index_name=index_table_name)
   text_df = spark.read.table(output_table_name)
