@@ -238,8 +238,414 @@ def send(model_uri: str, databricks_token: str, data: dict[str, list[bool|str]],
       raise Exception(f"Request failed with status {response.status_code}, {response.text}")
   return [str(r) for r in response.json()["predictions"][0]["0"]] # This list comprehension is just for appeasing the type-checker.
 
+def everything_from_wes() -> None:
+  dbutils.widgets.text("score_threshold", "0.5", "Document Similarity Score Acceptance Threshold")
+  dbutils.widgets.text("model_temp", "0.8", "Model Temperature")
+
+  dbutils.widgets.text("doc_pool_size", "10", "Document Pool Size")
+  dbutils.widgets.text("num_examples", "10", "Number of Documents to Use as Examples")
+  dbutils.widgets.text("num_outputs", "5", "Number of Texts the Model Should Generate")
+  dbutils.widgets.text("output_table_name", "models.lovelytics.gold_text_outputs", "Text Output Table Name")
+  dbutils.widgets.text("ref_bio_name", "models.lovelytics.ref_bios", "Biographies Table Name")
+  dbutils.widgets.text("ref_tag_name", "models.lovelytics.ref_tags", "Tags Table Name")
+  dbutils.widgets.text("vs_endpoint_name", "rag_llm_vector", "Vector Search Endpoint Name")
+  dbutils.widgets.text("index_table_name", "models.lovelytics.gold_text_outputs_index", "Indexed Table Name")
+  dbutils.widgets.text("rag_output_table_name", "models.lovelytics.rag_outputs", "RAG Outputs Table Name")
+  dbutils.widgets.text("primary_key", "PROJECT_NAME", "Index Table Primary Key Name")
+
+  dbutils.widgets.text("topics", "", "Topics")
+  dbutils.widgets.text("client", "", "Client/Account Name")
+  dbutils.widgets.text("ask", "", "Ask Type")
+  dbutils.widgets.text("tones", "", "Tones")
+  dbutils.widgets.text("text_len", "", "Text Length")
+  dbutils.widgets.text("use_bio", "True", "Include Bio Information")
+  dbutils.widgets.text("headlines", "", "News Headlines")
+
+  dbutils.widgets.text("topic_weight", "4", "Topic Filter Weight")
+  dbutils.widgets.text("tone_weight", "1", "Tone Filter Weight")
+  dbutils.widgets.text("client_weight", "6", "Client Filter Weight")
+  dbutils.widgets.text("ask_weight", "2", "Ask Type Weight")
+  dbutils.widgets.text("text_len_weight", "2", "Text Length Weight")
+
+  score_threshold = float(dbutils.widgets.get("score_threshold"))
+  model_temp = float(dbutils.widgets.get("model_temp"))
+
+  doc_pool_size = int(dbutils.widgets.get("doc_pool_size"))
+  num_examples = int(dbutils.widgets.get("num_examples"))
+  num_outputs = int(dbutils.widgets.get("num_outputs"))
+  output_table_name = dbutils.widgets.get("output_table_name")
+  ref_bio_name = dbutils.widgets.get("ref_bio_name")
+  ref_tag_name = dbutils.widgets.get("ref_tag_name")
+  vs_endpoint_name = dbutils.widgets.get("vs_endpoint_name")
+  index_table_name = dbutils.widgets.get("index_table_name")
+  rag_output_table_name = dbutils.widgets.get("rag_output_table_name")
+  primary_key = dbutils.widgets.get("primary_key")
+
+  topics = dbutils.widgets.get("topics").lower()
+  client = dbutils.widgets.get("client")
+  ask = dbutils.widgets.get("ask")
+  tones = dbutils.widgets.get("tones").lower()
+  text_len = dbutils.widgets.get("text_len")
+  use_bio = bool(dbutils.widgets.get("use_bio"))
+  headlines = dbutils.widgets.get("headlines")
+
+  topic_weight = float(dbutils.widgets.get("topic_weight"))
+  tone_weight = float(dbutils.widgets.get("tone_weight"))
+  client_weight = float(dbutils.widgets.get("client_weight"))
+  ask_weight = float(dbutils.widgets.get("ask_weight"))
+  text_len_weight = float(dbutils.widgets.get("text_len_weight"))
+
+  # Can't ask to provide more examples than there are documents in the pool
+  assert num_examples <= doc_pool_size
+
+  # Topics and tones are expected to be passed with a comma and space separating each item
+  # e.g. topics = "a, b, c"
+  if topics:
+      topics_list = topics.split(", ")
+  else:
+      topics_list = []
+  if tones:
+      tones_list = tones.split(", ")
+  else:
+      tones_list = []
+
+  # Create a target prompt that is used during the vector index similarity search
+  # This is to score retrieved texts
+  target_prompt = f"A {text_len} {ask} text message from {client}"
+  if topics:
+      target_prompt += f" about {topics}"
+  if tones:
+      target_prompt += f" written with an emphasis on {tones}"
+
+  # Wes 6. Create All Possible Filter Combinations and Sort By Importance
+
+  ### Tag importance from most important to least
+  # Topics (Tp)
+  # Account/Client Name (C)
+  # Ask Type (A)
+  # Tone (To)
+  # Ask Length (L)
+  ### Example Priority Ordering
+  # Tp, C, A, To, L
+  # Tp, C, A, To
+  # Tp, C, A, L
+  # Tp, C, A
+  # Tp, C, To, L
+  # Tp, C, To
+  # Tp, C, L
+  # Tp, C
+
+  # Used to generate powersets of filters
+  def powerset(iterable, start=0):
+      "powerset([1,2,3]) → () (1,) (2,) (3,) (1,2) (1,3) (2,3) (1,2,3)"
+      s = list(iterable)
+      assert 0 <= start <= len(s)
+      return chain.from_iterable(combinations(s, r) for r in range(start, len(s)+1))
+
+  # Generate the powersets (i.e. each combination of items) for both topics and tones
+  # Normally, the set starts with length of 0, but for performance purposes either start with 1 or 0, depending on if the list is empty
+  # e.g. the powerset of [a, b] would be [(), (a), (b), (a, b)] but by starting with length 1 we only need to consider [(a), (b), (a, b)]
+  # We only start with length 0 if there are no topics or tones. This is to make sure we at least generate filter combinations using the other three filter types
+  # The topic/tone combinations are joined together with (, .*){1,} which is a regex pattern that means
+  # match at least one time the pattern of a comma and space followed by any character zero or more times
+  # So a(, .*){1,}b would mean: in the search space look for a, then at least one or more characters, and then b
+  # This would match the string a, b and a, c, d, e, f, g, b
+  # And would not match the string acdb
+  # ^(?=.*\btopic\b)(?=.*\btopic\b).*$ regex for matching
+  topic_sets = [("topics", "(, .*){1,}".join(x), topic_weight * len(x)) for x in powerset(sorted(topics_list), start=min(1, len(topics_list)))]
+  tone_sets = [("tones", "(, .*){1,}".join(x), tone_weight * len(x)) for x in powerset(sorted(tones_list), start=min(1, len(tones_list)))]
+  combos = set()
+  # Iterate through each pairing of topics and tones
+  for tp in topic_sets:
+      for to in tone_sets:
+          # Generate every combination between client, ask type, text length, topic, and tone
+          # This means that for each topic set and tone set, we're generating every possible combination between those and the client, ask, and length
+          temp_arr = [("client", client, client_weight), ("ask", ask, ask_weight), ("text_len", text_len, text_len_weight)]
+          # But only add the topics and tones if they exist i.e. are not an empty string
+          if tp[-1] != 0:
+              temp_arr.append(tp)
+          if to[-1] != 0:
+              temp_arr.append(to)
+          # Then update the set of filter combinations. A set is used to remove any duplicate filter combinations
+          # Note that each filter tag (e.g. client, a topic set) has it's own weight value that dictate the filter's importance
+          # Higher weight filters will be used first
+          # When the sets of all filters are generated, their combined weight is summed together using the reduce function
+          combos.update((x, reduce(lambda a, b: a+b[2], x, 0))  if len(x) != 0 else (x, 0) for x in powerset(temp_arr))
+  # Then, the filters are sorted by their weight in descending order
+  # So higher weight filter combinations are first in the array which means any documents with those filters will be considered first
+  combos = [{y[0]: y[1] for y in x[0]} for x in sorted(combos, key=lambda a: a[1], reverse=True)]
+
+  # Wes 7. Find as Many Relevant Documents as Possible
+
+  # Initialize Vector Search Client with either service principal or PAT authentication
+  vsc = VectorSearchClient(
+      workspace_url=workspace_url,
+      service_principal_client_id=sp_client_id,
+      service_principal_client_secret=sp_client_secret
+      # personal_access_token=os.environ["DATABRICKS_TOKEN"] #TODO: (urgent) use this, actually
+  )
+
+  text_index = vsc.get_index(endpoint_name=vs_endpoint_name, index_name=index_table_name)
+  text_df = spark.read.table(output_table_name)
+
+  # results_found is a set of every primary key we've search so far
+  # This is to prevent duplicate documents/texts from showing up
+  results_found = set()
+  # reference_texts will be a list of dictionaries containing example user prompts and assistant responses (i.e. the text messages)
+  reference_texts = []
+  for c in combos:
+      # Topics and tones will always be filtered for using the rlike function
+      # Which performs a regex match. If an empty string is passed in rlike, then it will return a match for every record
+      if "topics" not in c:
+          c["topics"] = ""
+      if "tones" not in c:
+          c["tones"] = ""
+      filt_df = text_df.filter(col("Topics").rlike(c["topics"]) & col("Tones").rlike(c["tones"]))
+
+      # Only apply client, ask type, and text length filters if they are present in the current filter combination
+      if "client" in c:
+          filt_df = filt_df.filter(col("Client_Name") == c["client"])
+      if "ask" in c:
+          filt_df = filt_df.filter(col("Ask_Type") == c["ask"])
+      if "text_len" in c:
+          filt_df = filt_df.filter(col("Text_Length") == c["text_len"])
+
+      # All the primary keys that match the filters above are retrieved only if we haven't found them before
+      results = [x[primary_key] for x in filt_df.select(primary_key).collect() if x[primary_key] not in results_found]
+      num_searches = len(results)
+      # If no results were found, move onto the next filter combination
+      if num_searches == 0:
+          continue
+      # Otherwise add the found primary key values to the results_found set
+      results_found.update(results)
+      # Perform a similarity search using the target_prompt defined beforehand
+      # Filter for only the results we found earlier in this current iteration
+      vs_search = text_index.similarity_search(
+          num_results=num_searches,
+          columns=["Final_Text"],
+          filters={primary_key: results},
+          query_text=target_prompt
+      )
+
+      # Then add all results returned by the similarity search to the reference_texts list
+      # But only if their similarity score is greater than the score_threshold parameter
+      if vs_search["result"]["row_count"] != 0:
+          reference_texts.extend({"prompt": "Please write me a" + x[0].split(":\n\n", 1)[0][1:], "text": x[0].split(":\n\n", 1)[1], "score": x[-1]} for x in vs_search["result"]["data_array"] if x[-1] > score_threshold)
+      # If we've found at least the number of desired documents
+      # Exit the loop and take the first doc_pool_size number of texts
+      # The beginning of the reference_texts array will contain the texts that match the most important filters and the highest similarity scores
+      if len(reference_texts) >= doc_pool_size:
+          reference_texts = reference_texts[:doc_pool_size]
+          break
+  # print(reference_texts)
+  reference_texts
+
+  # Wes 8. Query Endpoints
+
+  # Look for the client's/account's bio information
+  bios_df = spark.read.table(ref_bio_name)
+  # Since we're expecting only one bio record for a client, we can safely use .first() to retrieve the bio as a Row object
+  bios_text = (bios_df.filter(col("Candidate") == client)
+               .first()
+               )
+  # If the boolean parameter use_bio is set to False, then we set bios_text to None to skip adding the bio to the prompt
+  if not use_bio:
+      bios_text = None
+
+  # Randomize the order of the example texts. Unclear if this actually helps
+  # But maybe it prevents the model from learning any ordering pattern we didn't intend for it to learn
+  texts_to_use = random.sample(reference_texts, k=min(num_examples, len(reference_texts)))
+  # We reinsert and separate the found documents into two separate dictionaries
+  # This makes it easier to assemble the RAG prompt and pass them as string format variables to langchain
+  ms_prompts = {}
+  ms_texts = {}
+  for num, content in enumerate(texts_to_use):
+      ms_prompts[f"example_{num + 1}_p"] = content["prompt"]
+      ms_texts[f"example_{num + 1}_t"] = content["text"]
+
+  ##### INSERT PROMPT HERE #####
+  # Llama-3 Prompt Styling
+  # Base beginning structure of the RAG prompt
+  rag_prompt = """
+  <|begin_of_text|><|start_header_id|>system<|end_header_id|>
+
+  {system_prompt}<|eot_id|>
+  """.strip()
+
+  # Define the system prompt
+  sys_prompt = """You are an expert copywriter who specializes in writing text messages for conservative candidates in the United States of America. Do not start your message with 'Dear', 'Subject', or 'Hello'. Try to grab the reader's attention in the first line. Do not explicitly use language such as 'Donate now' or '[DONATE]', instead use language like 'Rush', 'Support', or 'Chip in'. Do not make up facts or statistics. Do not use emojis or hashtags in your messages. Do not exactly copy the example text messages. Write the exact number of text messages asked for."""
+  # Add instructions on how long or short a text should be depending on the text length we want the model to generate
+  # Add specificity of specific ask type of the text message too
+  # Try to make the model understand that the outputs we specifically are asking for should be this length
+  if text_len == "short":
+      sys_prompt += f" Your short {ask} text messages should be less than 160 characters in length, use less than 35 words, and have less than 2 sentences."
+  elif text_len == "medium-length":
+      sys_prompt += f" Your medium-length {ask} text messages should be between 160 and 400 characters in length, use between 35 to 70 words, and have between 3 to 5 sentences."
+  elif text_len == "long":
+      sys_prompt += f" Your long {ask} text messages should be more than 400 characters in length, use more than 70 words, and have more than 6 sentences."
+  # combined_dict stores all of the string format variables used in the prompt and their values
+  combined_dict = {}
+  # Add bio and headline information if those are available
+  if bios_text:
+      sys_prompt += f""" Here is important biographical information about the conservative candidate you are writing for: {bios_text["Bio"]}"""
+  if headlines:
+      sys_prompt += f""" Here is/are news headline(s) you should reference in your text messages: {headlines}"""
+  # Add system_prompt to combined_dict
+  combined_dict["system_prompt"] = sys_prompt
+
+  # Then for every example document, we add the corresponding assistant and user lines
+  # Triple brackets are used so the actual key name in the ms_prompts and ms_texts dictionaries can be inserted dynamically while also keeping the curly braces in the final string
+  # So for example, if k = "apples" f"I like to eat {{{k}}}" would return the string "I like to eat {apples}"
+  for k in ms_prompts.keys():
+      ok = k.rsplit("_", 1)[0] + "_t"
+      rag_prompt += f"""
+  <|start_header_id|>user<|end_header_id|>
+
+  {{{k}}}<|eot_id|><|start_header_id|>assistant<|end_header_id|>
+
+  {{{ok}}}<|eot_id|>""".strip()
+  # The line above is the last line in the for loop
+  # The string isn't indented in to visually signify the contents of the for loop
+  # This is because the strings being appended to the RAG prompt would contain a bunch of random indents if it was indented in
+
+  # Add in the final component of the RAG prompt where we pass in the prompt/question we want to send to the model
+  rag_prompt += "<|start_header_id|>user<|end_header_id|>\n\n{question}<|eot_id|><|start_header_id|>assistant<|end_header_id|>"
+  # Combine all of the dictionaries with the string format keys and values for langchain parameter passing usage
+  combined_dict = combined_dict | ms_prompts | ms_texts
+
+  # Create the question prompt and add it to the combined_dict dictionary
+  question_prompt = f"Please write me {num2words(num_outputs)} {text_len} {ask} text message(s) from {client}"
+  if topics:
+      question_prompt += f" about {topics}"
+  if tones:
+      question_prompt += f" written with an emphasis on {tones}"
+  combined_dict["question"] = question_prompt
+  ##### END PROMPT INSERTION #####
+  # print(rag_prompt)
+
+  # Create the prompt template using langchain's PromptTemplate
+  # Tell it that the input variables it should expect is everything in our combined_dict dictionary
+  prompt = PromptTemplate(
+      input_variables=list(combined_dict.keys()),
+      template=rag_prompt
+  )
+  # This is just to visually see what the final RAG prompt looks like once the format variables are inserted
+  filled_in_prompt = (prompt.format(**combined_dict
+                                    )
+                      )
+  print(filled_in_prompt)
+  # Estimate the number of tokens our prompt is
+  # This is important for querying the Llama-2 model only since it has a limit of 4096 tokens for its input and output combined
+  # e.g. if our input is 4000 tokens, then we can only have 96 tokens for the output
+  token_count = len(filled_in_prompt) // 3
+  # Note to Wyatt: might need to inform users on the front end that once they set the token count, they shouldn't change it once using our chat-opetion (we give users chatbot functionality after generating outputs Wes, and if we just end up using these same models I don't want our end user screwing it up and instantiating a new ChatDatabricks object, unless that won't screw with the history, hmmmm) (probably a way to lock users out of the settings once they start chatting tbh)
+  dbrx_chat_model = ChatDatabricks(endpoint="databricks-dbrx-instruct", max_tokens=4096, temperature=model_temp)
+  llama_3_chat_model = ChatDatabricks(endpoint="databricks-meta-llama-3-70b-instruct", max_tokens=4096, temperature=model_temp)
+  mixtral_chat_model = ChatDatabricks(endpoint="databricks-mixtral-8x7b-instruct", max_tokens=4096, temperature=model_temp)
+
+  # Assemble all of the LLM chains which makes it easier to invoke them and parse their outputs
+  # This uses langchain's own pipe syntax to organize multiple components into a "pipe"
+  dbrx_chain = (
+      prompt
+      | dbrx_chat_model
+      | StrOutputParser()
+  )
+  llama_3_chain = (
+      prompt
+      | llama_3_chat_model
+      | StrOutputParser()
+  )
+  mixtral_chain = (
+      prompt
+      | mixtral_chat_model
+      | StrOutputParser()
+  )
+  llm_chains = {"dbrx": dbrx_chain,
+                "llama-3": llama_3_chain,
+                "mixtral": mixtral_chain}
+  # Only use the llama-2 if we know the input prompt isn't greater than 4096 tokens
+  if (4096 - token_count) > 0:
+      llama_chat_model = ChatDatabricks(endpoint="databricks-llama-2-70b-chat", max_tokens=4096-token_count, temperature=model_temp)
+      llama_chain = (
+          prompt
+          | llama_chat_model
+          | StrOutputParser()
+      )
+      llm_chains["llama-2"] = llama_chain
+
+  # For every LLM, query it with our prompt and print the outputs
+  # Also save the outputs into a dictionary which we'll write to a delta table
+  all_responses = {}
+  all_responses["full_prompt"] = prompt.format(**combined_dict)
+  for llm_name, llm_chain in llm_chains.items():
+      print(f"#### {llm_name} OUTPUTS ####")
+      inv_res = llm_chain.invoke(combined_dict)
+      print(inv_res)
+      all_responses[llm_name] = inv_res
+      print()
+
+  # Also query the SMC API llama-3 model
+  print(f"#### SMC API OUTPUTS ####")
+  url = "https://relay.stagwellmarketingcloud.io/google/v1/projects/141311124325/locations/us-central1/endpoints/2940118281928835072:predict"
+  payload = {"instances": [
+          {
+              "prompt": prompt.format(**combined_dict),
+              "temperature": model_temp,
+              "max_tokens": 2048,
+              "stop": ["<|eot_id|>", "<|end_of_text|>"]
+          }
+      ]}
+  headers = {
+      "Content-Type": "application/json",
+      "smc-owner": "...",
+      "Authorization": "Bearer eyJhbGciOiJFUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6ImZmYzU1ZmNiLTkwZTMtNGI4OS1iMmY0LTQ1Mjg0OWE3MWZiNCIsImlzcyI6IlNNQyIsImtleU5hbWUiOiJUYXJnZXRkVmljdG9yeSBNTVMiLCJraWQiOiI5M2M5OGRiMDVmZmUyNDI3NDZkM2IyYzYwMDIzNDYxNiIsIm9yZ0lkIjoiNjA0NTM3MjYtYWY4ZC00NjQ2LTk2ZTktNzRjNjQyMWZiNDI0In0.XNnsi6d_47yBLgHZwouoEtqC6IB-bfaLnGL6kB3Ldw9oXLCfEOuXygFGMhlH7ywTHowaoegPPygYiQ-Z78lsDQ"
+  }
+  response = requests.request("POST", url, json=payload, headers=headers)
+  response_json = json.loads(response.text)
+  response_text = response_json["predictions"][0].rsplit("Output:", 1)[-1].strip()
+  all_responses["smc_api"] = response_text
+  print(response_text)
+
+  # Wes 9.
+
+  # Let's save all of our LLM outputs to a delta table!
+  # The table makes use of a Batch_Number column to mark which outputs were generated at the same time
+  # There's also an Output_Datetime column which contains the actual datetime the outputs were created, which will be the same value for outputs within the same batch
+  # But a batch number is easier to communicate to others and understand at a quick glance
+
+  # If the table already exists, the new batch number should be one greater than the last one
+  if spark.catalog.tableExists(rag_output_table_name):
+      batch_num = int(spark.read.table(rag_output_table_name)
+                      .agg(sp_max(col("Batch_Number")).alias("last_batch"))
+                      .first()["last_batch"]
+                      ) + 1
+  # If the table doesn't exist, the first batch will be batch number 1
+  else:
+      batch_num = 1
+
+  # Create a spark Dataframe using all of the outputs we got from the LLMs
+  # Then create a column with the batch number and current datetime
+  outputs_df = (spark.createDataFrame(data=all_responses.items(), schema="Output_Source STRING, Output_Content STRING")
+                .select(lit(batch_num).alias("Batch_Number"), col("Output_Source"), col("Output_Content"), current_timestamp().alias("Output_Datetime"))
+                )
+  # Append these values to the target output table
+  # If the table doesn't exist, spark will create it automatically
+  (outputs_df.write
+   .mode("append")
+   .saveAsTable(rag_output_table_name)
+   )
+  # display(spark.read.table("models.lovelytics.rag_outputs"))
+
+  # Wes 10.
+
+  #(empty cell)
+
+
+
 def main() -> None:
-  
+
+  everything_from_wes()
+
   if not st.session_state.get('email'): #TODO: this line is of dubious usefulness. It's supposed to let you run cicero_prompter.py locally and stand-alone without cicero.py, however.
     st.session_state["email"] = str(st.experimental_user["email"]) #this str call also accounts for if the user email is None.
   if 'use_count' not in st.session_state:
@@ -436,4 +842,5 @@ def main() -> None:
     write_to_activity_log_table( datetime=str(datetime.now()), useremail=st.session_state['email'], promptsent=prompt, responsegiven=json.dumps(outputs), modelparams=no_prompt_dict_str, modelname=model_name, modelurl=model_uri )
 
   # st.components.v1.html('<!--<script>//you can include arbitrary html and javascript this way</script>-->') #or, use st.markdown, if you want arbitrary html but javascript isn't needed.
+
 if __name__ == "__main__": main()
