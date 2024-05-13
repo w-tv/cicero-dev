@@ -11,7 +11,7 @@ from datetime import datetime, date
 from transformers import GenerationConfig
 from typing import TypedDict
 from zoneinfo import ZoneInfo as z
-from cicero_shared import sql_call, sql_call_cacheless, exit_error
+from cicero_shared import sql_call, sql_call_cacheless, exit_error, Row
 import cicero_rag_only
 
 from num2words import num2words
@@ -22,10 +22,7 @@ from langchain.prompts import PromptTemplate
 from langchain.chat_models import ChatDatabricks
 from langchain.schema.output_parser import StrOutputParser
 
-from pyspark.context import SparkContext #TODO: I vaguely remember discussions about how we could maybe remove spark from this program whilst porting it over. Possibly using sql_call() instead.
-from pyspark.sql.session import SparkSession
-sc = SparkContext('local')
-spark = SparkSession(sc)
+import re
 
 # This is the 'big' of topics, the authoritative record of various facts and mappings about topics.
 Topics_Big_Payload = TypedDict("Topics_Big_Payload", {'color': str, 'internal name': str, 'show in prompter?': bool})
@@ -137,6 +134,10 @@ def write_to_activity_log_table(datetime: str, useremail: str, promptsent: str, 
 @st.cache_data()
 def load_bios() -> dict[str, str]:
   return {row["candidate"]:row["bio"] for row in sql_call("SELECT candidate, bio FROM cicero.default.ref_bios")}
+
+@st.cache_data()
+def load_bio(candidate: str) -> str:
+  return sql_call("SELECT bio FROM cicero.default.ref_bios WHERE candidate = :candidate", locals())[0][0]
 
 @st.cache_data()
 def load_account_names() -> list[str]:
@@ -259,7 +260,6 @@ def everything_from_wes() -> None:
   dbutils.widgets.text("num_examples", "10", "Number of Documents to Use as Examples")
   dbutils.widgets.text("num_outputs", "5", "Number of Texts the Model Should Generate")
   dbutils.widgets.text("output_table_name", "models.lovelytics.gold_text_outputs", "Text Output Table Name")
-  dbutils.widgets.text("ref_bio_name", "models.lovelytics.ref_bios", "Biographies Table Name")
   dbutils.widgets.text("ref_tag_name", "models.lovelytics.ref_tags", "Tags Table Name")
   dbutils.widgets.text("vs_endpoint_name", "rag_llm_vector", "Vector Search Endpoint Name")
   dbutils.widgets.text("index_table_name", "models.lovelytics.gold_text_outputs_index", "Indexed Table Name")
@@ -287,7 +287,6 @@ def everything_from_wes() -> None:
   num_examples = int(dbutils.widgets.get("num_examples"))
   num_outputs = int(dbutils.widgets.get("num_outputs"))
   output_table_name = dbutils.widgets.get("output_table_name")
-  ref_bio_name = dbutils.widgets.get("ref_bio_name")
   ref_tag_name = dbutils.widgets.get("ref_tag_name")
   vs_endpoint_name = dbutils.widgets.get("vs_endpoint_name")
   index_table_name = dbutils.widgets.get("index_table_name")
@@ -391,10 +390,14 @@ def everything_from_wes() -> None:
   # Wes 7. Find as Many Relevant Documents as Possible
 
   # Initialize Vector Search Client with (either service principal or) PAT authentication
-  vsc = VectorSearchClient( personal_access_token=st.secrets["databricks_api_token"] )
+  vsc = VectorSearchClient( personal_access_token=st.secrets["databricks_api_token"], workspace_url="https://"+st.secrets['DATABRICKS_SERVER_HOSTNAME'] )
 
   text_index = vsc.get_index(endpoint_name=vs_endpoint_name, index_name=index_table_name)
-  text_df = spark.read.table(output_table_name)
+  @st.cache_data()
+  def read_output_table() -> list[Row]:
+    return sql_call(f"SELECT * from {output_table_name}")
+
+  text_rows = read_output_table()
 
   # results_found is a set of every primary key we've search so far
   # This is to prevent duplicate documents/texts from showing up
@@ -402,41 +405,27 @@ def everything_from_wes() -> None:
   # reference_texts will be a list of dictionaries containing example user prompts and assistant responses (i.e. the text messages)
   reference_texts = []
   for c in combos:
-      # Topics and tones will always be filtered for using the rlike function
-      # Which performs a regex match. If an empty string is passed in rlike, then it will return a match for every record
-      if "topics" not in c:
-          c["topics"] = ""
-      if "tones" not in c:
-          c["tones"] = ""
-      filt_df = text_df.filter(col("Topics").rlike(c["topics"]) & col("Tones").rlike(c["tones"]))
-
-      # Only apply client, ask type, and text length filters if they are present in the current filter combination
-      if "client" in c:
-          filt_df = filt_df.filter(col("Client_Name") == c["client"])
-      if "ask" in c:
-          filt_df = filt_df.filter(col("Ask_Type") == c["ask"])
-      if "text_len" in c:
-          filt_df = filt_df.filter(col("Text_Length") == c["text_len"])
-
-      # All the primary keys that match the filters above are retrieved only if we haven't found them before
-      results = [x[primary_key] for x in filt_df.select(primary_key).collect() if x[primary_key] not in results_found]
-      num_searches = len(results)
-      # If no results were found, move onto the next filter combination
-      if num_searches == 0:
-          continue
-      # Otherwise add the found primary key values to the results_found set
-      results_found.update(results)
-      # Perform a similarity search using the target_prompt defined beforehand
-      # Filter for only the results we found earlier in this current iteration
+      results = [
+        row[primary_key] for row in text_rows if # Only apply filters if they are present in the current filter combination.
+          (row[primary_key] not in results_found                              )  and
+          ("topics"   not in c    or    re.search(c["topics"], row["topics"]) )  and
+          ("tones"    not in c    or    re.search(c["tones"], row["tones"])   )  and
+          ("client"   not in c    or    c["client"] == row["Client_Name"]     )  and
+          ("ask"      not in c    or    c["ask"] == row["Ask_Type"]           )  and
+          ("text_len" not in c    or    c["text_len"] == row["Text_Length"]   )
+      ]
+      # If no results were found, move onto the next filter combination. Otherwise, continue the process of considering these candidate results.
+      if not results:
+        continue
+      results_found.update(results) # add the found primary key values to the results_found set
+      # Perform a similarity search using the target_prompt defined beforehand. Filter for only the results we found earlier in this current iteration.
       vs_search = text_index.similarity_search(
-          num_results=num_searches,
+          num_results=len(results),
           columns=["Final_Text"],
           filters={primary_key: results},
           query_text=target_prompt
       )
-
-      # Then add all results returned by the similarity search to the reference_texts list
-      # But only if their similarity score is greater than the score_threshold parameter
+      # Then add all results returned by the similarity search to the reference_texts list. But only if their similarity score is greater than the score_threshold parameter.
       if vs_search["result"]["row_count"] != 0:
           reference_texts.extend({"prompt": "Please write me a" + x[0].split(":\n\n", 1)[0][1:], "text": x[0].split(":\n\n", 1)[1], "score": x[-1]} for x in vs_search["result"]["data_array"] if x[-1] > score_threshold)
       # If we've found at least the number of desired documents
@@ -449,16 +438,6 @@ def everything_from_wes() -> None:
   reference_texts
 
   # Wes 8. Query Endpoints
-
-  # Look for the client's/account's bio information
-  bios_df = spark.read.table(ref_bio_name)
-  # Since we're expecting only one bio record for a client, we can safely use .first() to retrieve the bio as a Row object
-  bios_text = (bios_df.filter(col("Candidate") == client)
-               .first()
-               )
-  # If the boolean parameter use_bio is set to False, then we set bios_text to None to skip adding the bio to the prompt
-  if not use_bio:
-      bios_text = None
 
   # Randomize the order of the example texts. Unclear if this actually helps
   # But maybe it prevents the model from learning any ordering pattern we didn't intend for it to learn
@@ -494,8 +473,8 @@ def everything_from_wes() -> None:
   # combined_dict stores all of the string format variables used in the prompt and their values
   combined_dict = {}
   # Add bio and headline information if those are available
-  if bios_text:
-      sys_prompt += f""" Here is important biographical information about the conservative candidate you are writing for: {bios_text["Bio"]}"""
+  if use_bio:
+      sys_prompt += f""" Here is important biographical information about the conservative candidate you are writing for: {load_bio(client)}"""
   if headlines:
       sys_prompt += f""" Here is/are news headline(s) you should reference in your text messages: {headlines}"""
   # Add system_prompt to combined_dict
@@ -621,15 +600,11 @@ def everything_from_wes() -> None:
   # There's also an Output_Datetime column which contains the actual datetime the outputs were created, which will be the same value for outputs within the same batch
   # But a batch number is easier to communicate to others and understand at a quick glance
 
-  # If the table already exists, the new batch number should be one greater than the last one
-  if spark.catalog.tableExists(rag_output_table_name):
-      batch_num = int(spark.read.table(rag_output_table_name)
-                      .agg(sp_max(col("Batch_Number")).alias("last_batch"))
-                      .first()["last_batch"]
-                      ) + 1
-  # If the table doesn't exist, the first batch will be batch number 1
-  else:
-      batch_num = 1
+  try: # If the table already exists, the new batch number should be one greater than the last one
+    batch_num = sql_call(f"SELECT batch_number FROM {rag_output_table_name} ORDER BY batch_number DESC LIMT 1")[0][0]
+  except Exception as e: # If the table doesn't exist, the first batch will be batch number 1
+    print("No batch number found, reseting batch number to 1.")
+    batch_num = 1
 
   # Create a spark Dataframe using all of the outputs we got from the LLMs
   # Then create a column with the batch number and current datetime
@@ -642,13 +617,6 @@ def everything_from_wes() -> None:
    .mode("append")
    .saveAsTable(rag_output_table_name)
    )
-  # display(spark.read.table("models.lovelytics.rag_outputs"))
-
-  # Wes 10.
-
-  #(empty cell)
-
-
 
 def main() -> None:
 

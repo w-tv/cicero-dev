@@ -10,7 +10,6 @@ databricks-vectorsearch >= 0.35
 num2words >= 0.5.13
 langchain == 0.1.20
 langchain-core == 0.1.52
-pyspark
 
 # Dev-only requirements (tooling)
 uv >= 0.1.35 # I'm not sure the exact version that added uv run, but that's really all we need.
