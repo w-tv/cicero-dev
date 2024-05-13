@@ -5,6 +5,7 @@ transformers
 google-auth
 databricks-genai-inference >= 0.2.3
 databricks-sql-connector >= 3.1.2
+setuptools # You need to import this to import databricks-vectorsearch, for some reason.
 databricks-vectorsearch >= 0.35
 num2words >= 0.5.13
 langchain == 0.1.20
