@@ -406,6 +406,7 @@ def main() -> None:
             reply_two = "Here is a conservative fundraising text: [" + output + "] Analyze the quality of the text based off of these five fundraising elements: the Hook, Urgency, Agency, Stakes, and the Call to Action (CTA). Do not assign scores to the elements. It's possible one or more of these elements is missing from the text provided. If so, please point that out. Then, directly ask the user what assistance they need with the text. Additionally, mention that you can also help edit the text to be shorter or longer, and convert the text into an email."
             st.session_state['cicero_ai']=reply_two
             st.session_state['display_only_this_at_first_blush'] = "«"+output+"»"
+      st.caption(st.session_state.get('character_counts_caption'))
       if st.session_state.get('cicero_ai'):
         if isinstance(st.session_state['cicero_ai'], int): # Arbitrary truthy value that isn't a string (so thus can't be from the responses above, which are text)
           cicero_rag_only.main(streamlit_key_suffix="_prompter")
@@ -417,9 +418,9 @@ def main() -> None:
           cicero_rag_only.main(streamlit_key_suffix="_prompter")
           st.session_state['cicero_ai'] = 2 # This sets the arbitrary value discussed above.
     else:
-      st.dataframe(pd.DataFrame(st.session_state['outputs'], columns=["Model outputs (double click any output to expand it)"]), hide_index=True, use_container_width=True) #Styling this dataframe doesn't seem to work, for some reason. Well, whatever.
-  if 'character_counts_caption' in st.session_state:
-    st.caption(st.session_state['character_counts_caption'])
+      st.dataframe(pd.DataFrame(st.session_state['outputs'], columns=["Model outputs (double click any output to expand it)"]), hide_index=True, use_container_width=True)
+      st.caption(st.session_state.get('character_counts_caption'))
+
   st.error('**REMINDER!** Please tag all projects with "**optimization**" in the LABELS field in Salesforce.')
 
   with st.sidebar: #The history display includes a result of the logic of the script, that has to be updated in the middle of the script where the button press is (when the button is in fact pressed), so the code to display it has to be after all the logic of the script or else it will lag behind the actual state of the history by one time step.
