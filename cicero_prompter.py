@@ -238,6 +238,14 @@ def send(model_uri: str, databricks_token: str, data: dict[str, list[bool|str]],
       raise Exception(f"Request failed with status {response.status_code}, {response.text}")
   return [str(r) for r in response.json()["predictions"][0]["0"]] # This list comprehension is just for appeasing the type-checker.
 
+class dbutils:
+  """A fake version of dbutils, to make Wes' code work outside of databricks with minimal changes."""
+  class widgets:
+    def text(variable_name: str, default_value:str, description: str) -> None:
+      st.session_state["fake_dbutils_"+variable_name] = st.text_input(label=description+f"({variable_name})", value=default_value)
+    def get(variable_name: str) -> str:
+      return st.session_state["fake_dbutils_"+variable_name]
+
 def everything_from_wes() -> None:
   dbutils.widgets.text("score_threshold", "0.5", "Document Similarity Score Acceptance Threshold")
   dbutils.widgets.text("model_temp", "0.8", "Model Temperature")
