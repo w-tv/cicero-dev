@@ -14,6 +14,14 @@ from zoneinfo import ZoneInfo as z
 from cicero_shared import sql_call, sql_call_cacheless, exit_error
 import cicero_rag_only
 
+from num2words import num2words
+from itertools import chain, combinations
+from functools import reduce
+from databricks.vector_search.client import VectorSearchClient
+from langchain.prompts import PromptTemplate
+from langchain.chat_models import ChatDatabricks
+from langchain.schema.output_parser import StrOutputParser
+
 # This is the 'big' of topics, the authoritative record of various facts and mappings about topics.
 Topics_Big_Payload = TypedDict("Topics_Big_Payload", {'color': str, 'internal name': str, 'show in prompter?': bool})
 topics_big: dict[str, Topics_Big_Payload] = {
