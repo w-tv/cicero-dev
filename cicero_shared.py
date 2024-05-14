@@ -2,7 +2,7 @@
 """It's useless to run this stand-alone. But I guess you can."""
 
 from databricks import sql # Spooky that this is not the same name as the pypi package databricks-sql-connector, but is the way to refer to the same thing.
-from databricks.sql.types import Row
+from databricks.sql.types import Row as Row
 import streamlit as st
 from typing import Any, NoReturn
 
@@ -31,3 +31,9 @@ def sql_call_cacheless(query: str, sql_params_dict:dict[str, Any]|None=None) -> 
         return cursor.execute(query, sql_params_dict).fetchall()
   except Exception as e:
     die_with_database_error_popup(e.args)
+
+def assert_always(x: Any, message_to_assert: str|None = None) -> None | NoReturn:
+  """This function is equivalent to assert, but cannot be disabled by -O"""
+  if not x:
+    raise AssertionError(message_to_assert or x)
+  return None

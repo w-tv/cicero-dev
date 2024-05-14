@@ -9,9 +9,9 @@ import json
 from datetime import datetime, date
 #COULD: use https://pypi.org/project/streamlit-profiler/ for profiling
 from transformers import GenerationConfig
-from typing import TypedDict
+from typing import Iterable, TypedDict, TypeVar
 from zoneinfo import ZoneInfo as z
-from cicero_shared import sql_call, sql_call_cacheless, exit_error, Row
+from cicero_shared import assert_always, exit_error, sql_call, sql_call_cacheless, Row
 import cicero_rag_only
 
 from num2words import num2words
@@ -247,8 +247,10 @@ def send(model_uri: str, databricks_token: str, data: dict[str, list[bool|str]],
 class dbutils:
   """A fake version of dbutils, to make Wes' code work outside of databricks with minimal changes."""
   class widgets:
+    @staticmethod
     def text(variable_name: str, default_value:str, description: str) -> None:
       st.session_state["fake_dbutils_"+variable_name] = st.text_input(label=description+f"({variable_name})", value=default_value)
+    @staticmethod
     def get(variable_name: str) -> str:
       return st.session_state["fake_dbutils_"+variable_name]
 
@@ -307,27 +309,14 @@ def everything_from_wes() -> None:
   ask_weight = float(dbutils.widgets.get("ask_weight"))
   text_len_weight = float(dbutils.widgets.get("text_len_weight"))
 
-  # Can't ask to provide more examples than there are documents in the pool
-  assert num_examples <= doc_pool_size
+  assert_always(num_examples <= doc_pool_size, "You can't ask to provide more examples than there are documents in the pool! Try again with a different value.")
 
-  # Topics and tones are expected to be passed with a comma and space separating each item
-  # e.g. topics = "a, b, c"
-  if topics:
-      topics_list = topics.split(", ")
-  else:
-      topics_list = []
-  if tones:
-      tones_list = tones.split(", ")
-  else:
-      tones_list = []
+  # Topics and tones are expected to be passed with a comma and space separating each item; e.g. topics = "a, b, c"
+  topics_list = topics.split(", ") if topics else []
+  tones_list = tones.split(", ") if tones else []
 
-  # Create a target prompt that is used during the vector index similarity search
-  # This is to score retrieved texts
-  target_prompt = f"A {text_len} {ask} text message from {client}"
-  if topics:
-      target_prompt += f" about {topics}"
-  if tones:
-      target_prompt += f" written with an emphasis on {tones}"
+  # Create a target prompt that is used during the vector index similarity search to score retrieved texts.
+  target_prompt = f"A {text_len} {ask} text message from {client}" + f" about {topics}"*bool(topics) + f" written with an emphasis on {tones}"*bool(tones)
 
   # Wes 6. Create All Possible Filter Combinations and Sort By Importance
 
@@ -348,11 +337,12 @@ def everything_from_wes() -> None:
   # Tp, C
 
   # Used to generate powersets of filters
-  def powerset(iterable, start=0):
-      "powerset([1,2,3]) → () (1,) (2,) (3,) (1,2) (1,3) (2,3) (1,2,3)"
-      s = list(iterable)
-      assert 0 <= start <= len(s)
-      return chain.from_iterable(combinations(s, r) for r in range(start, len(s)+1))
+  T = TypeVar('T') # Could: Changed in version 3.12: Syntactic support for generics is new in Python 3.12.
+  def powerset(iterable: Iterable[T], start: int = 0) -> Iterable[tuple[T]]: #TODO: once the code is mostly working, muck about with this and its types. (Need the code to be working to make sure it continues to work after the transformations lol.)
+    "powerset([1,2,3]) → () (1,) (2,) (3,) (1,2) (1,3) (2,3) (1,2,3)"
+    s = list(iterable)
+    assert 0 <= start <= len(s) #TODO: is this check necessary? Or will it just return () in "bad" cases?
+    return chain.from_iterable(combinations(s, r) for r in range(start, len(s)+1))
 
   # Generate the powersets (i.e. each combination of items) for both topics and tones
   # Normally, the set starts with length of 0, but for performance purposes either start with 1 or 0, depending on if the list is empty
@@ -420,7 +410,7 @@ def everything_from_wes() -> None:
       results_found.update(results) # add the found primary key values to the results_found set
       # Perform a similarity search using the target_prompt defined beforehand. Filter for only the results we found earlier in this current iteration.
       vs_search = text_index.similarity_search(
-          num_results=min(len(results), 10000),
+          num_results=min(len(results), 100),
           columns=["Final_Text"],
           filters={primary_key: results},
           query_text=target_prompt
@@ -525,7 +515,6 @@ def everything_from_wes() -> None:
   # This is important for querying the Llama-2 model only since it has a limit of 4096 tokens for its input and output combined
   # e.g. if our input is 4000 tokens, then we can only have 96 tokens for the output
   token_count = len(filled_in_prompt) // 3
-  # Note to Wyatt: might need to inform users on the front end that once they set the token count, they shouldn't change it once using our chat-opetion (we give users chatbot functionality after generating outputs Wes, and if we just end up using these same models I don't want our end user screwing it up and instantiating a new ChatDatabricks object, unless that won't screw with the history, hmmmm) (probably a way to lock users out of the settings once they start chatting tbh)
   dbrx_chat_model = ChatDatabricks(endpoint="databricks-dbrx-instruct", max_tokens=4096, temperature=model_temp)
   llama_3_chat_model = ChatDatabricks(endpoint="databricks-meta-llama-3-70b-instruct", max_tokens=4096, temperature=model_temp)
   mixtral_chat_model = ChatDatabricks(endpoint="databricks-mixtral-8x7b-instruct", max_tokens=4096, temperature=model_temp)

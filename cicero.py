@@ -11,16 +11,10 @@ import os, psutil, platform
 import urllib.parse
 from typing import Any, NoReturn
 import cicero_prompter, cicero_topic_reporting, cicero_response_lookup, cicero_rag_only
-from cicero_shared import exit_error
+from cicero_shared import assert_always, exit_error
 from google.auth.transport import requests
 from google.oauth2 import id_token
 from streamlit.web.server.websocket_headers import _get_websocket_headers
-
-def assert_always(x: Any, message_to_assert: str|None = None) -> None | NoReturn:
-  """This function is equivalent to assert, but cannot be disabled by -O"""
-  if not x:
-    raise AssertionError(message_to_assert or x)
-  return None
 
 def get_base_url() -> str:
   """Gets the url where the streamlit app is currently running, not including any page paths underneath. In testing, for example, this value is probably http://localhost:8501 . This function is from BramVanroy https://github.com/streamlit/streamlit/issues/798#issuecomment-1647759949 , with modifications. “WARNING: I found that in multi-page apps, this will always only return the base url and not the sub-page URL with the page appended to the end.”"""
