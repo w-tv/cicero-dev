@@ -555,26 +555,22 @@ def everything_from_wes() -> None:
   # But a batch number is easier to communicate to others and understand at a quick glance
 
   try: # If the table already exists, the new batch number should be one greater than the last one
-    batch_num = sql_call(f"SELECT batch_number FROM {rag_output_table_name} ORDER BY batch_number DESC LIMIT 1")[0][0]
+    batch_num = 1 + sql_call(f"SELECT batch_number FROM {rag_output_table_name} ORDER BY batch_number DESC LIMIT 1")[0][0]
   except Exception as e: # If the table doesn't exist, the first batch will be batch number 1
     print("No batch number found, reseting batch number to 1.")
     batch_num = 1
 
-  # Create a spark Dataframe using all of the outputs we got from the LLMs
-  # Then create a column with the batch number and current datetime
-  outputs_df = (spark.createDataFrame(data=all_responses.items(), schema="Output_Source STRING, Output_Content STRING")
-                .select(lit(batch_num).alias("Batch_Number"), col("Output_Source"), col("Output_Content"), current_timestamp().alias("Output_Datetime"))
-                )
-  # Append these values to the target output table
-  # If the table doesn't exist, spark will create it automatically
-  (outputs_df.write
-   .mode("append")
-   .saveAsTable(rag_output_table_name)
-   )
+  for key_that_is_source, value_that_is_contents in all_responses.items():
+    sql_call(
+      f"INSERT INTO {rag_output_table_name} ( batch_number,  output_source,  output_content,  output_datetime)\
+                                     VALUES (:batch_number, :output_source, :output_content, :output_datetime)",
+      {"batch_number": batch_num, "output_source": key_that_is_source, "output_content": value_that_is_contents, "output_datetime": datetime.now(z("US/Eastern"))}
+    )
+  print("Done :)")
 
 def main() -> None:
-
-  everything_from_wes()
+  if st.button("wes button"):
+    everything_from_wes()
 
   if not st.session_state.get('email'): #TODO: this line is of dubious usefulness. It's supposed to let you run cicero_prompter.py locally and stand-alone without cicero.py, however.
     st.session_state["email"] = str(st.experimental_user["email"]) #this str call also accounts for if the user email is None.
