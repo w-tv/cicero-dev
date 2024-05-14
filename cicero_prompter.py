@@ -280,7 +280,7 @@ def everything_from_wes() -> None:
   dbutils.widgets.text("tone_weight", "1", "Tone Filter Weight")
   dbutils.widgets.text("client_weight", "6", "Client Filter Weight")
   dbutils.widgets.text("ask_weight", "2", "Ask Type Weight")
-  dbutils.widgets.text("text_len_weight", "2", "Text Length Weight")
+  dbutils.widgets.text("text_len_weight", "4", "Text Length Weight")
 
   score_threshold = float(dbutils.widgets.get("score_threshold"))
   model_temp = float(dbutils.widgets.get("model_temp"))
