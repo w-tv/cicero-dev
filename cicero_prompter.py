@@ -22,6 +22,8 @@ from langchain.chat_models import ChatDatabricks
 from langchain.schema.output_parser import StrOutputParser
 
 import re
+import random
+from os import environ
 
 # This is the 'big' of topics, the authoritative record of various facts and mappings about topics.
 Topics_Big_Payload = TypedDict("Topics_Big_Payload", {'color': str, 'internal name': str, 'show in prompter?': bool})
@@ -444,7 +446,7 @@ def everything_from_wes() -> None:
   # combined_dict stores all of the string format variables used in the prompt and their values
   combined_dict = {}
   # Add bio and headline information if those are available
-  if use_bio:
+  if use_bio and client:
       sys_prompt += f""" Here is important biographical information about the conservative candidate you are writing for: {load_bio(client)}"""
   if headlines:
       sys_prompt += f""" Here is/are news headline(s) you should reference in your text messages: {headlines}"""
@@ -488,47 +490,29 @@ def everything_from_wes() -> None:
       template=rag_prompt
   )
   # This is just to visually see what the final RAG prompt looks like once the format variables are inserted
-  filled_in_prompt = (prompt.format(**combined_dict
-                                    )
-                      )
+  filled_in_prompt = ( prompt.format( **combined_dict ) )
   print(filled_in_prompt)
   # Estimate the number of tokens our prompt is
   # This is important for querying the Llama-2 model only since it has a limit of 4096 tokens for its input and output combined
   # e.g. if our input is 4000 tokens, then we can only have 96 tokens for the output
   token_count = len(filled_in_prompt) // 3
+  # see note about environ in rag_only
+  environ['DATABRICKS_HOST'] = "https://"+st.secrets['DATABRICKS_SERVER_HOSTNAME']
+  environ['DATABRICKS_TOKEN'] = st.secrets["databricks_api_token"]
   dbrx_chat_model = ChatDatabricks(endpoint="databricks-dbrx-instruct", max_tokens=4096, temperature=model_temp)
   llama_3_chat_model = ChatDatabricks(endpoint="databricks-meta-llama-3-70b-instruct", max_tokens=4096, temperature=model_temp)
   mixtral_chat_model = ChatDatabricks(endpoint="databricks-mixtral-8x7b-instruct", max_tokens=4096, temperature=model_temp)
 
   # Assemble all of the LLM chains which makes it easier to invoke them and parse their outputs
   # This uses langchain's own pipe syntax to organize multiple components into a "pipe"
-  dbrx_chain = (
-      prompt
-      | dbrx_chat_model
-      | StrOutputParser()
-  )
-  llama_3_chain = (
-      prompt
-      | llama_3_chat_model
-      | StrOutputParser()
-  )
-  mixtral_chain = (
-      prompt
-      | mixtral_chat_model
-      | StrOutputParser()
-  )
-  llm_chains = {"dbrx": dbrx_chain,
-                "llama-3": llama_3_chain,
-                "mixtral": mixtral_chain}
-  # Only use the llama-2 if we know the input prompt isn't greater than 4096 tokens
-  if (4096 - token_count) > 0:
-      llama_chat_model = ChatDatabricks(endpoint="databricks-llama-2-70b-chat", max_tokens=4096-token_count, temperature=model_temp)
-      llama_chain = (
-          prompt
-          | llama_chat_model
-          | StrOutputParser()
-      )
-      llm_chains["llama-2"] = llama_chain
+  dbrx_chain = ( prompt | dbrx_chat_model | StrOutputParser() )
+  llama_3_chain = ( prompt | llama_3_chat_model | StrOutputParser() )
+  mixtral_chain = ( prompt | mixtral_chat_model | StrOutputParser() )
+  llm_chains = {"dbrx": dbrx_chain, "llama-3": llama_3_chain, "mixtral": mixtral_chain}
+  if not token_count >= 4096: # Only use the llama-2 if we know the input prompt isn't greater than or equal to 4096 tokens (a weakness of llama-2)
+    llama_chat_model = ChatDatabricks(endpoint="databricks-llama-2-70b-chat", max_tokens=4096-token_count, temperature=model_temp)
+    llama_chain = ( prompt | llama_chat_model | StrOutputParser() )
+    llm_chains["llama-2"] = llama_chain
 
   # For every LLM, query it with our prompt and print the outputs
   # Also save the outputs into a dictionary which we'll write to a delta table
@@ -571,7 +555,7 @@ def everything_from_wes() -> None:
   # But a batch number is easier to communicate to others and understand at a quick glance
 
   try: # If the table already exists, the new batch number should be one greater than the last one
-    batch_num = sql_call(f"SELECT batch_number FROM {rag_output_table_name} ORDER BY batch_number DESC LIMT 1")[0][0]
+    batch_num = sql_call(f"SELECT batch_number FROM {rag_output_table_name} ORDER BY batch_number DESC LIMIT 1")[0][0]
   except Exception as e: # If the table doesn't exist, the first batch will be batch number 1
     print("No batch number found, reseting batch number to 1.")
     batch_num = 1
