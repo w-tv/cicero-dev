@@ -17,7 +17,6 @@ import cicero_rag_only
 from num2words import num2words
 from itertools import chain, combinations
 from functools import reduce
-from databricks.vector_search.client import VectorSearchClient
 from langchain.prompts import PromptTemplate
 from langchain.chat_models import ChatDatabricks
 from langchain.schema.output_parser import StrOutputParser
@@ -263,8 +262,6 @@ def everything_from_wes() -> None:
   dbutils.widgets.text("num_outputs", "5", "Number of Texts the Model Should Generate")
   dbutils.widgets.text("output_table_name", "models.lovelytics.gold_text_outputs", "Text Output Table Name")
   dbutils.widgets.text("ref_tag_name", "models.lovelytics.ref_tags", "Tags Table Name")
-  dbutils.widgets.text("vs_endpoint_name", "rag_llm_vector", "Vector Search Endpoint Name")
-  dbutils.widgets.text("index_table_name", "models.lovelytics.gold_text_outputs_index", "Indexed Table Name")
   dbutils.widgets.text("rag_output_table_name", "models.lovelytics.rag_outputs", "RAG Outputs Table Name")
   dbutils.widgets.text("primary_key", "PROJECT_NAME", "Index Table Primary Key Name")
 
@@ -290,8 +287,6 @@ def everything_from_wes() -> None:
   num_outputs = int(dbutils.widgets.get("num_outputs"))
   output_table_name = dbutils.widgets.get("output_table_name")
   ref_tag_name = dbutils.widgets.get("ref_tag_name")
-  vs_endpoint_name = dbutils.widgets.get("vs_endpoint_name")
-  index_table_name = dbutils.widgets.get("index_table_name")
   rag_output_table_name = dbutils.widgets.get("rag_output_table_name")
   primary_key = dbutils.widgets.get("primary_key")
 
@@ -379,10 +374,6 @@ def everything_from_wes() -> None:
 
   # Wes 7. Find as Many Relevant Documents as Possible
 
-  # Initialize Vector Search Client with (either service principal or) PAT authentication
-  vsc = VectorSearchClient( personal_access_token=st.secrets["databricks_api_token"], workspace_url="https://"+st.secrets['DATABRICKS_SERVER_HOSTNAME'] )
-
-  text_index = vsc.get_index(endpoint_name=vs_endpoint_name, index_name=index_table_name)
   @st.cache_data()
   def read_output_table() -> list[Row]:
     return sql_call(f"SELECT * from {output_table_name}")
@@ -408,19 +399,11 @@ def everything_from_wes() -> None:
       if not results:
         continue
       results_found.update(results) # add the found primary key values to the results_found set
-      # Perform a similarity search using the target_prompt defined beforehand. Filter for only the results we found earlier in this current iteration.
-      vs_search = text_index.similarity_search(
-          num_results=min(len(results), 100),
-          columns=["Final_Text"],
-          filters={primary_key: results},
-          query_text=target_prompt
-      )
-      # Then add all results returned by the similarity search to the reference_texts list. But only if their similarity score is greater than the score_threshold parameter.
-      if vs_search["result"]["row_count"] != 0:
+      # TODO: Perform a similarity search using the target_prompt defined beforehand. Filter for / use only the results we found earlier in this current iteration.
+      # TODO: Then add all results returned by the similarity search to the reference_texts list. But only if their similarity score is greater than the score_threshold parameter.
+      if 0 != 0: #TODO: size of result here, then formatting
           reference_texts.extend({"prompt": "Please write me a" + x[0].split(":\n\n", 1)[0][1:], "text": x[0].split(":\n\n", 1)[1], "score": x[-1]} for x in vs_search["result"]["data_array"] if x[-1] > score_threshold)
-      # If we've found at least the number of desired documents
-      # Exit the loop and take the first doc_pool_size number of texts
-      # The beginning of the reference_texts array will contain the texts that match the most important filters and the highest similarity scores
+      # If we've found at least the number of desired documents, exit the loop and take the first doc_pool_size number of texts. The beginning of the reference_texts array will contain the texts that match the most important filters and the highest similarity scores.
       if len(reference_texts) >= doc_pool_size:
           reference_texts = reference_texts[:doc_pool_size]
           break
@@ -429,11 +412,9 @@ def everything_from_wes() -> None:
 
   # Wes 8. Query Endpoints
 
-  # Randomize the order of the example texts. Unclear if this actually helps
-  # But maybe it prevents the model from learning any ordering pattern we didn't intend for it to learn
+  # Randomize the order of the example texts. Unclear if this actually helps. But maybe it prevents the model from learning any ordering pattern we didn't intend for it to learn
   texts_to_use = random.sample(reference_texts, k=min(num_examples, len(reference_texts)))
-  # We reinsert and separate the found documents into two separate dictionaries
-  # This makes it easier to assemble the RAG prompt and pass them as string format variables to langchain
+  # We reinsert and separate the found documents into two separate dictionaries. This makes it easier to assemble the RAG prompt and pass them as string format variables to langchain
   ms_prompts = {}
   ms_texts = {}
   for num, content in enumerate(texts_to_use):
