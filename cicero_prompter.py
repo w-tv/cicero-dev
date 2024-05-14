@@ -420,17 +420,13 @@ def everything_from_wes() -> None:
   ms_prompts = {}
   ms_texts = {}
   for num, content in enumerate(texts_to_use):
-      ms_prompts[f"example_{num + 1}_p"] = content["prompt"]
-      ms_texts[f"example_{num + 1}_t"] = content["text"]
+    ms_prompts[f"example_{num + 1}_p"] = content["prompt"]
+    ms_texts[f"example_{num + 1}_t"] = content["text"]
 
   ##### INSERT PROMPT HERE #####
   # Llama-3 Prompt Styling
   # Base beginning structure of the RAG prompt
-  rag_prompt = """
-  <|begin_of_text|><|start_header_id|>system<|end_header_id|>
-
-  {system_prompt}<|eot_id|>
-  """.strip()
+  rag_prompt = "<|begin_of_text|><|start_header_id|>system<|end_header_id|>\n\n{system_prompt}<|eot_id|>"
 
   # Define the system prompt
   sys_prompt = """You are an expert copywriter who specializes in writing text messages for conservative candidates in the United States of America. Do not start your message with 'Dear', 'Subject', or 'Hello'. Try to grab the reader's attention in the first line. Do not explicitly use language such as 'Donate now' or '[DONATE]', instead use language like 'Rush', 'Support', or 'Chip in'. Do not make up facts or statistics. Do not use emojis or hashtags in your messages. Do not exactly copy the example text messages. Write the exact number of text messages asked for."""
@@ -457,16 +453,8 @@ def everything_from_wes() -> None:
   # Triple brackets are used so the actual key name in the ms_prompts and ms_texts dictionaries can be inserted dynamically while also keeping the curly braces in the final string
   # So for example, if k = "apples" f"I like to eat {{{k}}}" would return the string "I like to eat {apples}"
   for k in ms_prompts.keys():
-      ok = k.rsplit("_", 1)[0] + "_t"
-      rag_prompt += f"""
-  <|start_header_id|>user<|end_header_id|>
-
-  {{{k}}}<|eot_id|><|start_header_id|>assistant<|end_header_id|>
-
-  {{{ok}}}<|eot_id|>""".strip()
-  # The line above is the last line in the for loop
-  # The string isn't indented in to visually signify the contents of the for loop
-  # This is because the strings being appended to the RAG prompt would contain a bunch of random indents if it was indented in
+    ok = k.rsplit("_", 1)[0] + "_t"
+    rag_prompt += f"<|start_header_id|>user<|end_header_id|>\n\n{{{k}}}<|eot_id|><|start_header_id|>assistant<|end_header_id|>\n\n{{{ok}}}<|eot_id|>"
 
   # Add in the final component of the RAG prompt where we pass in the prompt/question we want to send to the model
   rag_prompt += "<|start_header_id|>user<|end_header_id|>\n\n{question}<|eot_id|><|start_header_id|>assistant<|end_header_id|>"
@@ -474,28 +462,22 @@ def everything_from_wes() -> None:
   combined_dict = combined_dict | ms_prompts | ms_texts
 
   # Create the question prompt and add it to the combined_dict dictionary
-  question_prompt = f"Please write me {num2words(num_outputs)} {text_len} {ask} text message(s) from {client}"
-  if topics:
-      question_prompt += f" about {topics}"
-  if tones:
-      question_prompt += f" written with an emphasis on {tones}"
-  combined_dict["question"] = question_prompt
+  combined_dict["question"] = f"Please write me {num2words(num_outputs)} {text_len} {ask} text message(s) from {client}" + bool(topics)*f" about {topics}" + bool(tones)*f" written with an emphasis on {tones}"
+
   ##### END PROMPT INSERTION #####
   # print(rag_prompt)
 
   # Create the prompt template using langchain's PromptTemplate
   # Tell it that the input variables it should expect is everything in our combined_dict dictionary
   prompt = PromptTemplate(
-      input_variables=list(combined_dict.keys()),
-      template=rag_prompt
+    input_variables=list(combined_dict.keys()),
+    template=rag_prompt
   )
-  # This is just to visually see what the final RAG prompt looks like once the format variables are inserted
-  filled_in_prompt = ( prompt.format( **combined_dict ) )
-  print(filled_in_prompt)
+
   # Estimate the number of tokens our prompt is
   # This is important for querying the Llama-2 model only since it has a limit of 4096 tokens for its input and output combined
   # e.g. if our input is 4000 tokens, then we can only have 96 tokens for the output
-  token_count = len(filled_in_prompt) // 3
+  token_count = len( prompt.format( **combined_dict ) ) // 3
   # see note about environ in rag_only
   environ['DATABRICKS_HOST'] = "https://"+st.secrets['DATABRICKS_SERVER_HOSTNAME']
   environ['DATABRICKS_TOKEN'] = st.secrets["databricks_api_token"]
@@ -519,11 +501,11 @@ def everything_from_wes() -> None:
   all_responses = {}
   all_responses["full_prompt"] = prompt.format(**combined_dict)
   for llm_name, llm_chain in llm_chains.items():
-      print(f"#### {llm_name} OUTPUTS ####")
-      inv_res = llm_chain.invoke(combined_dict)
-      print(inv_res)
-      all_responses[llm_name] = inv_res
-      print()
+    print(f"#### {llm_name} OUTPUTS ####")
+    inv_res = llm_chain.invoke(combined_dict)
+    print(inv_res)
+    all_responses[llm_name] = inv_res
+    print()
 
   # Also query the SMC API llama-3 model
   print(f"#### SMC API OUTPUTS ####")
@@ -537,9 +519,9 @@ def everything_from_wes() -> None:
           }
       ]}
   headers = {
-      "Content-Type": "application/json",
-      "smc-owner": "...",
-      "Authorization": "Bearer eyJhbGciOiJFUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6ImZmYzU1ZmNiLTkwZTMtNGI4OS1iMmY0LTQ1Mjg0OWE3MWZiNCIsImlzcyI6IlNNQyIsImtleU5hbWUiOiJUYXJnZXRkVmljdG9yeSBNTVMiLCJraWQiOiI5M2M5OGRiMDVmZmUyNDI3NDZkM2IyYzYwMDIzNDYxNiIsIm9yZ0lkIjoiNjA0NTM3MjYtYWY4ZC00NjQ2LTk2ZTktNzRjNjQyMWZiNDI0In0.XNnsi6d_47yBLgHZwouoEtqC6IB-bfaLnGL6kB3Ldw9oXLCfEOuXygFGMhlH7ywTHowaoegPPygYiQ-Z78lsDQ"
+    "Content-Type": "application/json",
+    "smc-owner": "...",
+    "Authorization": "Bearer eyJhbGciOiJFUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6ImZmYzU1ZmNiLTkwZTMtNGI4OS1iMmY0LTQ1Mjg0OWE3MWZiNCIsImlzcyI6IlNNQyIsImtleU5hbWUiOiJUYXJnZXRkVmljdG9yeSBNTVMiLCJraWQiOiI5M2M5OGRiMDVmZmUyNDI3NDZkM2IyYzYwMDIzNDYxNiIsIm9yZ0lkIjoiNjA0NTM3MjYtYWY4ZC00NjQ2LTk2ZTktNzRjNjQyMWZiNDI0In0.XNnsi6d_47yBLgHZwouoEtqC6IB-bfaLnGL6kB3Ldw9oXLCfEOuXygFGMhlH7ywTHowaoegPPygYiQ-Z78lsDQ"
   }
   response = requests.request("POST", url, json=payload, headers=headers)
   response_json = json.loads(response.text)
