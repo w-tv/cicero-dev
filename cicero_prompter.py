@@ -18,7 +18,7 @@ from num2words import num2words
 from itertools import chain, combinations
 from functools import reduce
 from langchain.prompts import PromptTemplate
-from langchain.chat_models import ChatDatabricks
+from langchain_community.chat_models import ChatDatabricks
 from langchain.schema.output_parser import StrOutputParser
 
 import re
@@ -263,7 +263,7 @@ def everything_from_wes() -> None:
   dbutils.widgets.text("num_examples", "10", "Number of Documents to Use as Examples")
   dbutils.widgets.text("num_outputs", "5", "Number of Texts the Model Should Generate")
   dbutils.widgets.text("output_table_name", "models.lovelytics.gold_text_outputs", "Text Output Table Name")
-  dbutils.widgets.text("ref_tag_name", "models.lovelytics.ref_tags", "Tags Table Name")
+  dbutils.widgets.text("ref_tag_name", "models.lovelytics.ref_tags", "Tags Table Name") #TODO: possibly use topic_tags = set(x["Tag_Name"] for x in spark.read.table(ref_tag_name).filter(col("Tag_Type") == "Topic").select("Tag_Name").collect()) etc etc logic. Probably this gets address when Wes emails me a second diff.
   dbutils.widgets.text("rag_output_table_name", "models.lovelytics.rag_outputs", "RAG Outputs Table Name")
   dbutils.widgets.text("primary_key", "PROJECT_NAME", "Index Table Primary Key Name")
 
