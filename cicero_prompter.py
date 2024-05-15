@@ -146,7 +146,6 @@ def execute_prompting(model: str, account: str, ask_type: str, topics: list[str]
   num_outputs = 5 # Number of Texts the Model Should Generate
   output_table_name = "models.lovelytics.gold_text_outputs" # Text Output Table Name
   ref_tag_name = "models.lovelytics.ref_tags" # Tags Table Name #TODO: possibly use topic_tags = set(x["Tag_Name"] for x in spark.read.table(ref_tag_name).filter(col("Tag_Type") == "Topic").select("Tag_Name").collect()) etc etc logic. Probably this gets address when Wes emails me a second diff.
-  rag_output_table_name = "models.lovelytics.rag_outputs" # RAG Outputs Table Name
   primary_key = "PROJECT_NAME" # Index Table Primary Key Name
   topic_weight = 4 # Topic Filter Weight
   tone_weight = 1 # Tone Filter Weight
@@ -345,21 +344,6 @@ def execute_prompting(model: str, account: str, ask_type: str, topics: list[str]
     all_responses[llm_name] = inv_res
     print()
 
-  print("The table makes use of a Batch_Number column to mark which outputs were generated at the same time. There's also an Output_Datetime column which contains the actual datetime the outputs were created, which will be the same value for outputs within the same batch, but a batch number is easier to communicate to others and understand at a quick glance.")
-  #TODO: replace this whole thing with GENERATED { ALWAYS | BY DEFAULT } AS IDENTITY [ ( [ START WITH start ] [ INCREMENT BY step ] ) ] some day perhaps. If we even still want to save to this table.
-  try: # If the table already exists, the new batch number should be one greater than the last one
-    batch_num = 1 + sql_call(f"SELECT batch_number FROM {rag_output_table_name} ORDER BY batch_number DESC LIMIT 1")[0][0]
-  except Exception as e: # If the table doesn't exist, the first batch will be batch number 1
-    print("No batch number found, resetting batch number to 1.")
-    batch_num = 1
-
-  print("Let's save all of our LLM outputs to a delta table!")
-  for key_that_is_source, value_that_is_contents in all_responses.items():
-    sql_call(
-      f"INSERT INTO {rag_output_table_name} ( batch_number,  output_source,  output_content,  output_datetime)\
-                                     VALUES (:batch_number, :output_source, :output_content, :output_datetime)",
-      {"batch_number": batch_num, "output_source": key_that_is_source, "output_content": value_that_is_contents, "output_datetime": datetime.now(z("US/Eastern"))}
-    )
   print("Done :)")
   return target_prompt, list(all_responses.values())
 
