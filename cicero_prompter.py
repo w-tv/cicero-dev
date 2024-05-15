@@ -287,13 +287,12 @@ def execute_prompting(model: str, account: str, ask_type: str, topics: list[str]
     "long": f" Your long {ask_type} text messages should be more than 400 characters in length, use more than 70 words, and have more than 6 sentences."
   }[text_len]
 
-  combined_dict = {}  # combined_dict stores all of the string format variables used in the prompt and their values
-
   if use_bio and account:
-      sys_prompt += f""" Here is important biographical information about the conservative candidate you are writing for: {load_bio(account)}"""
+    sys_prompt += f""" Here is important biographical information about the conservative candidate you are writing for: {load_bio(account)}"""
   if headline:
-      sys_prompt += f""" Here is/are news headline(s) you should reference in your text messages: {headline}"""
-  # Add system_prompt to combined_dict
+    sys_prompt += f""" Here is/are news headline(s) you should reference in your text messages: {headline}"""
+
+  combined_dict = {}  # combined_dict stores all of the string format variables used in the prompt and their values
   combined_dict["system_prompt"] = sys_prompt
 
   # Then for every example document, we add the corresponding assistant and user lines
@@ -309,7 +308,7 @@ def execute_prompting(model: str, account: str, ask_type: str, topics: list[str]
   combined_dict = combined_dict | ms_prompts | ms_texts
 
   # Create the question prompt and add it to the combined_dict dictionary
-  combined_dict["question"] = f"Please write me {num2words(num_outputs)} {text_len} {ask_type} text message(s) from {account}" + bool(topics)*f" about {topics_str}" + bool(tones)*f" written with an emphasis on {tones_str}"
+  combined_dict["question"] = f"Please write me {num2words(num_outputs)} {text_len} {ask_type} text message(s) from {account}" + bool(topics)*f" about {topics_str}" + bool(tones)*f" written with an emphasis on {tones_str}. Do not include any commentary or additional comments before or after the text messages."
 
   ##### END PROMPT INSERTION #####
   # print(rag_prompt)
@@ -326,22 +325,12 @@ def execute_prompting(model: str, account: str, ask_type: str, topics: list[str]
   environ['DATABRICKS_TOKEN'] = st.secrets["databricks_api_token"]
   chat_model = ChatDatabricks(endpoint=model, max_tokens=4096, temperature=model_temperature)
 
-  # Assemble the LLM chains which makes it easier to invoke it and parse its outputs. This uses langchain's own pipe syntax to organize multiple components into a "pipe".
+  # Assemble the LLM chain, which makes it easier to invoke the model and parse its outputs. This uses langchain's own pipe syntax to organize multiple components into a "pipe".
   model_chain = ( prompt | chat_model | StrOutputParser() )
-  llm_chains = {model: model_chain} #TODO: we can further refactor this code to remove this multi-chain logic
-
-  # For every LLM, query it with our prompt and print the outputs. Also save the outputs into a dictionary which we'll write to a delta table.
-  all_responses = {}
-  all_responses["full_prompt"] = prompt.format(**combined_dict)
-  for llm_name, llm_chain in llm_chains.items():
-    print(f"#### {llm_name} OUTPUTS ####")
-    inv_res = llm_chain.invoke(combined_dict)
-    print(inv_res)
-    all_responses[llm_name] = inv_res
-    print()
-
+  single_output = model_chain.invoke(combined_dict)
+  # Maybe do some kind of regex on this later? re.search("(\d+\.)
   print("Done :)")
-  return target_prompt, list(all_responses.values())
+  return target_prompt, single_output.split('\n')
 
 def main() -> None:
 
@@ -425,16 +414,18 @@ def main() -> None:
 
   st.error("WARNING! Outputs have not been fact checked. CICERO is not responsible for inaccuracies in deployed copy. Please check all *names*, *places*, *counts*, *times*, *events*, and *titles* (esp. military titles) for accuracy.  \nAll numbers included in outputs are suggestions only and should be updated. They are NOT analytically optimized to increase conversions (yet) and are based solely on frequency in past copy.", icon="⚠️")
   if 'outputs' in st.session_state:
+    key_collision_preventer = 1
     for output in st.session_state['outputs']:
       col1, col2 = st.columns([.95, .05])
       with col1:
         st.write( output.replace("$", r"\$") ) #this prevents us from entering math mode when we ask about money.
       if st.session_state.get("developer_mode"):
         with col2:
-          if st.button("🖋️", key="🖋️"+output, help="Send down to Cicero"):
+          if st.button("🖋️", key="🖋️"+str(key_collision_preventer), help="Send down to Cicero"):
             default_reply = "Here is a conservative fundraising text: [" + output + "] Analyze the quality of the text based off of these five fundraising elements: the Hook, Urgency, Agency, Stakes, and the Call to Action (CTA). Do not assign scores to the elements. It's possible one or more of these elements is missing from the text provided. If so, please point that out. Then, directly ask the user what assistance they need with the text. Additionally, mention that you can also help edit the text to be shorter or longer, and convert the text into an email."
             st.session_state['cicero_ai']=default_reply
             st.session_state['display_only_this_at_first_blush'] = "«"+output+"»"
+          key_collision_preventer += 1
     st.caption(st.session_state.get('character_counts_caption'))
     if st.session_state.get('cicero_ai'):
       if isinstance(st.session_state['cicero_ai'], int): # Arbitrary truthy value that isn't a string (so thus can't be from the responses above, which are text)
