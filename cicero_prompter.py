@@ -9,9 +9,9 @@ import json
 from datetime import datetime, date
 #COULD: use https://pypi.org/project/streamlit-profiler/ for profiling
 from transformers import GenerationConfig
-from typing import Iterable, TypedDict, TypeVar
+from typing import Literal, Iterable, TypedDict, TypeVar
 from zoneinfo import ZoneInfo as z
-from cicero_shared import assert_always, exit_error, sql_call, sql_call_cacheless, Row
+from cicero_shared import assert_always, exit_error, load_account_names, sql_call, sql_call_cacheless, topics_big, Row
 import cicero_rag_only
 
 from num2words import num2words
@@ -24,85 +24,6 @@ from langchain.schema.output_parser import StrOutputParser
 import re
 import random
 from os import environ
-
-# This is the 'big' of topics, the authoritative record of various facts and mappings about topics.
-Topics_Big_Payload = TypedDict("Topics_Big_Payload", {'color': str, 'internal name': str, 'show in prompter?': bool})
-topics_big: dict[str, Topics_Big_Payload] = {
-  'All': {'color': '#61A5A2', 'internal name': 'all', 'show in prompter?': False},
-  "’murica": {'color': '#F0D0E8', 'internal name': 'murica', 'show in prompter?': True}, #for SQL syntax reasons, this has to be a typographic apostrophe instead of a straight apostrophe. (’ instead of ')
-  '2A': {'color': '#6B747D', 'internal name': 'sec_amend', 'show in prompter?': True},
-  'America Wrong Track': {'color': '#658AB2', 'internal name': 'america_wrong_track', 'show in prompter?': True},
-  'Announcement': {'color': '#FDB0A1', 'internal name': 'announcement', 'show in prompter?': True},
-  'Biden Impeachment': {'color': '#F58271', 'internal name': 'biden_impeach', 'show in prompter?': True},
-  'Big Tech': {'color': '#EF6862', 'internal name': 'big_tech', 'show in prompter?': True},
-  'Bio': {'color': '#FFF', 'internal name': 'bio', 'show in prompter?': True},
-  'Birthday': {'color': '#E24F59', 'internal name': 'birthday', 'show in prompter?': True},
-  'Border': {'color': '#CF3D54', 'internal name': 'border', 'show in prompter?': True},
-  'Breaking News': {'color': '#B93154', 'internal name': 'breaking_news', 'show in prompter?': True},
-  'Campaign Message / Memo': {'color': '#FFF021', 'internal name': 'campaign_msg', 'show in prompter?': True},
-  'China': {'color': '#F5E721', 'internal name': 'china', 'show in prompter?': True},
-  'Climate Change': {'color': '#000', 'internal name': 'climate_change', 'show in prompter?': True},
-  'Communism / Socialism': {'color': '#E3D321', 'internal name': 'commie', 'show in prompter?': True},
-  'Contest': {'color': '#DBC628', 'internal name': 'contest', 'show in prompter?': True},
-  'Control of Congress': {'color': '#CBB828', 'internal name': 'control_of_congress', 'show in prompter?': True},
-  'Control of WH': {'color': '#C7BC42', 'internal name': 'control_of_wh', 'show in prompter?': True},
-  'Covid': {'color': '#A69F56', 'internal name': 'covid', 'show in prompter?': True},
-  'Crime': {'color': '#A6A633', 'internal name': 'crime', 'show in prompter?': True},
-  'DC Statehood': {'color': '#BDE4B2', 'internal name': 'dc_state', 'show in prompter?': True},
-  'Deadline': {'color': '#85C37B', 'internal name': 'deadline', 'show in prompter?': True},
-  'Deep State / Corruption': {'color': '#5CA065', 'internal name': 'deep_state', 'show in prompter?': True},
-  'Dems': {'color': '#407D56', 'internal name': 'dems', 'show in prompter?': True},
-  'Donald Trump': {'color': '#F49D70', 'internal name': 't_djt', 'show in prompter?': True},
-  'Education': {'color': '#ABD1E9', 'internal name': 'education', 'show in prompter?': True},
-  'Election Integrity': {'color': '#95BFDD', 'internal name': 'election_integrity', 'show in prompter?': True},
-  'Endorsement for Principal': {'color': '#888', 'internal name': 'endorse_for_principal', 'show in prompter?': True},
-  'Endorsement from Donor': {'color': '#83AECF', 'internal name': 'endorse_from_donor', 'show in prompter?': True},
-  'Endorsement from Principal': {'color': '#729DC2', 'internal name': 'endorse_from_principal', 'show in prompter?': True},
-  'Energy / Oil': {'color': '#628CB4', 'internal name': 'energy', 'show in prompter?': True},
-  'Event Debate': {'color': '#547DA4', 'internal name': 'event_debate', 'show in prompter?': True},
-  'Event Speech / Rally': {'color': '#466D93', 'internal name': 'event_speech', 'show in prompter?': True},
-  'Faith': {'color': '#4F60C7', 'internal name': 'faith', 'show in prompter?': True},
-  'GA Runoff': {'color': '#444', 'internal name': 'ga_runoff', 'show in prompter?': True},
-  'GOP': {'color': '#BBB', 'internal name': 'gop', 'show in prompter?': True},
-  'Gender': {'color': '#6B55DB', 'internal name': 'gender', 'show in prompter?': True},
-  'Hamas': {'color': '#8D4EE6', 'internal name': 'hamas', 'show in prompter?': True},
-  'Iran': {'color': '#A547F6', 'internal name': 'iran', 'show in prompter?': True},
-  'Israel': {'color': '#C839F0', 'internal name': 'israel', 'show in prompter?': True},
-  'Joe Biden': {'color': '#FB9A86', 'internal name': 'biden', 'show in prompter?': True},
-  'Matching': {'color': '#916990', 'internal name': 'matching', 'show in prompter?': True},
-  'Media Conservative': {'color': '#DBC921', 'internal name': 'con_media', 'show in prompter?': True},
-  'Media Mainstream': {'color': '#8D648A', 'internal name': 'main_media', 'show in prompter?': True},
-  'Membership': {'color': '#966F96', 'internal name': 'membership', 'show in prompter?': True},
-  'Merch Book': {'color': '#B8A', 'internal name': 'merch_book', 'show in prompter?': True},
-  'Merch Koozie': {'color': '#B8F', 'internal name': 'merch_koozie', 'show in prompter?': True},
-  'Merch Mug': {'color': '#B587AA', 'internal name': 'merch_mug', 'show in prompter?': True},
-  'Merch Ornament': {'color': '#BAA', 'internal name': 'merch_ornament', 'show in prompter?': True},
-  'Merch Shirt': {'color': '#D8A', 'internal name': 'merch_shirt', 'show in prompter?': True},
-  'Merch Sticker': {'color': '#D1A4C1', 'internal name': 'merch_sticker', 'show in prompter?': True},
-  'Merch Wrapping Paper': {'color': '#D8F', 'internal name': 'merch_wrapping_paper', 'show in prompter?': True},
-  'Military': {'color': '#E4BCD8', 'internal name': 'military', 'show in prompter?': True},
-  'National Security': {'color': '#CDCFCE', 'internal name': 'nat_sec', 'show in prompter?': True},
-  'Non-Trump MAGA': {'color': '#BFC2C2', 'internal name': 'non_trump_maga', 'show in prompter?': True},
-  'North Korea': {'color': '#DADADA', 'internal name': 'n_korea', 'show in prompter?': True},
-  'Parental Rights': {'color': '#ABA', 'internal name': 'parental_rights', 'show in prompter?': True},
-  'Pro-Life': {'color': '#A5ABAD', 'internal name': 'pro_life', 'show in prompter?': True},
-  'Pro-Trump': {'color': '#CF693F', 'internal name': 't_pro', 'show in prompter?': True},
-  'Race Update': {'color': '#97A0A4', 'internal name': 'race_update', 'show in prompter?': True},
-  'Radical DAs / Judges': {'color': '#8B959A', 'internal name': 'radical_judge', 'show in prompter?': True},
-  'Russia': {'color': '#7F8A91', 'internal name': 'russia', 'show in prompter?': True},
-  'SCOTUS': {'color': '#757E88', 'internal name': 'scotus', 'show in prompter?': True},
-  'State of the Union': {'color': '#FF0', 'internal name': 'sotu', 'show in prompter?': True},
-  'Swamp': {'color': '#616873', 'internal name': 'swamp', 'show in prompter?': True},
-  'Taxes / Economy': {'color': '#C2E1F3', 'internal name': 'economy', 'show in prompter?': True},
-  'Trump America First': {'color': '#F9BD74', 'internal name': 't_af', 'show in prompter?': False},
-  'Trump Arrest': {'color': '#F6AB57', 'internal name': 't_arrest', 'show in prompter?': True},
-  'Trump Contest': {'color': '#F49648', 'internal name': 't_contest', 'show in prompter?': False},
-  'Trump MAGA': {'color': '#EF823D', 'internal name': 't_maga', 'show in prompter?': False},
-  'Trump Mar-a-Lago Raid': {'color': '#E1743D', 'internal name': 't_mal_raid', 'show in prompter?': False},
-  'Trump Supporter': {'color': '#BD6040', 'internal name': 't_supporter', 'show in prompter?': False},
-  'Trump Witchhunt': {'color': '#AB563F', 'internal name': 't_witchhunt', 'show in prompter?': False},
-  'Ukraine': {'color': '#0056B9', 'internal name': 'ukraine', 'show in prompter?': True},
-}
 
 def external_topic_names_to_internal_topic_names_list_mapping(external_topic_names: list[str]) -> list[str]:
   return [topics_big[e]["internal name"] for e in external_topic_names]
@@ -138,11 +59,7 @@ def load_bios() -> dict[str, str]:
 
 @st.cache_data()
 def load_bio(candidate: str) -> str:
-  return sql_call("SELECT bio FROM cicero.default.ref_bios WHERE candidate = :candidate", locals())[0][0]
-
-@st.cache_data()
-def load_account_names() -> list[str]:
-  return [row[0] for row in sql_call("SELECT * FROM cicero.default.client_list")]
+  return str( sql_call("SELECT bio FROM cicero.default.ref_bios WHERE candidate = :candidate", locals())[0][0] )
 
 @st.cache_data()
 def load_headlines(get_all: bool = False, past_days: int = 7) -> list[str]:
@@ -180,7 +97,7 @@ class PresetsPayload(TypedDict):
   exact_match_query: str
   headline: str | None
   overdrive: bool
-  exact_match: bool
+  num_outputs: int
 
 presets: dict[str, PresetsPayload] = {
   "default": {
@@ -205,7 +122,7 @@ presets: dict[str, PresetsPayload] = {
     "exact_match_query": "",
     "headline": None,
     "overdrive": False,
-    "exact_match": False
+    "num_outputs": 5
   },
 }
 
@@ -221,76 +138,32 @@ def list_from_human_format_to_cicero_tone_format(l: list[str]) -> list[str]:
 def list_to_bracketeds_string(l: list[str]) -> str:
   return " ".join([f"[{i}]" for i in l])
 
-def only_those_strings_of_the_list_that_contain_the_given_substring_case_insensitively(l: list[str], s: str) -> list[str]: return [x for x in l if s.lower() in x.lower()]
+def only_those_strings_of_the_list_that_contain_the_given_substring_case_insensitively(l: list[str], s: str) -> list[str]:
+  return [x for x in l if s.lower() in x.lower()]
 
-def send(model_uri: str, databricks_token: str, data: dict[str, list[bool|str]], dummy: bool = False) -> list[str]:
-  headers = {"Authorization": f"Bearer {databricks_token}", "Content-Type": "application/json"}
-  data_json = json.dumps({"inputs": data}, allow_nan=True)
-  if dummy: # If this is a dummy prompt, we're trying to wake up the endpoint, which means we don't want to wait for a response (the request *will* hold up the entire program unless you tell it to time out.)
-    try: # When the dummy prompt fails (ie, the endpoint is waking up), it raises an exception, which is harmless except that it screws up the rest of the page render a bit sometimes, so we catch the error to suppress it.
-      requests.request(method='POST', headers=headers, url=model_uri, data=data_json, timeout=1)
-    except requests.exceptions.ReadTimeout as _e:
-      pass
-    return []
-  response = requests.request(method='POST', headers=headers, url=model_uri, data=data_json)
-  if response.status_code == 504:
-    print("response.status_code == 504; we recursively call this until the machine wakes up...")
-    return send(model_uri, databricks_token, data)
-  elif response.status_code == 404 and response.json()["error_code"] == "RESOURCE_DOES_NOT_EXIST":
-    raise Exception("Encountered 404 error \"RESOURCE_DOES_NOT_EXIST\" when trying to query the model. This usually means the model endpoint has been moved. Please contact the team in charge of model serving to rectify the situation.")
-  elif response.status_code != 200:
-    if response.json()["error_code"] == "BAD_REQUEST":
-      raise Exception(response.json()["message"])
-    else:
-      raise Exception(f"Request failed with status {response.status_code}, {response.text}")
-  return [str(r) for r in response.json()["predictions"][0]["0"]] # This list comprehension is just for appeasing the type-checker.
-
-class dbutils:
-  """A fake version of dbutils, to make Wes' code work outside of databricks with minimal changes."""
-  class widgets:
-    @staticmethod
-    def text(variable_name: str, default_value:str, description: str) -> None:
-      st.session_state["fake_dbutils_"+variable_name] = st.text_input(label=description+f"({variable_name})", value=default_value)
-    @staticmethod
-    def get(variable_name: str) -> str:
-      return st.session_state["fake_dbutils_"+variable_name]
-
-def everything_from_wes() -> None:
+def execute_prompting(account: str, ask_type: str, topics: list[str], additional_topics: list[str], tones: list[str], text_len: Literal["short", "medium", "long", ""], headline: str|None, num_outputs: int, model_temperature: float = 0.8, use_bio: bool = True) -> tuple[str, list[str]]:
   score_threshold = 0.5 # Document Similarity Score Acceptance Threshold
-  model_temp = 0.8 # Model Temperature
-
   doc_pool_size = 10 # Document Pool Size
   num_examples = 10 # Number of Documents to Use as Examples
+  assert_always(num_examples <= doc_pool_size, "You can't ask to provide more examples than there are documents in the pool! Try again with a different value.")
   num_outputs = 5 # Number of Texts the Model Should Generate
   output_table_name = "models.lovelytics.gold_text_outputs" # Text Output Table Name
   ref_tag_name = "models.lovelytics.ref_tags" # Tags Table Name #TODO: possibly use topic_tags = set(x["Tag_Name"] for x in spark.read.table(ref_tag_name).filter(col("Tag_Type") == "Topic").select("Tag_Name").collect()) etc etc logic. Probably this gets address when Wes emails me a second diff.
   rag_output_table_name = "models.lovelytics.rag_outputs" # RAG Outputs Table Name
   primary_key = "PROJECT_NAME" # Index Table Primary Key Name
-
-  topics = "" # Topics
-  client = "" # Client/Account Name
-  ask = "" # Ask Type
-  tones = "" # Tones
-  text_len = "" # Text Length
-  use_bio = True # Include Bio Information
-  headlines = "" # News Headlines
-
   topic_weight = 4 # Topic Filter Weight
   tone_weight = 1 # Tone Filter Weight
-  client_weight = 6 # Client Filter Weight
+  client_weight = 6 # Client Filter Weight (client is a synonym for account)
   ask_weight = 2 # Ask Type Weight
   text_len_weight = 4 # Text Length Weight
 
-  assert_always(num_examples <= doc_pool_size, "You can't ask to provide more examples than there are documents in the pool! Try again with a different value.")
-
-  # Topics and tones are expected to be passed with a comma and space separating each item; e.g. topics = "a, b, c"
-  topics_list = topics.split(", ") if topics else []
-  tones_list = tones.split(", ") if tones else []
+  topics_str = ", ".join(topics)
+  tones_str = ", ".join(tones)
 
   # Create a target prompt that is used during the vector index similarity search to score retrieved texts.
-  target_prompt = f"A {text_len} {ask} text message from {client}" + f" about {topics}"*bool(topics) + f" written with an emphasis on {tones}"*bool(tones)
+  target_prompt = f"A {text_len} {ask_type} text message from {account}" + f" about {topics_str}"*bool(topics) + f" written with an emphasis on {tones_str}"*bool(tones)
 
-  # Wes 6. Create All Possible Filter Combinations and Sort By Importance
+  #### Create All Possible Filter Combinations and Sort By Importance ###
 
   ### Tag importance from most important to least
   # Topics (Tp)
@@ -326,30 +199,30 @@ def everything_from_wes() -> None:
   # This would match the string a, b and a, c, d, e, f, g, b
   # And would not match the string acdb
   # ^(?=.*\btopic\b)(?=.*\btopic\b).*$ regex for matching
-  topic_sets = [("topics", "(, .*){1,}".join(x), topic_weight * len(x)) for x in powerset(sorted(topics_list), start=min(1, len(topics_list)))]
-  tone_sets = [("tones", "(, .*){1,}".join(x), tone_weight * len(x)) for x in powerset(sorted(tones_list), start=min(1, len(tones_list)))]
+  topic_sets = [("topics", "(, .*){1,}".join(x), topic_weight * len(x)) for x in powerset(sorted(topics), start=min(1, len(topics)))]
+  tone_sets = [("tones", "(, .*){1,}".join(x), tone_weight * len(x)) for x in powerset(sorted(tones), start=min(1, len(tones)))]
   combos = set()
   # Iterate through each pairing of topics and tones
   for tp in topic_sets:
-      for to in tone_sets:
-          # Generate every combination between client, ask type, text length, topic, and tone
-          # This means that for each topic set and tone set, we're generating every possible combination between those and the client, ask, and length
-          temp_arr = [("client", client, client_weight), ("ask", ask, ask_weight), ("text_len", text_len, text_len_weight)]
-          # But only add the topics and tones if they exist i.e. are not an empty string
-          if tp[-1] != 0:
-              temp_arr.append(tp)
-          if to[-1] != 0:
-              temp_arr.append(to)
-          # Then update the set of filter combinations. A set is used to remove any duplicate filter combinations
-          # Note that each filter tag (e.g. client, a topic set) has it's own weight value that dictate the filter's importance
-          # Higher weight filters will be used first
-          # When the sets of all filters are generated, their combined weight is summed together using the reduce function
-          combos.update((x, reduce(lambda a, b: a+b[2], x, 0))  if len(x) != 0 else (x, 0) for x in powerset(temp_arr))
+    for to in tone_sets:
+      # Generate every combination between client, ask type, text length, topic, and tone
+      # This means that for each topic set and tone set, we're generating every possible combination between those and the client, ask, and length
+      temp_arr = [("client", account, client_weight), ("ask", ask_type, ask_weight), ("text_len", text_len, text_len_weight)]
+      # But only add the topics and tones if they exist i.e. are not an empty string
+      if tp[-1] != 0:
+        temp_arr.append(tp)
+      if to[-1] != 0:
+        temp_arr.append(to)
+      # Then update the set of filter combinations. A set is used to remove any duplicate filter combinations
+      # Note that each filter tag (e.g. client, a topic set) has it's own weight value that dictate the filter's importance
+      # Higher weight filters will be used first
+      # When the sets of all filters are generated, their combined weight is summed together using the reduce function
+      combos.update((x, reduce(lambda a, b: a+b[2], x, 0))  if len(x) != 0 else (x, 0) for x in powerset(temp_arr))
   # Then, the filters are sorted by their weight in descending order
   # So higher weight filter combinations are first in the array which means any documents with those filters will be considered first
   combos = [{y[0]: y[1] for y in x[0]} for x in sorted(combos, key=lambda a: a[1], reverse=True)]
 
-  # Wes 7. Find as Many Relevant Documents as Possible
+  ### Find as Many Relevant Documents as Possible ###
 
   @st.cache_data()
   def read_output_table() -> list[Row]:
@@ -361,7 +234,7 @@ def everything_from_wes() -> None:
   # This is to prevent duplicate documents/texts from showing up
   results_found = set()
   # reference_texts will be a list of dictionaries containing example user prompts and assistant responses (i.e. the text messages)
-  reference_texts = []
+  reference_texts : list[dict[str, str]] = []
   for c in combos:
       results = [
         row[primary_key] for row in text_rows if # Only apply filters if they are present in the current filter combination.
@@ -376,6 +249,7 @@ def everything_from_wes() -> None:
       if not results:
         continue
       results_found.update(results) # add the found primary key values to the results_found set
+      # TODO: probably put faiss back in here.
       # TODO: Perform a similarity search using the target_prompt defined beforehand. Filter for / use only the results we found earlier in this current iteration.
       # TODO: Then add all results returned by the similarity search to the reference_texts list. But only if their similarity score is greater than the score_threshold parameter.
       if 0 != 0: #TODO: size of result here, then formatting
@@ -384,10 +258,8 @@ def everything_from_wes() -> None:
       if len(reference_texts) >= doc_pool_size:
           reference_texts = reference_texts[:doc_pool_size]
           break
-  # print(reference_texts)
-  reference_texts
 
-  # Wes 8. Query Endpoints
+  ### Query Endpoints ###
 
   # Randomize the order of the example texts. Unclear if this actually helps. But maybe it prevents the model from learning any ordering pattern we didn't intend for it to learn
   texts_to_use = random.sample(reference_texts, k=min(num_examples, len(reference_texts)))
@@ -409,18 +281,18 @@ def everything_from_wes() -> None:
   # Add specificity of specific ask type of the text message too
   # Try to make the model understand that the outputs we specifically are asking for should be this length
   if text_len == "short":
-      sys_prompt += f" Your short {ask} text messages should be less than 160 characters in length, use less than 35 words, and have less than 2 sentences."
-  elif text_len == "medium-length":
-      sys_prompt += f" Your medium-length {ask} text messages should be between 160 and 400 characters in length, use between 35 to 70 words, and have between 3 to 5 sentences."
+      sys_prompt += f" Your short {ask_type} text messages should be less than 160 characters in length, use less than 35 words, and have less than 2 sentences."
+  elif text_len == "medium":
+      sys_prompt += f" Your medium-length {ask_type} text messages should be between 160 and 400 characters in length, use between 35 to 70 words, and have between 3 to 5 sentences."
   elif text_len == "long":
-      sys_prompt += f" Your long {ask} text messages should be more than 400 characters in length, use more than 70 words, and have more than 6 sentences."
+      sys_prompt += f" Your long {ask_type} text messages should be more than 400 characters in length, use more than 70 words, and have more than 6 sentences."
   # combined_dict stores all of the string format variables used in the prompt and their values
   combined_dict = {}
   # Add bio and headline information if those are available
-  if use_bio and client:
-      sys_prompt += f""" Here is important biographical information about the conservative candidate you are writing for: {load_bio(client)}"""
-  if headlines:
-      sys_prompt += f""" Here is/are news headline(s) you should reference in your text messages: {headlines}"""
+  if use_bio and account:
+      sys_prompt += f""" Here is important biographical information about the conservative candidate you are writing for: {load_bio(account)}"""
+  if headline:
+      sys_prompt += f""" Here is/are news headline(s) you should reference in your text messages: {headline}"""
   # Add system_prompt to combined_dict
   combined_dict["system_prompt"] = sys_prompt
 
@@ -437,7 +309,7 @@ def everything_from_wes() -> None:
   combined_dict = combined_dict | ms_prompts | ms_texts
 
   # Create the question prompt and add it to the combined_dict dictionary
-  combined_dict["question"] = f"Please write me {num2words(num_outputs)} {text_len} {ask} text message(s) from {client}" + bool(topics)*f" about {topics}" + bool(tones)*f" written with an emphasis on {tones}"
+  combined_dict["question"] = f"Please write me {num2words(num_outputs)} {text_len} {ask_type} text message(s) from {account}" + bool(topics)*f" about {topics_str}" + bool(tones)*f" written with an emphasis on {tones_str}"
 
   ##### END PROMPT INSERTION #####
   # print(rag_prompt)
@@ -456,9 +328,9 @@ def everything_from_wes() -> None:
   # see note about environ in rag_only
   environ['DATABRICKS_HOST'] = "https://"+st.secrets['DATABRICKS_SERVER_HOSTNAME']
   environ['DATABRICKS_TOKEN'] = st.secrets["databricks_api_token"]
-  dbrx_chat_model = ChatDatabricks(endpoint="databricks-dbrx-instruct", max_tokens=4096, temperature=model_temp)
-  llama_3_chat_model = ChatDatabricks(endpoint="databricks-meta-llama-3-70b-instruct", max_tokens=4096, temperature=model_temp)
-  mixtral_chat_model = ChatDatabricks(endpoint="databricks-mixtral-8x7b-instruct", max_tokens=4096, temperature=model_temp)
+  dbrx_chat_model = ChatDatabricks(endpoint="databricks-dbrx-instruct", max_tokens=4096, temperature=model_temperature)
+  llama_3_chat_model = ChatDatabricks(endpoint="databricks-meta-llama-3-70b-instruct", max_tokens=4096, temperature=model_temperature)
+  mixtral_chat_model = ChatDatabricks(endpoint="databricks-mixtral-8x7b-instruct", max_tokens=4096, temperature=model_temperature)
 
   # Assemble all of the LLM chains which makes it easier to invoke them and parse their outputs
   # This uses langchain's own pipe syntax to organize multiple components into a "pipe"
@@ -467,7 +339,7 @@ def everything_from_wes() -> None:
   mixtral_chain = ( prompt | mixtral_chat_model | StrOutputParser() )
   llm_chains = {"dbrx": dbrx_chain, "llama-3": llama_3_chain, "mixtral": mixtral_chain}
   if not token_count >= 4096: # Only use the llama-2 if we know the input prompt isn't greater than or equal to 4096 tokens (a weakness of llama-2)
-    llama_chat_model = ChatDatabricks(endpoint="databricks-llama-2-70b-chat", max_tokens=4096-token_count, temperature=model_temp)
+    llama_chat_model = ChatDatabricks(endpoint="databricks-llama-2-70b-chat", max_tokens=4096-token_count, temperature=model_temperature)
     llama_chain = ( prompt | llama_chat_model | StrOutputParser() )
     llm_chains["llama-2"] = llama_chain
 
@@ -488,7 +360,7 @@ def everything_from_wes() -> None:
   payload = {"instances": [
           {
               "prompt": prompt.format(**combined_dict),
-              "temperature": model_temp,
+              "temperature": model_temperature,
               "max_tokens": 2048,
               "stop": ["<|eot_id|>", "<|end_of_text|>"]
           }
@@ -504,19 +376,17 @@ def everything_from_wes() -> None:
   all_responses["smc_api"] = response_text
   print(response_text)
 
-  # Wes 9.
-
-  # Let's save all of our LLM outputs to a delta table!
-  # The table makes use of a Batch_Number column to mark which outputs were generated at the same time
+  print("The table makes use of a Batch_Number column to mark which outputs were generated at the same time")
   # There's also an Output_Datetime column which contains the actual datetime the outputs were created, which will be the same value for outputs within the same batch
   # But a batch number is easier to communicate to others and understand at a quick glance
 
   try: # If the table already exists, the new batch number should be one greater than the last one
     batch_num = 1 + sql_call(f"SELECT batch_number FROM {rag_output_table_name} ORDER BY batch_number DESC LIMIT 1")[0][0]
   except Exception as e: # If the table doesn't exist, the first batch will be batch number 1
-    print("No batch number found, reseting batch number to 1.")
+    print("No batch number found, resetting batch number to 1.")
     batch_num = 1
 
+  print("Let's save all of our LLM outputs to a delta table!")
   for key_that_is_source, value_that_is_contents in all_responses.items():
     sql_call(
       f"INSERT INTO {rag_output_table_name} ( batch_number,  output_source,  output_content,  output_datetime)\
@@ -524,9 +394,9 @@ def everything_from_wes() -> None:
       {"batch_number": batch_num, "output_source": key_that_is_source, "output_content": value_that_is_contents, "output_datetime": datetime.now(z("US/Eastern"))}
     )
   print("Done :)")
+  return target_prompt, list(all_responses.values())
 
 def main() -> None:
-  everything_from_wes()
 
   if not st.session_state.get('email'): #TODO: this line is of dubious usefulness. It's supposed to let you run cicero_prompter.py locally and stand-alone without cicero.py, however.
     st.session_state["email"] = str(st.experimental_user["email"]) #this str call also accounts for if the user email is None.
@@ -554,9 +424,6 @@ def main() -> None:
 
   if not st.session_state.get("initted"):
     set_ui_to_preset("default")
-    #Exploit the fact that the streamlit community cloud apparently regularly reruns our code invisibly somewhere in order to keep the endpoint alive during business hours, because a user disliked waiting.
-    if 8 <= datetime.now(z("US/Eastern")).hour <= 19 and datetime.now(z("US/Eastern")).strftime("%A") not in ["Saturday", "Sunday"]:
-      send(models[presets["default"]["model"]], st.secrets["databricks_api_token"], {}, dummy=True) # This line just tries to wake up the gpt-short-medium-long model slightly faster, therefore slightly conveniencing the user, probably. #possibly due to a streamlit community cloud bug, this line seems to cause our scale-to-zero model to get pinged often enough to always be awake, when the condition is met.
     st.session_state["initted"] = True
     st.rerun() #STREAMLIT-BUG-WORKAROUND: this rerun actually has nothing to do with initing, it's just convenient to do here, since we need to do it exactly once, on app startup. It prevents the expander from experiencing a streamlit bug (<https://github.com/streamlit/streamlit/issues/2360>) that is only present in the initial run state. Anyway, this rerun is really fast and breaks nothing (except the developer mode initial performance timer readout, which is now clobbered) so it's a good workaround.
 
@@ -564,7 +431,6 @@ def main() -> None:
 
   if st.button("Reset", help="Resets the UI elements to their default values. This button will also trigger cached data like the Candidate Bios and the news RSS feed to refresh. You can also just press F5 to refresh the page."):
     st.cache_data.clear()
-    st.session_state["headline_search_function"] = None
     set_ui_to_preset("default")
 
   # setting default values for advanced parameters for our non-developer end-user
@@ -586,17 +452,12 @@ def main() -> None:
     h: list[str] = load_headlines(get_all=False) if not overdrive else load_headlines(get_all=False, past_days=3)
     if exact_match_query:
       h = only_those_strings_of_the_list_that_contain_the_given_substring_case_insensitively(h, exact_match_query)
-    headline = st.selectbox("Selected headlines will be added to your prompt below.", list(h), key="headline")
+    headline = st.selectbox("If a headline is selected here, it will be added to your prompt below.", list(h), key="headline")
 
   st.text("") # Just for vertical spacing.
 
   with st.form('query_builder'):
     with st.sidebar:
-      st.header("Settings")
-      temperature : float = st.slider("Output Variance:", min_value=0.0, max_value=1.0, key="temperature") #temperature: slider between 0 and 1, defaults to 0.7, float
-      #character count max, min: int, cannot be negative or 0, starts at 40. floor divide by 4 to get token count to pass to model:
-      target_charcount_min = st.number_input("Min Target Characters:", min_value=40, format='%d', step=1, key="target_charcount_min")
-      target_charcount_max = st.number_input("Max Target Characters:", min_value=40, format='%d', step=1, key="target_charcount_max") #help="Short: <=160 | Medium: >160, <400 | Long: >=400"
       if st.session_state["developer_mode"]:
         with st.expander("Advanced Parameters"):
           num_beams = int( st.number_input("num_beams:", min_value=1, format='%d', step=1, key="num_beams", help="Number of beams for beam search. 1 means no beam search. Beam search is a particular strategy for generating text that the model can elect to use or not use. It can use more or fewer beams in the beam search, as well. More beams basically means it considers more candidate possibilities.") )
@@ -608,72 +469,49 @@ def main() -> None:
           early_stopping = st.checkbox("early_stopping", key="early_stopping" , help="Controls the stopping condition for beam-based methods, like beam-search. It accepts the following values: True, where the generation stops as soon as there are num_beams complete candidates; False, where an heuristic is applied and the generation stops when is it very unlikely to find better candidates; \"never\", where the beam search procedure only stops when there cannot be better candidates (canonical beam search algorithm). In other words: if the model is using beam search (see num_beams, above), then if this box is checked the model will spend less time trying to improve its beams after it generates them. If num_beams = 1, this checkbox does nothing either way. There is no way to select \"never\" using this checkbox, as that setting is just a waste of time.")
           do_sample = st.checkbox("do_sample", key="do_sample" , help="Whether or not to use sampling ; use greedy decoding otherwise. These are two different strategies the model can use to generate text. Greedy is probably much worse, and you should probably always keep this box checked.")
           output_scores = st.checkbox("output_scores", key="output_scores" , help="Whether or not to return the prediction scores. See scores under returned tensors for more details. In other words: This will not only give you back responses, like normal, it will also tell you how likely the model thinks the response is. Usually useless, and there's probably no need to check this box.")
-    model_name = presets["default"]["model"] #COULD: clean up this code to remove all of the logic related to this although I think we still want to save the model name and uri in the activity log) #str( st.selectbox(r"$\textsf{\Large COPYWRITING MODEL}$", models, key="model") )
+    
+    
+    model_name = presets["default"]["model"] #COULD: clean up this code to remove all of the logic related to this although I think we still want to save the model name and uri in the activity log)
     model_uri = models[model_name]
     account = st.selectbox("Account (required)", list(account_names), key="account")
-    ask_type = str( st.selectbox("Ask Type", ['Hard Ask', 'Medium Ask', 'Soft Ask', 'Soft Ask Petition', 'Soft Ask Poll', 'Soft Ask Survey'], key="ask_type") )
+    ask_type = str( st.selectbox("Ask Type", ['Hard Ask', 'Medium Ask', 'Soft Ask', 'Soft Ask Petition', 'Soft Ask Poll', 'Soft Ask Survey'], key="ask_type") ).lower()
     topics = st.multiselect("Topics", sorted([t for t, d in topics_big.items() if d["show in prompter?"]]), key="topics" )
     additional_topics = [x.strip() for x in st.text_input("Additional Topics (examples: Biden, survey, deadline)", key="additional_topics" ).split(",") if x.strip()] # The list comprehension is to filter out empty strings on split, because otherwise this fails to make a truly empty list in the default case, instead having a list with an empty string in, because split changes its behavior when you give it arguments. Anyway, this also filters out trailing comma edge-cases and such.
-    tone = st.multiselect("Tone", ['Agency', 'Apologetic', 'Candid', 'Exclusivity', 'Fiesty', 'Grateful', 'Not Asking For Money', 'Pleading', 'Quick Request', 'Secretive', 'Time Sensitive', 'Urgency'], key="tone") #, 'Swear Jar' will probably be in here some day, but we don't have "we need more swear jar data to make this tone better"
+    tones = st.multiselect("Tones", ['Agency', 'Apologetic', 'Candid', 'Exclusivity', 'Fiesty', 'Grateful', 'Not Asking For Money', 'Pleading', 'Quick Request', 'Secretive', 'Time Sensitive', 'Urgency'], key="tone") #TODO: , 'Swear Jar' will probably be in here some day, but we don't have "we need more swear jar data to make this tone better"
+    num_outputs : int = st.slider("Number of outputs", min_value=1, max_value=10, key="num_outputs")
+    temperature: float = st.slider("Output Variance:", min_value=0.0, max_value=1.0, key="temperature") if st.session_state["developer_mode"] else 0.7
+    target_charcount_min = st.number_input("Min Target Characters:", min_value=40, format='%d', step=1, key="target_charcount_min")
+    target_charcount_max = st.number_input("Max Target Characters:", min_value=40, format='%d', step=1, key="target_charcount_max") #help="Short: <=160 | Medium: >160, <400 | Long: >=400"
     generate_button = st.form_submit_button("Submit")
 
-  if model_name != 'gpt-short-medium-long':
-    text_length = ""
+  if model_name != 'gpt-short-medium-long': #TODO: is this still useful?
+    text_length: Literal["short", "medium", "long", ""] = "" #TODO: presumably I have to narrow this to
   else:
-    if target_charcount_max <= 160:
-      text_length = " short"
+    if target_charcount_max <= 160: #TODO: would be cleaner to just pass the target_charcount_max into the function, instead of this string
+      text_length = "short"
     elif target_charcount_max > 160 and target_charcount_max < 400:
-      text_length = " medium"
+      text_length = "medium"
     elif target_charcount_max >= 400:
-      text_length = " long"
+      text_length = "long"
 
   #Composition and sending a request:
   did_a_query = False
   if generate_button:
-    if account:
+    if not account:
+      st.error("***No account name is selected, so I can't send the request!***")
+    else:
       did_a_query = True
       st.session_state['use_count']+=1 #this is just an optimization for the front-end display of the query count
-      st.session_state['human-facing_prompt'] = (
-        ((bios[account]+"\n\n") if "Bio" in topics and account in bios else "") +
-        "Write a " + ask_type.lower() + text_length +
-        " text for " + account +
-        " about: " + list_to_bracketeds_string(
-            sorted( external_topic_names_to_internal_topic_names_list_mapping(topics) + list_from_human_format_to_cicero_tone_format(additional_topics) )
-            or ["No Hook"]
-        ) +
-        ( "" if not tone else " emphasizing "+ list_to_bracketeds_string(sorted(list_from_human_format_to_cicero_tone_format(tone))) ) +
-        (" {"+headline+"} " if headline else "")
-      )
-      prompt = "<|startoftext|> "+st.session_state['human-facing_prompt']+" <|body|>"
-      st.session_state['developer-facing_prompt'] = prompt
-      dict_prompt = {"prompt": [prompt],
-                      "temperature": [temperature],
-                      "max_new_tokens": [int(target_charcount_max) // 4],
-                      "min_new_tokens": [int(target_charcount_min) // 4],
-                      "num_beams": [num_beams],
-                      "top_k": [top_k],
-                      "top_p": [top_p],
-                      "repetition_penalty": [repetition_penalty],
-                      "no_repeat_ngram_size": [no_repeat_ngram_size],
-                      "num_return_sequences": [num_return_sequences],
-                      "early_stopping": [early_stopping],
-                      "do_sample": [do_sample],
-                      "output_scores": [output_scores]
-                    }
-      unpsycho_dict_prompt = {k:v[0] for (k,v) in dict_prompt.items()}
-      try:
-        GenerationConfig(**unpsycho_dict_prompt)# This validates the parameters, throwing an exception that displays to the user and explains the problem if the parameters are wrong.
-        with st.spinner("Prompting the model.  Please alert the Optimization Team if this process takes longer than 1 minute."):
-          outputs = send(model_uri, st.secrets["databricks_api_token"], dict_prompt)
-        st.session_state['outputs'] = outputs
-        if 'history' not in st.session_state: st.session_state['history'] = []
-        st.session_state['history'] += outputs
-        st.session_state['character_counts_caption'] = "Character counts: "+str([len(o) for o in outputs])
-      except Exception as e:
-        st.error(e)
-        did_a_query = False
-    else:
-      st.error("***No account name is selected, so I can't send the request!***")
+      use_bio=("Bio" in topics and account in bios)
+      #TODO: does this use the internal or external topic names?
+      sorted( external_topic_names_to_internal_topic_names_list_mapping(topics) )
+      list_from_human_format_to_cicero_tone_format(additional_topics)
+      list_from_human_format_to_cicero_tone_format(tones) #TODO: does this need: `or ["No Hook"]`
+      promptsent, outputs = execute_prompting(account, ask_type, topics, additional_topics, tones, text_length, headline, num_outputs, temperature, use_bio, )
+      st.session_state['outputs'] = outputs
+      if 'history' not in st.session_state: st.session_state['history'] = []
+      st.session_state['history'] += outputs
+      st.session_state['character_counts_caption'] = "Character counts: "+str([len(o) for o in outputs])
 
   # The idea is for these output elements to persist after one query button, until overwritten by the results of the next query.
   if 'human-facing_prompt' in st.session_state:
@@ -719,9 +557,8 @@ def main() -> None:
 
   # Activity logging takes a bit, so I've put it last to preserve immediate-feeling performance and responses for the user making a query.
   if did_a_query:
-    dict_prompt.pop('prompt')
-    no_prompt_dict_str = str(dict_prompt)
-    write_to_activity_log_table( datetime=str(datetime.now()), useremail=st.session_state['email'], promptsent=prompt, responsegiven=json.dumps(outputs), modelparams=no_prompt_dict_str, modelname=model_name, modelurl=model_uri )
+    # promptsent is only illustrative. But maybe that's enough.
+    write_to_activity_log_table( datetime=str(datetime.now()), useremail=st.session_state['email'], promptsent=promptsent, responsegiven=json.dumps(outputs), modelparams="(wes-rag-only strategy has no singular modelparams to record, at least at the moment)", modelname="(wes-rag-only strategy has no singular model_name to record, at least at the moment)", modelurl="(wes-rag-only strategy has no singular modelurl to record, at least at the moment)" )
 
   # st.components.v1.html('<!--<script>//you can include arbitrary html and javascript this way</script>-->') #or, use st.markdown, if you want arbitrary html but javascript isn't needed.
 

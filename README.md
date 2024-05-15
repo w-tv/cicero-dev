@@ -24,6 +24,8 @@ git remote add prod https://github.com/achangtv/cicero # Set prod as an addition
 git push prod # This will push the current history to prod (instead of the default `git push`, which will still push to dev). If you need to push to a branch on prod with a different name than the local branch, you can use git push prod local_branch_name:remote_branch_name, where local_branch_name is probably master.
 ```
 
+Note that the git history of this project is basically a straight line. As God intended.
+
 Edit `cicero.py` to customize this app to your heart's desire. However, it should be pretty much entirely as customized as we need it to be, at this point. Maybe a couple features left.
 
 We have all the subpages listed as cicero_\*.py files instead of pages/ because the default behavior of losing all widget state on page switch was undesirable, so we just use tabs for that functionality instead.
@@ -31,6 +33,8 @@ We have all the subpages listed as cicero_\*.py files instead of pages/ because 
 This project is typechecked! You can run typecheck.bat to check the types. If you are a novice python programmer or don't like types, don't worry; python is gradually typed so you can just ignore the types and it will be fine (typecheck.bat will probably fail for a while, however, until someone fixes it; but nothing relies on typecheck.bat passing). This project primarily uses mypy, and satisfies mypy --strict. It also almost satisfies ultrastrict, a typechecking mode I made up where you aren't allowed to use typing.cast, type:ignore comments, nor the no_type_check and no_type_check_decorator decorators — the idea is that your types are then entirely statically verified, with a guarantee that your types are correct at runtime. There are a few places where we violate ultrastrict mode, but they are all bugs in something else that we are working around... currently the typechecker (although it used to be our deps' type signatures).
 
 Anyhow, this project also evaluated using pyright, especially pyright --skipunannotated, but found it had a few too many confusing false-positive errors. We also evaluated pytype (via wsl), which has the apparent benefit of being able to deduce all types for you without annotations (can pyright also do this?) but are waiting on this issue to be resolved https://github.com/google/pytype/issues/1545 to accommodate our big dict. So, so far we are sticking with mypy. Once all of them work for our use case, we will probably add them all into typecheck.bat, and have a party.
+
+A lot of static typing in this project is, as it were, lost, on the barrier between us and our database (sql_call). But it's probably ultimately fine.
 
 Various ridiculous workarounds in the code have been labeled FOO-BUG-WORKAROUND, where FOO is the name of the dependency to blame, in comments in the code. Eventually you may have the pleasure of removing these!
 
