@@ -25,6 +25,8 @@ import re
 import random
 from os import environ
 
+from databricks.vector_search.client import VectorSearchClient
+
 def external_topic_names_to_internal_topic_names_list_mapping(external_topic_names: list[str]) -> list[str]:
   return [topics_big[e]["internal name"] for e in external_topic_names]
 
@@ -235,6 +237,9 @@ def execute_prompting(account: str, ask_type: str, topics: list[str], additional
   results_found = set()
   # reference_texts will be a list of dictionaries containing example user prompts and assistant responses (i.e. the text messages)
   reference_texts : list[dict[str, str]] = []
+  # Setup Vector Search Client that we will use in the loop.
+  vsc = VectorSearchClient( personal_access_token=st.secrets["databricks_api_token"], workspace_url="https://"+st.secrets['DATABRICKS_SERVER_HOSTNAME'] )
+  text_index = vsc.get_index(endpoint_name="rag_llm_vector", index_name="models.lovelytics.gold_text_outputs_index")
   for c in combos:
       results = [
         row[primary_key] for row in text_rows if # Only apply filters if they are present in the current filter combination.
@@ -249,11 +254,16 @@ def execute_prompting(account: str, ask_type: str, topics: list[str], additional
       if not results:
         continue
       results_found.update(results) # add the found primary key values to the results_found set
-      # TODO: probably put faiss back in here.
-      # TODO: Perform a similarity search using the target_prompt defined beforehand. Filter for / use only the results we found earlier in this current iteration.
-      # TODO: Then add all results returned by the similarity search to the reference_texts list. But only if their similarity score is greater than the score_threshold parameter.
-      if 0 != 0: #TODO: size of result here, then formatting
-          reference_texts.extend({"prompt": "Please write me a" + x[0].split(":\n\n", 1)[0][1:], "text": x[0].split(":\n\n", 1)[1], "score": x[-1]} for x in vs_search["result"]["data_array"] if x[-1] > score_threshold)
+      # Perform a similarity search using the target_prompt defined beforehand. Filter for only the results we found earlier in this current iteration.
+      vs_search = text_index.similarity_search(
+        num_results=min(len(results), 10000),
+        columns=["Final_Text"],
+        filters={primary_key: results},
+        query_text=target_prompt
+      )
+      # Then add all results returned by the similarity search to the reference_texts list. But only if their similarity score is greater than the score_threshold parameter.
+      if vs_search["result"]["row_count"] != 0:
+        reference_texts.extend({"prompt": "Please write me a" + x[0].split(":\n\n", 1)[0][1:], "text": x[0].split(":\n\n", 1)[1], "score": x[-1]} for x in vs_search["result"]["data_array"] if x[-1] > score_threshold)
       # If we've found at least the number of desired documents, exit the loop and take the first doc_pool_size number of texts. The beginning of the reference_texts array will contain the texts that match the most important filters and the highest similarity scores.
       if len(reference_texts) >= doc_pool_size:
           reference_texts = reference_texts[:doc_pool_size]
@@ -324,7 +334,7 @@ def execute_prompting(account: str, ask_type: str, topics: list[str], additional
   # Estimate the number of tokens our prompt is
   # This is important for querying the Llama-2 model only since it has a limit of 4096 tokens for its input and output combined
   # e.g. if our input is 4000 tokens, then we can only have 96 tokens for the output
-  token_count = len( prompt.format( **combined_dict ) ) // 3
+  token_count = len( prompt.format( **combined_dict ) ) // 2
   # see note about environ in rag_only
   environ['DATABRICKS_HOST'] = "https://"+st.secrets['DATABRICKS_SERVER_HOSTNAME']
   environ['DATABRICKS_TOKEN'] = st.secrets["databricks_api_token"]
@@ -338,10 +348,6 @@ def execute_prompting(account: str, ask_type: str, topics: list[str], additional
   llama_3_chain = ( prompt | llama_3_chat_model | StrOutputParser() )
   mixtral_chain = ( prompt | mixtral_chat_model | StrOutputParser() )
   llm_chains = {"dbrx": dbrx_chain, "llama-3": llama_3_chain, "mixtral": mixtral_chain}
-  if not token_count >= 4096: # Only use the llama-2 if we know the input prompt isn't greater than or equal to 4096 tokens (a weakness of llama-2)
-    llama_chat_model = ChatDatabricks(endpoint="databricks-llama-2-70b-chat", max_tokens=4096-token_count, temperature=model_temperature)
-    llama_chain = ( prompt | llama_chat_model | StrOutputParser() )
-    llm_chains["llama-2"] = llama_chain
 
   # For every LLM, query it with our prompt and print the outputs
   # Also save the outputs into a dictionary which we'll write to a delta table
@@ -353,28 +359,6 @@ def execute_prompting(account: str, ask_type: str, topics: list[str], additional
     print(inv_res)
     all_responses[llm_name] = inv_res
     print()
-
-  # Also query the SMC API llama-3 model
-  print(f"#### SMC API OUTPUTS ####")
-  url = "https://relay.stagwellmarketingcloud.io/google/v1/projects/141311124325/locations/us-central1/endpoints/2940118281928835072:predict"
-  payload = {"instances": [
-          {
-              "prompt": prompt.format(**combined_dict),
-              "temperature": model_temperature,
-              "max_tokens": 2048,
-              "stop": ["<|eot_id|>", "<|end_of_text|>"]
-          }
-      ]}
-  headers = {
-    "Content-Type": "application/json",
-    "smc-owner": "...",
-    "Authorization": "Bearer eyJhbGciOiJFUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6ImZmYzU1ZmNiLTkwZTMtNGI4OS1iMmY0LTQ1Mjg0OWE3MWZiNCIsImlzcyI6IlNNQyIsImtleU5hbWUiOiJUYXJnZXRkVmljdG9yeSBNTVMiLCJraWQiOiI5M2M5OGRiMDVmZmUyNDI3NDZkM2IyYzYwMDIzNDYxNiIsIm9yZ0lkIjoiNjA0NTM3MjYtYWY4ZC00NjQ2LTk2ZTktNzRjNjQyMWZiNDI0In0.XNnsi6d_47yBLgHZwouoEtqC6IB-bfaLnGL6kB3Ldw9oXLCfEOuXygFGMhlH7ywTHowaoegPPygYiQ-Z78lsDQ"
-  }
-  response = requests.request("POST", url, json=payload, headers=headers)
-  response_json = json.loads(response.text)
-  response_text = response_json["predictions"][0].rsplit("Output:", 1)[-1].strip()
-  all_responses["smc_api"] = response_text
-  print(response_text)
 
   print("The table makes use of a Batch_Number column to mark which outputs were generated at the same time")
   # There's also an Output_Datetime column which contains the actual datetime the outputs were created, which will be the same value for outputs within the same batch
