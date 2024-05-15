@@ -28,7 +28,7 @@ from os import environ
 from databricks.vector_search.client import VectorSearchClient
 
 def external_topic_names_to_internal_topic_names_list_mapping(external_topic_names: list[str]) -> list[str]:
-  return [topics_big[e]["internal name"] for e in external_topic_names]
+  return [topics_big[e]["internal name"].replace("_", " ").lower() for e in external_topic_names]
 
 def ensure_existence_of_activity_log() -> None:
   sql_call("CREATE TABLE IF NOT EXISTS cicero.default.activity_log (datetime string, useremail string, promptsent string, responsegiven string, modelparams string, modelname string, modelurl string, pod string)")
@@ -128,12 +128,8 @@ def set_ui_to_preset(preset_name: str) -> None:
   for key, value in preset.items():
     st.session_state[key] = value
 
-def list_from_cicero_tone_format_to_human_format(l: list[str]) -> list[str]:
-  return [x.replace("_", " ").title() for x in l]
-def list_from_human_format_to_cicero_tone_format(l: list[str]) -> list[str]:
-  return [x.replace(" ", "_").lower() for x in l]
-def list_to_bracketeds_string(l: list[str]) -> str:
-  return " ".join([f"[{i}]" for i in l])
+def list_lower(l: list[str]) -> list[str]:
+  return [x.lower() for x in l]
 
 def only_those_strings_of_the_list_that_contain_the_given_substring_case_insensitively(l: list[str], s: str) -> list[str]:
   return [x for x in l if s.lower() in x.lower()]
@@ -349,7 +345,7 @@ def execute_prompting(model: str, account: str, ask_type: str, topics: list[str]
 
 def main() -> None:
 
-  if not st.session_state.get('email'): #TODO: this line is of dubious usefulness. It's supposed to let you run cicero_prompter.py locally and stand-alone without cicero.py, however.
+  if not st.session_state.get('email'): #this line is of dubious usefulness. It's supposed to let you run cicero_prompter.py locally and stand-alone without cicero.py, however.
     st.session_state["email"] = str(st.experimental_user["email"]) #this str call also accounts for if the user email is None.
   if 'use_count' not in st.session_state:
     st.session_state['use_count'] = count_from_activity_log_times_used_today(st.session_state["email"])
@@ -396,9 +392,10 @@ def main() -> None:
     account = st.selectbox("Account (required)", list(account_names), key="account")
     ask_type = str( st.selectbox("Ask Type", ['Hard Ask', 'Medium Ask', 'Soft Ask', 'Soft Ask Petition', 'Soft Ask Poll', 'Soft Ask Survey'], key="ask_type") ).lower()
     topics = st.multiselect("Topics", sorted([t for t, d in topics_big.items() if d["show in prompter?"]]), key="topics" )
+    topics = external_topic_names_to_internal_topic_names_list_mapping(topics)
     length_select = st.selectbox("Length", ['Short', 'Medium', 'Long'], key='lengths').lower()
-    additional_topics = [x.strip() for x in st.text_input("Additional Topics (examples: Biden, survey, deadline)", key="additional_topics" ).split(",") if x.strip()] # The list comprehension is to filter out empty strings on split, because otherwise this fails to make a truly empty list in the default case, instead having a list with an empty string in, because split changes its behavior when you give it arguments. Anyway, this also filters out trailing comma edge-cases and such.
-    tones = st.multiselect("Tones", ['Agency', 'Apologetic', 'Candid', 'Exclusivity', 'Fiesty', 'Grateful', 'Not Asking For Money', 'Pleading', 'Quick Request', 'Secretive', 'Time Sensitive', 'Urgency'], key="tone") #TODO: , 'Swear Jar' will probably be in here some day, but we don't have "we need more swear jar data to make this tone better"
+    additional_topics = [x.strip().lower() for x in st.text_input("Additional Topics (examples: Biden, survey, deadline)", key="additional_topics" ).split(",") if x.strip()] # The list comprehension is to filter out empty strings on split, because otherwise this fails to make a truly empty list in the default case, instead having a list with an empty string in, because split changes its behavior when you give it arguments. Anyway, this also filters out trailing comma edge-cases and such.
+    tones = list_lower( st.multiselect("Tones", ['Agency', 'Apologetic', 'Candid', 'Exclusivity', 'Fiesty', 'Grateful', 'Not Asking For Money', 'Pleading', 'Quick Request', 'Secretive', 'Time Sensitive', 'Urgency'], key="tone") ) #TODO: , 'Swear Jar' will probably be in here some day, but we don't have "we need more swear jar data to make this tone better"
     num_outputs : int = st.slider("Number of outputs", min_value=1, max_value=10, key="num_outputs")
     temperature: float = st.slider("Output Variance:", min_value=0.0, max_value=1.0, key="temperature") if st.session_state["developer_mode"] else 0.7
     generate_button = st.form_submit_button("Submit")
@@ -407,15 +404,13 @@ def main() -> None:
   did_a_query = False
   if generate_button:
     if not account:
-      st.error("***No Account is selected, so I can't send the request!***")
+      st.warning("***No Account is selected, so I can't send the request!***")
+    elif not model:
+      st.warning("***No Model is selected, so I can't send the request! (If you have no ability to select a Model and get this error, please contact the Optimization team.***")
     else:
       did_a_query = True
       st.session_state['use_count']+=1 #this is just an optimization for the front-end display of the query count
       use_bio=("Bio" in topics and account in bios)
-      #TODO: does this use the internal or external topic names?
-      sorted( external_topic_names_to_internal_topic_names_list_mapping(topics) )
-      list_from_human_format_to_cicero_tone_format(additional_topics)
-      list_from_human_format_to_cicero_tone_format(tones) #TODO: does this need: `or ["No Hook"]`
       promptsent, outputs = execute_prompting(model, account, ask_type, topics, additional_topics, tones, length_select, headline, num_outputs, temperature, use_bio)
       st.session_state['outputs'] = outputs
       if 'history' not in st.session_state: st.session_state['history'] = []
