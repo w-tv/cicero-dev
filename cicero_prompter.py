@@ -256,55 +256,30 @@ class dbutils:
       return st.session_state["fake_dbutils_"+variable_name]
 
 def everything_from_wes() -> None:
-  dbutils.widgets.text("score_threshold", "0.5", "Document Similarity Score Acceptance Threshold")
-  dbutils.widgets.text("model_temp", "0.8", "Model Temperature")
+  score_threshold = 0.5 # Document Similarity Score Acceptance Threshold
+  model_temp = 0.8 # Model Temperature
 
-  dbutils.widgets.text("doc_pool_size", "10", "Document Pool Size")
-  dbutils.widgets.text("num_examples", "10", "Number of Documents to Use as Examples")
-  dbutils.widgets.text("num_outputs", "5", "Number of Texts the Model Should Generate")
-  dbutils.widgets.text("output_table_name", "models.lovelytics.gold_text_outputs", "Text Output Table Name")
-  dbutils.widgets.text("ref_tag_name", "models.lovelytics.ref_tags", "Tags Table Name") #TODO: possibly use topic_tags = set(x["Tag_Name"] for x in spark.read.table(ref_tag_name).filter(col("Tag_Type") == "Topic").select("Tag_Name").collect()) etc etc logic. Probably this gets address when Wes emails me a second diff.
-  dbutils.widgets.text("rag_output_table_name", "models.lovelytics.rag_outputs", "RAG Outputs Table Name")
-  dbutils.widgets.text("primary_key", "PROJECT_NAME", "Index Table Primary Key Name")
+  doc_pool_size = 10 # Document Pool Size
+  num_examples = 10 # Number of Documents to Use as Examples
+  num_outputs = 5 # Number of Texts the Model Should Generate
+  output_table_name = "models.lovelytics.gold_text_outputs" # Text Output Table Name
+  ref_tag_name = "models.lovelytics.ref_tags" # Tags Table Name #TODO: possibly use topic_tags = set(x["Tag_Name"] for x in spark.read.table(ref_tag_name).filter(col("Tag_Type") == "Topic").select("Tag_Name").collect()) etc etc logic. Probably this gets address when Wes emails me a second diff.
+  rag_output_table_name = "models.lovelytics.rag_outputs" # RAG Outputs Table Name
+  primary_key = "PROJECT_NAME" # Index Table Primary Key Name
 
-  dbutils.widgets.text("topics", "", "Topics")
-  dbutils.widgets.text("client", "", "Client/Account Name")
-  dbutils.widgets.text("ask", "", "Ask Type")
-  dbutils.widgets.text("tones", "", "Tones")
-  dbutils.widgets.text("text_len", "", "Text Length")
-  dbutils.widgets.text("use_bio", "True", "Include Bio Information")
-  dbutils.widgets.text("headlines", "", "News Headlines")
+  topics = "" # Topics
+  client = "" # Client/Account Name
+  ask = "" # Ask Type
+  tones = "" # Tones
+  text_len = "" # Text Length
+  use_bio = True # Include Bio Information
+  headlines = "" # News Headlines
 
-  dbutils.widgets.text("topic_weight", "4", "Topic Filter Weight")
-  dbutils.widgets.text("tone_weight", "1", "Tone Filter Weight")
-  dbutils.widgets.text("client_weight", "6", "Client Filter Weight")
-  dbutils.widgets.text("ask_weight", "2", "Ask Type Weight")
-  dbutils.widgets.text("text_len_weight", "4", "Text Length Weight")
-
-  score_threshold = float(dbutils.widgets.get("score_threshold"))
-  model_temp = float(dbutils.widgets.get("model_temp"))
-
-  doc_pool_size = int(dbutils.widgets.get("doc_pool_size"))
-  num_examples = int(dbutils.widgets.get("num_examples"))
-  num_outputs = int(dbutils.widgets.get("num_outputs"))
-  output_table_name = dbutils.widgets.get("output_table_name")
-  ref_tag_name = dbutils.widgets.get("ref_tag_name")
-  rag_output_table_name = dbutils.widgets.get("rag_output_table_name")
-  primary_key = dbutils.widgets.get("primary_key")
-
-  topics = dbutils.widgets.get("topics").lower()
-  client = dbutils.widgets.get("client")
-  ask = dbutils.widgets.get("ask")
-  tones = dbutils.widgets.get("tones").lower()
-  text_len = dbutils.widgets.get("text_len")
-  use_bio = bool(dbutils.widgets.get("use_bio"))
-  headlines = dbutils.widgets.get("headlines")
-
-  topic_weight = float(dbutils.widgets.get("topic_weight"))
-  tone_weight = float(dbutils.widgets.get("tone_weight"))
-  client_weight = float(dbutils.widgets.get("client_weight"))
-  ask_weight = float(dbutils.widgets.get("ask_weight"))
-  text_len_weight = float(dbutils.widgets.get("text_len_weight"))
+  topic_weight = 4 # Topic Filter Weight
+  tone_weight = 1 # Tone Filter Weight
+  client_weight = 6 # Client Filter Weight
+  ask_weight = 2 # Ask Type Weight
+  text_len_weight = 4 # Text Length Weight
 
   assert_always(num_examples <= doc_pool_size, "You can't ask to provide more examples than there are documents in the pool! Try again with a different value.")
 
@@ -551,8 +526,7 @@ def everything_from_wes() -> None:
   print("Done :)")
 
 def main() -> None:
-  if st.button("wes button"):
-    everything_from_wes()
+  everything_from_wes()
 
   if not st.session_state.get('email'): #TODO: this line is of dubious usefulness. It's supposed to let you run cicero_prompter.py locally and stand-alone without cicero.py, however.
     st.session_state["email"] = str(st.experimental_user["email"]) #this str call also accounts for if the user email is None.
