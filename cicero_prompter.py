@@ -238,7 +238,7 @@ def execute_prompting(account: str, ask_type: str, topics: list[str], additional
   # reference_texts will be a list of dictionaries containing example user prompts and assistant responses (i.e. the text messages)
   reference_texts : list[dict[str, str]] = []
   # Setup Vector Search Client that we will use in the loop.
-  vsc = VectorSearchClient( personal_access_token=st.secrets["databricks_api_token"], workspace_url="https://"+st.secrets['DATABRICKS_SERVER_HOSTNAME'] )
+  vsc = VectorSearchClient( personal_access_token=st.secrets["databricks_api_token"], workspace_url="https://"+st.secrets['DATABRICKS_SERVER_HOSTNAME'], disable_notice=True )
   text_index = vsc.get_index(endpoint_name="rag_llm_vector", index_name="models.lovelytics.gold_text_outputs_index")
   for c in combos:
       results = [
