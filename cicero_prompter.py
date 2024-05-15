@@ -30,11 +30,6 @@ from databricks.vector_search.client import VectorSearchClient
 def external_topic_names_to_internal_topic_names_list_mapping(external_topic_names: list[str]) -> list[str]:
   return [topics_big[e]["internal name"] for e in external_topic_names]
 
-@st.cache_data()
-def load_model_permissions(useremail: str) -> list[str]:
-  results = sql_call("SELECT DISTINCT modelname FROM models.default.permissions WHERE useremail = :useremail", {'useremail': useremail})
-  return [result[0].lower() for result in results]
-
 def ensure_existence_of_activity_log() -> None:
   sql_call("CREATE TABLE IF NOT EXISTS cicero.default.activity_log (datetime string, useremail string, promptsent string, responsegiven string, modelparams string, modelname string, modelurl string, pod string)")
 
@@ -115,7 +110,7 @@ presets: dict[str, PresetsPayload] = {
     "early_stopping" : False,
     "do_sample" : True,
     "output_scores" : False,
-    "model": "gpt-short-medium-long",
+    "model": "databricks-meta-llama-3-70b-instruct",
     "account" : None,
     "ask_type": "Hard Ask",
     "tone" : [],
@@ -143,7 +138,7 @@ def list_to_bracketeds_string(l: list[str]) -> str:
 def only_those_strings_of_the_list_that_contain_the_given_substring_case_insensitively(l: list[str], s: str) -> list[str]:
   return [x for x in l if s.lower() in x.lower()]
 
-def execute_prompting(account: str, ask_type: str, topics: list[str], additional_topics: list[str], tones: list[str], text_len: Literal["short", "medium", "long", ""], headline: str|None, num_outputs: int, model_temperature: float = 0.8, use_bio: bool = True) -> tuple[str, list[str]]:
+def execute_prompting(model: str, account: str, ask_type: str, topics: list[str], additional_topics: list[str], tones: list[str], text_len: Literal["short", "medium", "long", ""], headline: str|None, num_outputs: int, model_temperature: float = 0.8, use_bio: bool = True) -> tuple[str, list[str]]:
   score_threshold = 0.5 # Document Similarity Score Acceptance Threshold
   doc_pool_size = 10 # Document Pool Size
   num_examples = 10 # Number of Documents to Use as Examples
@@ -290,7 +285,7 @@ def execute_prompting(account: str, ask_type: str, topics: list[str], additional
   # Add instructions on how long or short a text should be depending on the text length we want the model to generate
   # Add specificity of specific ask type of the text message too
   # Try to make the model understand that the outputs we specifically are asking for should be this length
-  if text_len == "short":
+  if text_len == "short": #TODO: slight refactor
       sys_prompt += f" Your short {ask_type} text messages should be less than 160 characters in length, use less than 35 words, and have less than 2 sentences."
   elif text_len == "medium":
       sys_prompt += f" Your medium-length {ask_type} text messages should be between 160 and 400 characters in length, use between 35 to 70 words, and have between 3 to 5 sentences."
@@ -331,26 +326,16 @@ def execute_prompting(account: str, ask_type: str, topics: list[str], additional
     template=rag_prompt
   )
 
-  # Estimate the number of tokens our prompt is
-  # This is important for querying the Llama-2 model only since it has a limit of 4096 tokens for its input and output combined
-  # e.g. if our input is 4000 tokens, then we can only have 96 tokens for the output
-  token_count = len( prompt.format( **combined_dict ) ) // 2
   # see note about environ in rag_only
   environ['DATABRICKS_HOST'] = "https://"+st.secrets['DATABRICKS_SERVER_HOSTNAME']
   environ['DATABRICKS_TOKEN'] = st.secrets["databricks_api_token"]
-  dbrx_chat_model = ChatDatabricks(endpoint="databricks-dbrx-instruct", max_tokens=4096, temperature=model_temperature)
-  llama_3_chat_model = ChatDatabricks(endpoint="databricks-meta-llama-3-70b-instruct", max_tokens=4096, temperature=model_temperature)
-  mixtral_chat_model = ChatDatabricks(endpoint="databricks-mixtral-8x7b-instruct", max_tokens=4096, temperature=model_temperature)
+  chat_model = ChatDatabricks(endpoint=model, max_tokens=4096, temperature=model_temperature)
 
-  # Assemble all of the LLM chains which makes it easier to invoke them and parse their outputs
-  # This uses langchain's own pipe syntax to organize multiple components into a "pipe"
-  dbrx_chain = ( prompt | dbrx_chat_model | StrOutputParser() )
-  llama_3_chain = ( prompt | llama_3_chat_model | StrOutputParser() )
-  mixtral_chain = ( prompt | mixtral_chat_model | StrOutputParser() )
-  llm_chains = {"dbrx": dbrx_chain, "llama-3": llama_3_chain, "mixtral": mixtral_chain}
+  # Assemble the LLM chains which makes it easier to invoke it and parse its outputs. This uses langchain's own pipe syntax to organize multiple components into a "pipe".
+  model_chain = ( prompt | chat_model | StrOutputParser() )
+  llm_chains = {model: model_chain} #TODO: we can further refactor this code to remove this multi-chain logic
 
-  # For every LLM, query it with our prompt and print the outputs
-  # Also save the outputs into a dictionary which we'll write to a delta table
+  # For every LLM, query it with our prompt and print the outputs. Also save the outputs into a dictionary which we'll write to a delta table.
   all_responses = {}
   all_responses["full_prompt"] = prompt.format(**combined_dict)
   for llm_name, llm_chain in llm_chains.items():
@@ -360,10 +345,8 @@ def execute_prompting(account: str, ask_type: str, topics: list[str], additional
     all_responses[llm_name] = inv_res
     print()
 
-  print("The table makes use of a Batch_Number column to mark which outputs were generated at the same time")
-  # There's also an Output_Datetime column which contains the actual datetime the outputs were created, which will be the same value for outputs within the same batch
-  # But a batch number is easier to communicate to others and understand at a quick glance
-
+  print("The table makes use of a Batch_Number column to mark which outputs were generated at the same time. There's also an Output_Datetime column which contains the actual datetime the outputs were created, which will be the same value for outputs within the same batch, but a batch number is easier to communicate to others and understand at a quick glance.")
+  #TODO: replace this whole thing with GENERATED { ALWAYS | BY DEFAULT } AS IDENTITY [ ( [ START WITH start ] [ INCREMENT BY step ] ) ] some day perhaps. If we even still want to save to this table.
   try: # If the table already exists, the new batch number should be one greater than the last one
     batch_num = 1 + sql_call(f"SELECT batch_number FROM {rag_output_table_name} ORDER BY batch_number DESC LIMIT 1")[0][0]
   except Exception as e: # If the table doesn't exist, the first batch will be batch number 1
@@ -392,15 +375,6 @@ def main() -> None:
   if st.session_state['use_count'] >= use_count_limit:
     st.write(f"You cannot use this service more than {use_count_limit} times a day, and you have reached that limit. Please contact the team if this is in error or if you wish to expand the limit.")
     exit_error(52) # When a user hits the limit it completely locks them out of the ui using an error message. This wasn't a requirement, but it seems fine.
-
-  model_permissions = load_model_permissions(st.session_state['email']) #model_permissions stores model names as ***all lowercase***
-  if presets["default"]["model"] not in model_permissions: #We want everyone to want to have access to this default, at least at time of writing this comment.
-    model_permissions.insert(0, presets["default"]["model"])
-  #NOTE: these model secrets have to begin the secrets.toml as, like:
-  # models.gpt-revamp = ''
-  # models.Context = ''
-  # Or some other way of making a dict in toml
-  models: dict[str,str] = { k:v for k, v in st.secrets['models'].items() if k.lower() in [m.lower() for m in model_permissions] } #filter for what the actual permissions are for the user.
 
   bios: dict[str, str] = load_bios()
 
@@ -434,8 +408,7 @@ def main() -> None:
       if st.session_state["developer_mode"]:
         pass
 
-    model_name = presets["default"]["model"] #COULD: clean up this code to remove all of the logic related to this although I think we still want to save the model name and uri in the activity log)
-    model_uri = models[model_name]
+    model = st.selectbox("Model (required)", ["databricks-meta-llama-3-70b-instruct", "databricks-dbrx-instruct", "databricks-mixtral-8x7b-instruct"], key="model") if st.session_state["developer_mode"] else "databricks-meta-llama-3-70b-instruct"
     account = st.selectbox("Account (required)", list(account_names), key="account")
     ask_type = str( st.selectbox("Ask Type", ['Hard Ask', 'Medium Ask', 'Soft Ask', 'Soft Ask Petition', 'Soft Ask Poll', 'Soft Ask Survey'], key="ask_type") ).lower()
     topics = st.multiselect("Topics", sorted([t for t, d in topics_big.items() if d["show in prompter?"]]), key="topics" )
@@ -459,7 +432,7 @@ def main() -> None:
       sorted( external_topic_names_to_internal_topic_names_list_mapping(topics) )
       list_from_human_format_to_cicero_tone_format(additional_topics)
       list_from_human_format_to_cicero_tone_format(tones) #TODO: does this need: `or ["No Hook"]`
-      promptsent, outputs = execute_prompting(account, ask_type, topics, additional_topics, tones, length_select, headline, num_outputs, temperature, use_bio)
+      promptsent, outputs = execute_prompting(model, account, ask_type, topics, additional_topics, tones, length_select, headline, num_outputs, temperature, use_bio)
       st.session_state['outputs'] = outputs
       if 'history' not in st.session_state: st.session_state['history'] = []
       st.session_state['history'] += outputs
@@ -509,7 +482,7 @@ def main() -> None:
   # Activity logging takes a bit, so I've put it last to preserve immediate-feeling performance and responses for the user making a query.
   if did_a_query:
     # promptsent is only illustrative. But maybe that's enough.
-    write_to_activity_log_table( datetime=str(datetime.now()), useremail=st.session_state['email'], promptsent=promptsent, responsegiven=json.dumps(outputs), modelparams="(wes-rag-only strategy has no singular modelparams to record, at least at the moment)", modelname="(wes-rag-only strategy has no singular model_name to record, at least at the moment)", modelurl="(wes-rag-only strategy has no singular modelurl to record, at least at the moment)" )
+    write_to_activity_log_table( datetime=str(datetime.now()), useremail=st.session_state['email'], promptsent=promptsent, responsegiven=json.dumps(outputs), modelparams="(wes-rag-only strategy has no singular modelparams to record, at least at the moment)", modelname=model, modelurl=model )
 
   # st.components.v1.html('<!--<script>//you can include arbitrary html and javascript this way</script>-->') #or, use st.markdown, if you want arbitrary html but javascript isn't needed.
 
