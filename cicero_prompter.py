@@ -284,15 +284,15 @@ def execute_prompting(model: str, account: str, ask_type: str, topics: list[str]
   # Add instructions on how long or short a text should be depending on the text length we want the model to generate
   # Add specificity of specific ask type of the text message too
   # Try to make the model understand that the outputs we specifically are asking for should be this length
-  if text_len == "short": #TODO: slight refactor
-      sys_prompt += f" Your short {ask_type} text messages should be less than 160 characters in length, use less than 35 words, and have less than 2 sentences."
-  elif text_len == "medium":
-      sys_prompt += f" Your medium-length {ask_type} text messages should be between 160 and 400 characters in length, use between 35 to 70 words, and have between 3 to 5 sentences."
-  elif text_len == "long":
-      sys_prompt += f" Your long {ask_type} text messages should be more than 400 characters in length, use more than 70 words, and have more than 6 sentences."
-  # combined_dict stores all of the string format variables used in the prompt and their values
-  combined_dict = {}
-  # Add bio and headline information if those are available
+  sys_prompt += {
+    "": "",
+    "short": f" Your short {ask_type} text messages should be less than 160 characters in length, use less than 35 words, and have less than 2 sentences.",
+    "medium": f" Your medium-length {ask_type} text messages should be between 160 and 400 characters in length, use between 35 to 70 words, and have between 3 to 5 sentences.",
+    "long": f" Your long {ask_type} text messages should be more than 400 characters in length, use more than 70 words, and have more than 6 sentences."
+  }[text_len]
+
+  combined_dict = {}  # combined_dict stores all of the string format variables used in the prompt and their values
+
   if use_bio and account:
       sys_prompt += f""" Here is important biographical information about the conservative candidate you are writing for: {load_bio(account)}"""
   if headline:
