@@ -261,7 +261,7 @@ def execute_prompting(account: str, ask_type: str, topics: list[str], additional
 
   ### Query Endpoints ###
 
-  # Randomize the order of the example texts. Unclear if this actually helps. But maybe it prevents the model from learning any ordering pattern we didn't intend for it to learn
+  # Randomize the order of the example texts. If you pass in the texts in some order, such as short, medium, and long, if you ask for a short, it is more likely to write a short, then medium, then long
   texts_to_use = random.sample(reference_texts, k=min(num_examples, len(reference_texts)))
   # We reinsert and separate the found documents into two separate dictionaries. This makes it easier to assemble the RAG prompt and pass them as string format variables to langchain
   ms_prompts = {}
@@ -328,6 +328,7 @@ def execute_prompting(account: str, ask_type: str, topics: list[str], additional
   # see note about environ in rag_only
   environ['DATABRICKS_HOST'] = "https://"+st.secrets['DATABRICKS_SERVER_HOSTNAME']
   environ['DATABRICKS_TOKEN'] = st.secrets["databricks_api_token"]
+  # TODO: connect model temperature to Output Variance slider
   dbrx_chat_model = ChatDatabricks(endpoint="databricks-dbrx-instruct", max_tokens=4096, temperature=model_temperature)
   llama_3_chat_model = ChatDatabricks(endpoint="databricks-meta-llama-3-70b-instruct", max_tokens=4096, temperature=model_temperature)
   mixtral_chat_model = ChatDatabricks(endpoint="databricks-mixtral-8x7b-instruct", max_tokens=4096, temperature=model_temperature)
@@ -354,27 +355,27 @@ def execute_prompting(account: str, ask_type: str, topics: list[str], additional
     all_responses[llm_name] = inv_res
     print()
 
-  # Also query the SMC API llama-3 model
-  print(f"#### SMC API OUTPUTS ####")
-  url = "https://relay.stagwellmarketingcloud.io/google/v1/projects/141311124325/locations/us-central1/endpoints/2940118281928835072:predict"
-  payload = {"instances": [
-          {
-              "prompt": prompt.format(**combined_dict),
-              "temperature": model_temperature,
-              "max_tokens": 2048,
-              "stop": ["<|eot_id|>", "<|end_of_text|>"]
-          }
-      ]}
-  headers = {
-    "Content-Type": "application/json",
-    "smc-owner": "...",
-    "Authorization": "Bearer eyJhbGciOiJFUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6ImZmYzU1ZmNiLTkwZTMtNGI4OS1iMmY0LTQ1Mjg0OWE3MWZiNCIsImlzcyI6IlNNQyIsImtleU5hbWUiOiJUYXJnZXRkVmljdG9yeSBNTVMiLCJraWQiOiI5M2M5OGRiMDVmZmUyNDI3NDZkM2IyYzYwMDIzNDYxNiIsIm9yZ0lkIjoiNjA0NTM3MjYtYWY4ZC00NjQ2LTk2ZTktNzRjNjQyMWZiNDI0In0.XNnsi6d_47yBLgHZwouoEtqC6IB-bfaLnGL6kB3Ldw9oXLCfEOuXygFGMhlH7ywTHowaoegPPygYiQ-Z78lsDQ"
-  }
-  response = requests.request("POST", url, json=payload, headers=headers)
-  response_json = json.loads(response.text)
-  response_text = response_json["predictions"][0].rsplit("Output:", 1)[-1].strip()
-  all_responses["smc_api"] = response_text
-  print(response_text)
+  # We'll leave the code here commented out, in case we get a new API to use from SMC
+  # print(f"#### SMC API OUTPUTS ####")
+  # url = "https://relay.stagwellmarketingcloud.io/google/v1/projects/141311124325/locations/us-central1/endpoints/2940118281928835072:predict"
+  # payload = {"instances": [
+  #         {
+  #             "prompt": prompt.format(**combined_dict),
+  #             "temperature": model_temperature,
+  #             "max_tokens": 2048,
+  #             "stop": ["<|eot_id|>", "<|end_of_text|>"]
+  #         }
+  #     ]}
+  # headers = {
+  #   "Content-Type": "application/json",
+  #   "smc-owner": "...",
+  #   "Authorization": "Bearer eyJhbGciOiJFUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6ImZmYzU1ZmNiLTkwZTMtNGI4OS1iMmY0LTQ1Mjg0OWE3MWZiNCIsImlzcyI6IlNNQyIsImtleU5hbWUiOiJUYXJnZXRkVmljdG9yeSBNTVMiLCJraWQiOiI5M2M5OGRiMDVmZmUyNDI3NDZkM2IyYzYwMDIzNDYxNiIsIm9yZ0lkIjoiNjA0NTM3MjYtYWY4ZC00NjQ2LTk2ZTktNzRjNjQyMWZiNDI0In0.XNnsi6d_47yBLgHZwouoEtqC6IB-bfaLnGL6kB3Ldw9oXLCfEOuXygFGMhlH7ywTHowaoegPPygYiQ-Z78lsDQ"
+  # }
+  # response = requests.request("POST", url, json=payload, headers=headers)
+  # response_json = json.loads(response.text)
+  # response_text = response_json["predictions"][0].rsplit("Output:", 1)[-1].strip()
+  # all_responses["smc_api"] = response_text
+  # print(response_text)
 
   print("The table makes use of a Batch_Number column to mark which outputs were generated at the same time")
   # There's also an Output_Datetime column which contains the actual datetime the outputs were created, which will be the same value for outputs within the same batch
@@ -434,19 +435,20 @@ def main() -> None:
     set_ui_to_preset("default")
 
   # setting default values for advanced parameters for our non-developer end-user
-  num_beams: int = 1
-  top_k: int = 50
-  top_p: float = 1.0
-  repetition_penalty: float = 1.2
-  no_repeat_ngram_size: int = 4
-  num_return_sequences: int = 5
-  early_stopping: bool = False
-  do_sample: bool = True
-  output_scores: bool = False
+  # only used for fine-tuned models
+  # num_beams: int = 1
+  # top_k: int = 50
+  # top_p: float = 1.0
+  # repetition_penalty: float = 1.2
+  # no_repeat_ngram_size: int = 4
+  # num_return_sequences: int = 5
+  # early_stopping: bool = False
+  # do_sample: bool = True
+  # output_scores: bool = False
 
   #For technical reasons (various parts of it update when other parts of it are changed, iirc) this can't go within the st.form
 
-  with st.expander(r"$\textsf{\Large FOX NEWS HEADLINES}$"if st.session_state["developer_mode"] else r"$\textsf{\Large NEWS HEADLINES}$"):
+  with st.expander(r"$\textsf{\Large NEWS HEADLINES}$"):
     exact_match_query = st.text_input("Headline Search  \n*Returns headlines containing the search terms. Hit Enter to filter the headlines.*", key="exact_match_query")
     overdrive: bool = st.checkbox("Only search headlines from the last 3 days.", key="overdrive")
     h: list[str] = load_headlines(get_all=False) if not overdrive else load_headlines(get_all=False, past_days=3)
@@ -457,18 +459,19 @@ def main() -> None:
   st.text("") # Just for vertical spacing.
 
   with st.form('query_builder'):
-    with st.sidebar:
-      if st.session_state["developer_mode"]:
-        with st.expander("Advanced Parameters"):
-          num_beams = int( st.number_input("num_beams:", min_value=1, format='%d', step=1, key="num_beams", help="Number of beams for beam search. 1 means no beam search. Beam search is a particular strategy for generating text that the model can elect to use or not use. It can use more or fewer beams in the beam search, as well. More beams basically means it considers more candidate possibilities.") )
-          top_k = int( st.number_input("top_k:", min_value=1, format='%d', step=1, key="top_k" , help="The number of highest probability vocabulary tokens to keep for top-k-filtering. In other words: how many likely words the model will consider."))
-          top_p = st.number_input("top_p:", min_value=0.0, format='%f', key="top_p" , help="A decimal number, not merely an integer. If set to < 1, only the smallest set of most probable tokens with probabilities that add up to top_p or higher are kept for generation. In other words: if you reduce this number below 1, the model will consider fewer possibilities.")
-          repetition_penalty = st.number_input("repetition_penalty:", min_value=1.0, max_value=2.0, format='%f', key="repetition_penalty" , help="A decimal number, not merely an integer. The parameter for repetition penalty. 1.0 means no penalty. In other words: if you increase this parameter, the model will be less likely to repeat itself.")
-          no_repeat_ngram_size = int( st.number_input("no_repeat_ngram_size:", min_value=0, max_value=10, format='%d', step=1, key="no_repeat_ngram_size" , help="If set to > 0, all ngrams (essentially, continuous sequences of words or word-parts) of that size can only occur once. In other words: if you set this parameter to a number greater than 0, any string of words can only occur in the output at most that many times.") )
-          num_return_sequences = int( st.number_input("num_return_sequences:", min_value=1, max_value=10, format='%d', step=1, key="num_return_sequences" , help="The number of independently computed returned sequences for each element in the batch. In other words: how many responses you want the model to generate.") )
-          early_stopping = st.checkbox("early_stopping", key="early_stopping" , help="Controls the stopping condition for beam-based methods, like beam-search. It accepts the following values: True, where the generation stops as soon as there are num_beams complete candidates; False, where an heuristic is applied and the generation stops when is it very unlikely to find better candidates; \"never\", where the beam search procedure only stops when there cannot be better candidates (canonical beam search algorithm). In other words: if the model is using beam search (see num_beams, above), then if this box is checked the model will spend less time trying to improve its beams after it generates them. If num_beams = 1, this checkbox does nothing either way. There is no way to select \"never\" using this checkbox, as that setting is just a waste of time.")
-          do_sample = st.checkbox("do_sample", key="do_sample" , help="Whether or not to use sampling ; use greedy decoding otherwise. These are two different strategies the model can use to generate text. Greedy is probably much worse, and you should probably always keep this box checked.")
-          output_scores = st.checkbox("output_scores", key="output_scores" , help="Whether or not to return the prediction scores. See scores under returned tensors for more details. In other words: This will not only give you back responses, like normal, it will also tell you how likely the model thinks the response is. Usually useless, and there's probably no need to check this box.")
+    # with st.sidebar:
+      # if st.session_state["developer_mode"]:
+        # only used for fine-tuned models
+        # with st.expander("Advanced Parameters"):
+        #   num_beams = int( st.number_input("num_beams:", min_value=1, format='%d', step=1, key="num_beams", help="Number of beams for beam search. 1 means no beam search. Beam search is a particular strategy for generating text that the model can elect to use or not use. It can use more or fewer beams in the beam search, as well. More beams basically means it considers more candidate possibilities.") )
+        #   top_k = int( st.number_input("top_k:", min_value=1, format='%d', step=1, key="top_k" , help="The number of highest probability vocabulary tokens to keep for top-k-filtering. In other words: how many likely words the model will consider."))
+        #   top_p = st.number_input("top_p:", min_value=0.0, format='%f', key="top_p" , help="A decimal number, not merely an integer. If set to < 1, only the smallest set of most probable tokens with probabilities that add up to top_p or higher are kept for generation. In other words: if you reduce this number below 1, the model will consider fewer possibilities.")
+        #   repetition_penalty = st.number_input("repetition_penalty:", min_value=1.0, max_value=2.0, format='%f', key="repetition_penalty" , help="A decimal number, not merely an integer. The parameter for repetition penalty. 1.0 means no penalty. In other words: if you increase this parameter, the model will be less likely to repeat itself.")
+        #   no_repeat_ngram_size = int( st.number_input("no_repeat_ngram_size:", min_value=0, max_value=10, format='%d', step=1, key="no_repeat_ngram_size" , help="If set to > 0, all ngrams (essentially, continuous sequences of words or word-parts) of that size can only occur once. In other words: if you set this parameter to a number greater than 0, any string of words can only occur in the output at most that many times.") )
+        #   num_return_sequences = int( st.number_input("num_return_sequences:", min_value=1, max_value=10, format='%d', step=1, key="num_return_sequences" , help="The number of independently computed returned sequences for each element in the batch. In other words: how many responses you want the model to generate.") )
+        #   early_stopping = st.checkbox("early_stopping", key="early_stopping" , help="Controls the stopping condition for beam-based methods, like beam-search. It accepts the following values: True, where the generation stops as soon as there are num_beams complete candidates; False, where an heuristic is applied and the generation stops when is it very unlikely to find better candidates; \"never\", where the beam search procedure only stops when there cannot be better candidates (canonical beam search algorithm). In other words: if the model is using beam search (see num_beams, above), then if this box is checked the model will spend less time trying to improve its beams after it generates them. If num_beams = 1, this checkbox does nothing either way. There is no way to select \"never\" using this checkbox, as that setting is just a waste of time.")
+        #   do_sample = st.checkbox("do_sample", key="do_sample" , help="Whether or not to use sampling ; use greedy decoding otherwise. These are two different strategies the model can use to generate text. Greedy is probably much worse, and you should probably always keep this box checked.")
+        #   output_scores = st.checkbox("output_scores", key="output_scores" , help="Whether or not to return the prediction scores. See scores under returned tensors for more details. In other words: This will not only give you back responses, like normal, it will also tell you how likely the model thinks the response is. Usually useless, and there's probably no need to check this box.")
     
     
     model_name = presets["default"]["model"] #COULD: clean up this code to remove all of the logic related to this although I think we still want to save the model name and uri in the activity log)
@@ -476,29 +479,30 @@ def main() -> None:
     account = st.selectbox("Account (required)", list(account_names), key="account")
     ask_type = str( st.selectbox("Ask Type", ['Hard Ask', 'Medium Ask', 'Soft Ask', 'Soft Ask Petition', 'Soft Ask Poll', 'Soft Ask Survey'], key="ask_type") ).lower()
     topics = st.multiselect("Topics", sorted([t for t, d in topics_big.items() if d["show in prompter?"]]), key="topics" )
+    length_select = st.selectbox("Length", ['Short', 'Medium', 'Long'], key='lengths')
     additional_topics = [x.strip() for x in st.text_input("Additional Topics (examples: Biden, survey, deadline)", key="additional_topics" ).split(",") if x.strip()] # The list comprehension is to filter out empty strings on split, because otherwise this fails to make a truly empty list in the default case, instead having a list with an empty string in, because split changes its behavior when you give it arguments. Anyway, this also filters out trailing comma edge-cases and such.
     tones = st.multiselect("Tones", ['Agency', 'Apologetic', 'Candid', 'Exclusivity', 'Fiesty', 'Grateful', 'Not Asking For Money', 'Pleading', 'Quick Request', 'Secretive', 'Time Sensitive', 'Urgency'], key="tone") #TODO: , 'Swear Jar' will probably be in here some day, but we don't have "we need more swear jar data to make this tone better"
     num_outputs : int = st.slider("Number of outputs", min_value=1, max_value=10, key="num_outputs")
     temperature: float = st.slider("Output Variance:", min_value=0.0, max_value=1.0, key="temperature") if st.session_state["developer_mode"] else 0.7
-    target_charcount_min = st.number_input("Min Target Characters:", min_value=40, format='%d', step=1, key="target_charcount_min")
-    target_charcount_max = st.number_input("Max Target Characters:", min_value=40, format='%d', step=1, key="target_charcount_max") #help="Short: <=160 | Medium: >160, <400 | Long: >=400"
+    # target_charcount_min = st.number_input("Min Target Characters:", min_value=40, format='%d', step=1, key="target_charcount_min")
+    # target_charcount_max = st.number_input("Max Target Characters:", min_value=40, format='%d', step=1, key="target_charcount_max") #help="Short: <=160 | Medium: >160, <400 | Long: >=400"
     generate_button = st.form_submit_button("Submit")
 
-  if model_name != 'gpt-short-medium-long': #TODO: is this still useful?
-    text_length: Literal["short", "medium", "long", ""] = "" #TODO: presumably I have to narrow this to
-  else:
-    if target_charcount_max <= 160: #TODO: would be cleaner to just pass the target_charcount_max into the function, instead of this string
-      text_length = "short"
-    elif target_charcount_max > 160 and target_charcount_max < 400:
-      text_length = "medium"
-    elif target_charcount_max >= 400:
-      text_length = "long"
+  # if model_name != 'gpt-short-medium-long': #TODO: is this still useful?
+  #   text_length: Literal["short", "medium", "long", ""] = "" #TODO: presumably I have to narrow this to
+  # else:
+  #   if target_charcount_max <= 160: #TODO: would be cleaner to just pass the target_charcount_max into the function, instead of this string
+  #     text_length = "short"
+  #   elif target_charcount_max > 160 and target_charcount_max < 400:
+  #     text_length = "medium"
+  #   elif target_charcount_max >= 400:
+  #     text_length = "long"
 
   #Composition and sending a request:
   did_a_query = False
   if generate_button:
     if not account:
-      st.error("***No account name is selected, so I can't send the request!***")
+      st.error("***No Account is selected, so I can't send the request!***")
     else:
       did_a_query = True
       st.session_state['use_count']+=1 #this is just an optimization for the front-end display of the query count
@@ -507,7 +511,7 @@ def main() -> None:
       sorted( external_topic_names_to_internal_topic_names_list_mapping(topics) )
       list_from_human_format_to_cicero_tone_format(additional_topics)
       list_from_human_format_to_cicero_tone_format(tones) #TODO: does this need: `or ["No Hook"]`
-      promptsent, outputs = execute_prompting(account, ask_type, topics, additional_topics, tones, text_length, headline, num_outputs, temperature, use_bio, )
+      promptsent, outputs = execute_prompting(account, ask_type, topics, additional_topics, tones, length_select, headline, num_outputs, temperature, use_bio, )
       st.session_state['outputs'] = outputs
       if 'history' not in st.session_state: st.session_state['history'] = []
       st.session_state['history'] += outputs
@@ -528,9 +532,8 @@ def main() -> None:
       if st.session_state.get("developer_mode"):
         with col2:
           if st.button("🖋️", key="🖋️"+output, help="Send down to Cicero"):
-            _reply_one = "Here is a conservative fundraising text: [" + output + "] DO NOT immediately suggest revisions to the text. Directly ask the user what assistance they need with the text."
-            reply_two = "Here is a conservative fundraising text: [" + output + "] Analyze the quality of the text based off of these five fundraising elements: the Hook, Urgency, Agency, Stakes, and the Call to Action (CTA). Do not assign scores to the elements. It's possible one or more of these elements is missing from the text provided. If so, please point that out. Then, directly ask the user what assistance they need with the text. Additionally, mention that you can also help edit the text to be shorter or longer, and convert the text into an email."
-            st.session_state['cicero_ai']=reply_two
+            default_reply = "Here is a conservative fundraising text: [" + output + "] Analyze the quality of the text based off of these five fundraising elements: the Hook, Urgency, Agency, Stakes, and the Call to Action (CTA). Do not assign scores to the elements. It's possible one or more of these elements is missing from the text provided. If so, please point that out. Then, directly ask the user what assistance they need with the text. Additionally, mention that you can also help edit the text to be shorter or longer, and convert the text into an email."
+            st.session_state['cicero_ai']=default_reply
             st.session_state['display_only_this_at_first_blush'] = "«"+output+"»"
     st.caption(st.session_state.get('character_counts_caption'))
     if st.session_state.get('cicero_ai'):
