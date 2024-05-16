@@ -85,7 +85,7 @@ class PresetsPayload(TypedDict):
   early_stopping: bool
   do_sample: bool
   output_scores: bool
-  model: str
+  model_name: str
   account: str | None
   ask_type: str
   tone: list[str]
@@ -115,7 +115,7 @@ presets: dict[str, PresetsPayload] = {
     "early_stopping" : False,
     "do_sample" : True,
     "output_scores" : False,
-    "model": "databricks-meta-llama-3-70b-instruct",
+    "model_name": "Llama-3-70b-Instruct",
     "account" : None,
     "ask_type": "Hard Ask",
     "tone" : [],
@@ -225,7 +225,6 @@ def execute_prompting(model: str, account: str, ask_type: str, topics: list[str]
     return sql_call(f"SELECT * from {output_table_name}")
 
   text_rows = read_output_table()
-
   # results_found is a set of every primary key we've search so far
   # This is to prevent duplicate documents/texts from showing up
   results_found = set()
@@ -380,7 +379,12 @@ def main() -> None:
       if st.session_state["developer_mode"]:
         pass
 
-    model = st.selectbox("Model (required)", ["databricks-meta-llama-3-70b-instruct", "databricks-dbrx-instruct", "databricks-mixtral-8x7b-instruct"], key="model") if st.session_state["developer_mode"] else "databricks-meta-llama-3-70b-instruct"
+    model_name = st.selectbox("Model (required)", ["Llama-3-70b-Instruct", "DBRX-Instruct", "Mixtral-8x7b-Instruct"], key="model") if st.session_state["developer_mode"] else "Llama-3-70b-Instruct"
+    model = {
+      "Llama-3-70b-Instruct":"databricks-meta-llama-3-70b-instruct",
+      "DBRX-Instruct": "databricks-dbrx-instruct",
+      "Mixtral-8x7b-Instruct": "databricks-mixtral-8x7b-instruct"
+    }[model_name]
     account = st.selectbox("Account (required)", list(account_names), key="account")
     ask_type = str( st.selectbox("Ask Type", ['Hard Ask', 'Medium Ask', 'Soft Ask', 'Soft Ask Petition', 'Soft Ask Poll', 'Soft Ask Survey'], key="ask_type") ).lower()
     topics = st.multiselect("Topics", sorted([t for t, d in topics_big.items() if d["show in prompter?"]]), key="topics" )
@@ -465,7 +469,7 @@ def main() -> None:
   # Activity logging takes a bit, so I've put it last to preserve immediate-feeling performance and responses for the user making a query.
   if did_a_query:
     # promptsent is only illustrative. But maybe that's enough. Maybe we should be using a different prompt?
-    write_to_activity_log_table( datetime=str(datetime.now()), useremail=st.session_state['email'], promptsent=promptsent, responsegiven=json.dumps(outputs), modelparams=str({"max_tokens": max_tokens, "temperature": temperature}), modelname=model, modelurl=model )
+    write_to_activity_log_table( datetime=str(datetime.now()), useremail=st.session_state['email'], promptsent=promptsent, responsegiven=json.dumps(outputs), modelparams=str({"max_tokens": max_tokens, "temperature": temperature}), modelname=model_name, modelurl=model )
 
   # st.components.v1.html('<!--<script>//you can include arbitrary html and javascript this way</script>-->') #or, use st.markdown, if you want arbitrary html but javascript isn't needed.
 
