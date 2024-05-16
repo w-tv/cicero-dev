@@ -15,7 +15,7 @@ from cicero_shared import assert_always, exit_error, load_account_names, sql_cal
 import cicero_rag_only
 
 from num2words import num2words
-from itertools import chain, combinations
+from itertools import combinations
 from functools import reduce
 from langchain.prompts import PromptTemplate
 from langchain_community.chat_models import ChatDatabricks
@@ -177,13 +177,11 @@ def execute_prompting(model: str, account: str, ask_type: str, topics: list[str]
   # Tp, C, L
   # Tp, C
 
-  # Used to generate powersets of filters
   T = TypeVar('T') # Could: Changed in version 3.12: Syntactic support for generics is new in Python 3.12.
-  def powerset(iterable: Iterable[T], start: int = 0) -> Iterable[tuple[T]]: #TODO: once the code is mostly working, muck about with this and its types. (Need the code to be working to make sure it continues to work after the transformations lol.)
-    "powerset([1,2,3]) → () (1,) (2,) (3,) (1,2) (1,3) (2,3) (1,2,3)"
-    s = list(iterable)
-    assert 0 <= start <= len(s) #TODO: is this check necessary? Or will it just return () in "bad" cases?
-    return chain.from_iterable(combinations(s, r) for r in range(start, len(s)+1))
+  def powerset(l: list[T], start: int = 0) -> list[tuple[T]]:
+    """powerset([1,2,3]) → () (1,) (2,) (3,) (1,2) (1,3) (2,3) (1,2,3)
+    Used to generate powersets of filters."""
+    return [x for r in range(start, len(l)+1) for x in combinations(l, r)]
 
   # Generate the powersets (i.e. each combination of items) for both topics and tones
   # Normally, the set starts with length of 0, but for performance purposes either start with 1 or 0, depending on if the list is empty
