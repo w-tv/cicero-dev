@@ -95,6 +95,11 @@ class PresetsPayload(TypedDict):
   headline: str | None
   overdrive: bool
   num_outputs: int
+  topic_weight: float
+  tone_weight: float
+  client_weight: float
+  ask_weight: float
+  text_len_weight: float
 
 presets: dict[str, PresetsPayload] = {
   "default": {
@@ -119,7 +124,12 @@ presets: dict[str, PresetsPayload] = {
     "exact_match_query": "",
     "headline": None,
     "overdrive": False,
-    "num_outputs": 5
+    "num_outputs": 5,
+    "topic_weight": 4,
+    "tone_weight": 1,
+    "client_weight": 6,
+    "ask_weight": 2,
+    "text_len_weight": 4
   },
 }
 
@@ -134,7 +144,7 @@ def list_lower(l: list[str]) -> list[str]:
 def only_those_strings_of_the_list_that_contain_the_given_substring_case_insensitively(l: list[str], s: str) -> list[str]:
   return [x for x in l if s.lower() in x.lower()]
 
-def execute_prompting(model: str, account: str, ask_type: str, topics: list[str], additional_topics: list[str], tones: list[str], text_len: Literal["short", "medium", "long", ""], headline: str|None, num_outputs: int, model_temperature: float = 0.8, use_bio: bool = True, max_tokens: int = 4096) -> tuple[str, list[str]]:
+def execute_prompting(model: str, account: str, ask_type: str, topics: list[str], additional_topics: list[str], tones: list[str], text_len: Literal["short", "medium", "long", ""], headline: str|None, num_outputs: int, model_temperature: float = 0.8, use_bio: bool = True, max_tokens: int = 4096, topic_weight: float = 4, tone_weight: float = 1, client_weight: float = 6, ask_weight: float = 2, text_len_weight: float = 4) -> tuple[str, list[str]]:
   score_threshold = 0.5 # Document Similarity Score Acceptance Threshold
   doc_pool_size = 10 # Document Pool Size
   num_examples = 10 # Number of Documents to Use as Examples
@@ -142,11 +152,6 @@ def execute_prompting(model: str, account: str, ask_type: str, topics: list[str]
   output_table_name = "models.lovelytics.gold_text_outputs" # Text Output Table Name
   ref_tag_name = "models.lovelytics.ref_tags" # Tags Table Name #TODO: possibly use topic_tags = set(x["Tag_Name"] for x in spark.read.table(ref_tag_name).filter(col("Tag_Type") == "Topic").select("Tag_Name").collect()) etc etc logic. Probably this gets address when Wes emails me a second diff.
   primary_key = "PROJECT_NAME" # Index Table Primary Key Name
-  topic_weight = 4 # Topic Filter Weight
-  tone_weight = 1 # Tone Filter Weight
-  client_weight = 6 # Client Filter Weight (client is a synonym for account)
-  ask_weight = 2 # Ask Type Weight
-  text_len_weight = 4 # Text Length Weight
 
   topics_str = ", ".join(topics)
   tones_str = ", ".join(tones)
@@ -385,6 +390,12 @@ def main() -> None:
     tones = list_lower( st.multiselect("Tones", ['Agency', 'Apologetic', 'Candid', 'Exclusivity', 'Fiesty', 'Grateful', 'Not Asking For Money', 'Pleading', 'Quick Request', 'Secretive', 'Time Sensitive', 'Urgency'], key="tone") ) #TODO: , 'Swear Jar' will probably be in here some day, but we don't have "we need more swear jar data to make this tone better"
     num_outputs : int = st.slider("Number of outputs", min_value=1, max_value=10, key="num_outputs")
     temperature: float = st.slider("Output Variance:", min_value=0.0, max_value=1.0, key="temperature") if st.session_state["developer_mode"] else 0.7
+    if st.session_state["developer_mode"]:
+      topic_weight: float = st.slider("Topic Weight", min_value=0.0, max_value=100.0, key="topic_weight")
+      tone_weight: float = st.slider("Tone Weight", min_value=0.0, max_value=100.0, key="tone_weight")
+      client_weight: float = st.slider("Client Weight", min_value=0.0, max_value=100.0, key="client_weight")
+      ask_weight: float = st.slider("Ask Weight", min_value=0.0, max_value=100.0, key="ask_weight")
+      text_len_weight: float = st.slider("Text Len Weight", min_value=0.0, max_value=100.0, key="text_len_weight")
     generate_button = st.form_submit_button("Submit")
 
   #Composition and sending a request:
@@ -402,7 +413,7 @@ def main() -> None:
       st.session_state['use_count']+=1 #this is just an optimization for the front-end display of the query count
       use_bio=("Bio" in topics and account in bios)
       max_tokens = 4096
-      promptsent, outputs = execute_prompting(model, account, ask_type, topics, additional_topics, tones, length_select, headline, num_outputs, temperature, use_bio, max_tokens)
+      promptsent, outputs = execute_prompting(model, account, ask_type, topics, additional_topics, tones, length_select, headline, num_outputs, temperature, use_bio, max_tokens, topic_weight = 4, tone_weight = 1, client_weight = 6, ask_weight = 2, text_len_weight = 4)
       st.session_state['outputs'] = outputs
       st.session_state['human-facing_prompt'] = promptsent
       if 'history' not in st.session_state: st.session_state['history'] = []
