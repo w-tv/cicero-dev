@@ -400,17 +400,18 @@ def main() -> None:
       did_a_query = True
       st.session_state['use_count']+=1 #this is just an optimization for the front-end display of the query count
       use_bio=("Bio" in topics and account in bios)
+      max_tokens = 4096
       promptsent, outputs = execute_prompting(model, account, ask_type, topics, additional_topics, tones, length_select, headline, num_outputs, temperature, use_bio)
       st.session_state['outputs'] = outputs
+      st.session_state['human-facing_prompt'] = promptsent
       if 'history' not in st.session_state: st.session_state['history'] = []
       st.session_state['history'] += outputs
       st.session_state['character_counts_caption'] = "Character counts: "+str([len(o) for o in outputs])
 
   # The idea is for these output elements to persist after one query button, until overwritten by the results of the next query.
   if 'human-facing_prompt' in st.session_state:
+    st.caption("Developer Mode Message: the prompt passed to the model is:")
     st.caption(st.session_state['human-facing_prompt'].replace("$", r"\$"))
-    if 'developer-facing_prompt' in st.session_state and st.session_state["developer_mode"]:
-      st.caption("Developer Mode Message: the prompt passed to the model is: "+ st.session_state['developer-facing_prompt'].replace("$", r"\$"))
 
   st.error("WARNING! Outputs have not been fact checked. CICERO is not responsible for inaccuracies in deployed copy. Please check all *names*, *places*, *counts*, *times*, *events*, and *titles* (esp. military titles) for accuracy.  \nAll numbers included in outputs are suggestions only and should be updated. They are NOT analytically optimized to increase conversions (yet) and are based solely on frequency in past copy.", icon="⚠️")
   if 'outputs' in st.session_state:
@@ -451,8 +452,8 @@ def main() -> None:
 
   # Activity logging takes a bit, so I've put it last to preserve immediate-feeling performance and responses for the user making a query.
   if did_a_query:
-    # promptsent is only illustrative. But maybe that's enough.
-    write_to_activity_log_table( datetime=str(datetime.now()), useremail=st.session_state['email'], promptsent=promptsent, responsegiven=json.dumps(outputs), modelparams="(wes-rag-only strategy has no singular modelparams to record, at least at the moment)", modelname=model, modelurl=model )
+    # promptsent is only illustrative. But maybe that's enough. Maybe we should be using a different prompt?
+    write_to_activity_log_table( datetime=str(datetime.now()), useremail=st.session_state['email'], promptsent=promptsent, responsegiven=json.dumps(outputs), modelparams=str({"max_tokens": max_tokens, "temperature": temperature}), modelname=model, modelurl=model )
 
   # st.components.v1.html('<!--<script>//you can include arbitrary html and javascript this way</script>-->') #or, use st.markdown, if you want arbitrary html but javascript isn't needed.
 
