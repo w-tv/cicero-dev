@@ -99,7 +99,7 @@ class PresetsPayload(TypedDict):
 presets: dict[str, PresetsPayload] = {
   "default": {
     "temperature": 0.7,
-    "target_charcount_min": 80,
+    "target_charcount_min": 80, #TODO: remove these
     "target_charcount_max": 160,
     "num_beams" : 1,
     "top_k" : 50,
@@ -139,7 +139,6 @@ def execute_prompting(model: str, account: str, ask_type: str, topics: list[str]
   doc_pool_size = 10 # Document Pool Size
   num_examples = 10 # Number of Documents to Use as Examples
   assert_always(num_examples <= doc_pool_size, "You can't ask to provide more examples than there are documents in the pool! Try again with a different value.")
-  num_outputs = 5 # Number of Texts the Model Should Generate
   output_table_name = "models.lovelytics.gold_text_outputs" # Text Output Table Name
   ref_tag_name = "models.lovelytics.ref_tags" # Tags Table Name #TODO: possibly use topic_tags = set(x["Tag_Name"] for x in spark.read.table(ref_tag_name).filter(col("Tag_Type") == "Topic").select("Tag_Name").collect()) etc etc logic. Probably this gets address when Wes emails me a second diff.
   primary_key = "PROJECT_NAME" # Index Table Primary Key Name
@@ -329,8 +328,7 @@ def execute_prompting(model: str, account: str, ask_type: str, topics: list[str]
   model_chain = ( prompt | chat_model | StrOutputParser() )
   single_output = model_chain.invoke(combined_dict)
   # Maybe do some kind of regex on this later? re.search("(\d+\.)
-  print("Done :)")
-  return target_prompt, single_output.split('\n')
+  return combined_dict["question"], single_output.split('\n')
 
 def main() -> None:
 
@@ -397,11 +395,14 @@ def main() -> None:
     elif not model:
       st.warning("***No Model is selected, so I can't send the request! (If you have no ability to select a Model and get this error, please contact the Optimization team.***")
     else:
+      if length_select == "long":
+        st.info("If text length is Long, then, regardless of any \"Number of outputs\" setting above, we only request one output, as it is generally then of higher quality, due to technical limitations. This is intended behavior.")
+        num_outputs = 1
       did_a_query = True
       st.session_state['use_count']+=1 #this is just an optimization for the front-end display of the query count
       use_bio=("Bio" in topics and account in bios)
       max_tokens = 4096
-      promptsent, outputs = execute_prompting(model, account, ask_type, topics, additional_topics, tones, length_select, headline, num_outputs, temperature, use_bio)
+      promptsent, outputs = execute_prompting(model, account, ask_type, topics, additional_topics, tones, length_select, headline, num_outputs, temperature, use_bio, max_tokens)
       st.session_state['outputs'] = outputs
       st.session_state['human-facing_prompt'] = promptsent
       if 'history' not in st.session_state: st.session_state['history'] = []
