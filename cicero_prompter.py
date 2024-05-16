@@ -26,6 +26,7 @@ import random
 from os import environ
 
 from databricks.vector_search.client import VectorSearchClient
+from streamlit.web.server.websocket_headers import _get_websocket_headers
 
 def external_topic_names_to_internal_topic_names_list_mapping(external_topic_names: list[str]) -> list[str]:
   return [topics_big[e]["internal name"].replace("_", " ").lower() for e in external_topic_names]
@@ -339,7 +340,10 @@ def execute_prompting(model: str, account: str, ask_type: str, topics: list[str]
 def main() -> None:
 
   if not st.session_state.get('email'): #this line is of dubious usefulness. It's supposed to let you run cicero_prompter.py locally and stand-alone without cicero.py, however.
-    st.session_state["email"] = str(st.experimental_user["email"]) #this str call also accounts for if the user email is None.
+    websocket_headers =  _get_websocket_headers()
+    user_email = str(websocket_headers.get("X-Goog-Authenticated-User-Email"))
+    user_email = user_email[45:]
+    st.session_state["email"] = user_email #this str call also accounts for if the user email is None.
   if 'use_count' not in st.session_state:
     st.session_state['use_count'] = count_from_activity_log_times_used_today(st.session_state["email"])
   use_count_limit = 100 #arbitrary but reasonable choice of limit
