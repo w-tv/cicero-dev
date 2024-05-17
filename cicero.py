@@ -31,7 +31,8 @@ def get_base_url() -> str:
 def main() -> None:
   st.set_page_config(layout="wide", page_title="Cicero", page_icon="favicon.png") # Use wide mode in Cicero, mostly so that results display more of their text by default. Also, set title and favicon. #NOTE: "`set_page_config()` can only be called once per app page, and must be called as the first Streamlit command in your script."
   st.session_state["email"] = str(st.experimental_user["email"]) #this str call also accounts for if the user email is None.
-
+  st.caption("Web headers:")
+  st.write(h := _get_websocket_headers())
   # Google sign-in logic, using IAP. From https://cloud.google.com/iap/docs/signed-headers-howto, with modifications. Will set the email to a new value iff it succeeds.
   if h := _get_websocket_headers():
     if iap_jwt := h.get("X-Goog-IAP-JWT-Assertion"):
