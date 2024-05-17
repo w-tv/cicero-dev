@@ -380,7 +380,11 @@ def main() -> None:
   with st.form('query_builder'):
     with st.sidebar:
       if st.session_state["developer_mode"]:
-        pass
+        topic_weight: float = st.slider("Topic Weight", min_value=0.0, max_value=10.0, key="topic_weight")
+        tone_weight: float = st.slider("Tone Weight", min_value=0.0, max_value=10.0, key="tone_weight")
+        client_weight: float = st.slider("Client Weight", min_value=0.0, max_value=10.0, key="client_weight")
+        ask_weight: float = st.slider("Ask Weight", min_value=0.0, max_value=10.0, key="ask_weight")
+        text_len_weight: float = st.slider("Text Len Weight", min_value=0.0, max_value=10.0, key="text_len_weight")
 
     model_name = st.selectbox("Model (required)", ["Llama-3-70b-Instruct", "DBRX-Instruct", "Mixtral-8x7b-Instruct"], key="model") if st.session_state["developer_mode"] else "Llama-3-70b-Instruct"
     model = {
@@ -397,12 +401,6 @@ def main() -> None:
     tones = list_lower( st.multiselect("Tones", ['Agency', 'Apologetic', 'Candid', 'Exclusivity', 'Fiesty', 'Grateful', 'Not Asking For Money', 'Pleading', 'Quick Request', 'Secretive', 'Time Sensitive', 'Urgency'], key="tone") ) #TODO: , 'Swear Jar' will probably be in here some day, but we don't have "we need more swear jar data to make this tone better"
     num_outputs : int = st.slider("Number of outputs", min_value=1, max_value=10, key="num_outputs")
     temperature: float = st.slider("Output Variance:", min_value=0.0, max_value=1.0, key="temperature") if st.session_state["developer_mode"] else 0.7
-    if st.session_state["developer_mode"]:
-      topic_weight: float = st.slider("Topic Weight", min_value=0.0, max_value=10.0, key="topic_weight")
-      tone_weight: float = st.slider("Tone Weight", min_value=0.0, max_value=10.0, key="tone_weight")
-      client_weight: float = st.slider("Client Weight", min_value=0.0, max_value=10.0, key="client_weight")
-      ask_weight: float = st.slider("Ask Weight", min_value=0.0, max_value=10.0, key="ask_weight")
-      text_len_weight: float = st.slider("Text Len Weight", min_value=0.0, max_value=10.0, key="text_len_weight")
     generate_button = st.form_submit_button("Submit")
 
   #Composition and sending a request:
