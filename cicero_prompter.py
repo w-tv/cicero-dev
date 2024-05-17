@@ -178,7 +178,7 @@ def execute_prompting(model: str, account: str, ask_type: str, topics: list[str]
   # Tp, C
 
   T = TypeVar('T') # Could: Changed in version 3.12: Syntactic support for generics is new in Python 3.12.
-  def powerset(l: list[T], start: int = 0) -> list[tuple[T]]:
+  def powerset(l: list[T], start: int = 0) -> list[tuple[T, ...]]:
     """powerset([1,2,3]) → () (1,) (2,) (3,) (1,2) (1,3) (2,3) (1,2,3)
     Used to generate powersets of filters."""
     return [x for r in range(start, len(l)+1) for x in combinations(l, r)]
@@ -195,7 +195,7 @@ def execute_prompting(model: str, account: str, ask_type: str, topics: list[str]
   # ^(?=.*\btopic\b)(?=.*\btopic\b).*$ regex for matching
   topic_sets = [("topics", "(, .*){1,}".join(x), topic_weight * len(x)) for x in powerset(sorted(topics), start=min(1, len(topics)))]
   tone_sets = [("tones", "(, .*){1,}".join(x), tone_weight * len(x)) for x in powerset(sorted(tones), start=min(1, len(tones)))]
-  combos = set()
+  combos_set = set()
   # Iterate through each pairing of topics and tones
   for tp in topic_sets:
     for to in tone_sets:
@@ -211,10 +211,10 @@ def execute_prompting(model: str, account: str, ask_type: str, topics: list[str]
       # Note that each filter tag (e.g. client, a topic set) has it's own weight value that dictate the filter's importance
       # Higher weight filters will be used first
       # When the sets of all filters are generated, their combined weight is summed together using the reduce function
-      combos.update((x, reduce(lambda a, b: a+b[2], x, 0))  if len(x) != 0 else (x, 0) for x in powerset(temp_arr))
+      combos_set.update( (x, reduce(lambda a, b: a+b[2], x, 0))  if len(x) != 0 else (x, 0) for x in powerset(temp_arr) )
   # Then, the filters are sorted by their weight in descending order
   # So higher weight filter combinations are first in the array which means any documents with those filters will be considered first
-  combos = [{y[0]: y[1] for y in x[0]} for x in sorted(combos, key=lambda a: a[1], reverse=True)]
+  combos = [{y[0]: y[1] for y in x[0]} for x in sorted(combos_set, key=lambda a: a[1], reverse=True)]
 
   ### Find as Many Relevant Documents as Possible ###
 
