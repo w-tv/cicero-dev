@@ -26,7 +26,6 @@ import random
 from os import environ
 
 from databricks.vector_search.client import VectorSearchClient
-from streamlit.web.server.websocket_headers import _get_websocket_headers
 
 def external_topic_names_to_internal_topic_names_list_mapping(external_topic_names: list[str]) -> list[str]:
   return [topics_big[e]["internal name"].replace("_", " ").lower() for e in external_topic_names]
@@ -232,13 +231,12 @@ def execute_prompting(model: str, account: str, ask_type: str, topics: list[str]
   # Setup Vector Search Client that we will use in the loop.
   vsc = VectorSearchClient( personal_access_token=st.secrets["databricks_api_token"], workspace_url="https://"+st.secrets['DATABRICKS_SERVER_HOSTNAME'], disable_notice=True )
   text_index = vsc.get_index(endpoint_name="rag_llm_vector", index_name="models.lovelytics.gold_text_outputs_index")
-  # st.write(text_rows)
   for c in combos:
       results = [
         row[primary_key] for row in text_rows if # Only apply filters if they are present in the current filter combination.
           (row[primary_key] not in results_found                              )  and
-          ("topics"   not in c    or    re.search(c["topics"], row[5]) )  and
-          ("tones"    not in c    or    re.search(c["tones"], row[7])   )  and
+          ("topics"   not in c    or    re.search(c["topics"], row["topics"]) )  and
+          ("tones"    not in c    or    re.search(c["tones"], row["tones"])   )  and
           ("client"   not in c    or    c["client"] == row["Client_Name"]     )  and
           ("ask"      not in c    or    c["ask"] == row["Ask_Type"]           )  and
           ("text_len" not in c    or    c["text_len"] == row["Text_Length"]   )
@@ -337,10 +335,7 @@ def execute_prompting(model: str, account: str, ask_type: str, topics: list[str]
 def main() -> None:
 
   if not st.session_state.get('email'): #this line is of dubious usefulness. It's supposed to let you run cicero_prompter.py locally and stand-alone without cicero.py, however.
-    websocket_headers =  _get_websocket_headers()
-    user_email = str(websocket_headers.get("X-Goog-Authenticated-User-Email"))
-    user_email = user_email[45:]
-    st.session_state["email"] = user_email #this str call also accounts for if the user email is None.
+    st.session_state["email"] = str(st.experimental_user["email"]) #this str call also accounts for if the user email is None.
   if 'use_count' not in st.session_state:
     st.session_state['use_count'] = count_from_activity_log_times_used_today(st.session_state["email"])
   use_count_limit = 100 #arbitrary but reasonable choice of limit
@@ -420,12 +415,7 @@ def main() -> None:
       max_tokens = 4096
       promptsent, outputs = execute_prompting(model, account, ask_type, topics, additional_topics, tones, length_select, headline, num_outputs, temperature, use_bio, max_tokens, topic_weight = 4, tone_weight = 1, client_weight = 6, ask_weight = 2, text_len_weight = 4)
       # TODO: output validation: implement some kind of similarity score threshhold, make this catch more edge cases, we'll talk
-      outputs_validated = []
-      for raw_outputs in outputs:
-        if raw_outputs == '' or raw_outputs.startswith(f"Here are "):
-          continue
-        else:
-          outputs_validated.append(raw_outputs)
+      outputs_validated =[x for x in outputs if not (x.strip() == "" or x.startswith(f"Here") or x.startswith(f"Sure") or x.startswith(f"OK"))] # These are just my guesses about what the LLM likes to start things with in its insipid commentary.
       st.session_state['outputs'] = outputs_validated
       st.session_state['human-facing_prompt'] = promptsent
       if 'history' not in st.session_state: st.session_state['history'] = []
