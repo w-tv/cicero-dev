@@ -26,6 +26,7 @@ import random
 from os import environ
 
 from databricks.vector_search.client import VectorSearchClient
+from streamlit.web.server.websocket_headers import _get_websocket_headers
 
 def external_topic_names_to_internal_topic_names_list_mapping(external_topic_names: list[str]) -> list[str]:
   return [topics_big[e]["internal name"].replace("_", " ").lower() for e in external_topic_names]
@@ -231,12 +232,13 @@ def execute_prompting(model: str, account: str, ask_type: str, topics: list[str]
   # Setup Vector Search Client that we will use in the loop.
   vsc = VectorSearchClient( personal_access_token=st.secrets["databricks_api_token"], workspace_url="https://"+st.secrets['DATABRICKS_SERVER_HOSTNAME'], disable_notice=True )
   text_index = vsc.get_index(endpoint_name="rag_llm_vector", index_name="models.lovelytics.gold_text_outputs_index")
+  # st.write(text_rows)
   for c in combos:
       results = [
         row[primary_key] for row in text_rows if # Only apply filters if they are present in the current filter combination.
           (row[primary_key] not in results_found                              )  and
-          ("topics"   not in c    or    re.search(c["topics"], row["topics"]) )  and
-          ("tones"    not in c    or    re.search(c["tones"], row["tones"])   )  and
+          ("topics"   not in c    or    re.search(c["topics"], row[5]) )  and
+          ("tones"    not in c    or    re.search(c["tones"], row[7])   )  and
           ("client"   not in c    or    c["client"] == row["Client_Name"]     )  and
           ("ask"      not in c    or    c["ask"] == row["Ask_Type"]           )  and
           ("text_len" not in c    or    c["text_len"] == row["Text_Length"]   )
@@ -277,7 +279,7 @@ def execute_prompting(model: str, account: str, ask_type: str, topics: list[str]
   rag_prompt = "<|begin_of_text|><|start_header_id|>system<|end_header_id|>\n\n{system_prompt}<|eot_id|>"
 
   # Define the system prompt
-  sys_prompt = """You are an expert copywriter who specializes in writing text messages for conservative candidates in the United States of America. Do not start your message with 'Dear', 'Subject', or 'Hello'. Try to grab the reader's attention in the first line. Do not explicitly use language such as 'Donate now' or '[DONATE]', instead use language like 'Rush', 'Support', or 'Chip in'. Do not make up facts or statistics. Do not use emojis or hashtags in your messages. Do not exactly copy the example text messages. Write the exact number of text messages asked for."""
+  sys_prompt = """You are an expert copywriter who specializes in writing text messages for conservative candidates in the United States of America. Do not start your message with 'Dear', 'Subject', or 'Hello'. Try to grab the reader's attention in the first line. Do not explicitly use language such as 'Donate now' or '[DONATE]', instead use language like 'Rush', 'Support', or 'Chip in'. Do not make up facts or statistics. Do not use emojis or hashtags in your messages. Do not exactly copy the example text messages. Write the exact number of text messages asked for. Do not write anything other than the text messages."""
   # Add instructions on how long or short a text should be depending on the text length we want the model to generate
   # Add specificity of specific ask type of the text message too
   # Try to make the model understand that the outputs we specifically are asking for should be this length
@@ -309,7 +311,7 @@ def execute_prompting(model: str, account: str, ask_type: str, topics: list[str]
   combined_dict = combined_dict | ms_prompts | ms_texts
 
   # Create the question prompt and add it to the combined_dict dictionary
-  combined_dict["question"] = f"Please write me {num2words(num_outputs)} {text_len} {ask_type} text message(s) from {account}" + bool(topics)*f" about {topics_str}" + bool(tones)*f" written with an emphasis on {tones_str}. Do not include any commentary or additional comments before or after the text messages."
+  combined_dict["question"] = f"Please write me {num2words(num_outputs)} {text_len} {ask_type} text message(s) from {account}" + bool(topics)*f" about {topics_str}" + bool(tones)*f" written with an emphasis on {tones_str}."
 
   ##### END PROMPT INSERTION #####
   # print(rag_prompt)
@@ -335,7 +337,10 @@ def execute_prompting(model: str, account: str, ask_type: str, topics: list[str]
 def main() -> None:
 
   if not st.session_state.get('email'): #this line is of dubious usefulness. It's supposed to let you run cicero_prompter.py locally and stand-alone without cicero.py, however.
-    st.session_state["email"] = str(st.experimental_user["email"]) #this str call also accounts for if the user email is None.
+    websocket_headers =  _get_websocket_headers()
+    user_email = str(websocket_headers.get("X-Goog-Authenticated-User-Email"))
+    user_email = user_email[45:]
+    st.session_state["email"] = user_email #this str call also accounts for if the user email is None.
   if 'use_count' not in st.session_state:
     st.session_state['use_count'] = count_from_activity_log_times_used_today(st.session_state["email"])
   use_count_limit = 100 #arbitrary but reasonable choice of limit
@@ -393,11 +398,11 @@ def main() -> None:
     num_outputs : int = st.slider("Number of outputs", min_value=1, max_value=10, key="num_outputs")
     temperature: float = st.slider("Output Variance:", min_value=0.0, max_value=1.0, key="temperature") if st.session_state["developer_mode"] else 0.7
     if st.session_state["developer_mode"]:
-      topic_weight: float = st.slider("Topic Weight", min_value=0.0, max_value=100.0, key="topic_weight")
-      tone_weight: float = st.slider("Tone Weight", min_value=0.0, max_value=100.0, key="tone_weight")
-      client_weight: float = st.slider("Client Weight", min_value=0.0, max_value=100.0, key="client_weight")
-      ask_weight: float = st.slider("Ask Weight", min_value=0.0, max_value=100.0, key="ask_weight")
-      text_len_weight: float = st.slider("Text Len Weight", min_value=0.0, max_value=100.0, key="text_len_weight")
+      topic_weight: float = st.slider("Topic Weight", min_value=0.0, max_value=10.0, key="topic_weight")
+      tone_weight: float = st.slider("Tone Weight", min_value=0.0, max_value=10.0, key="tone_weight")
+      client_weight: float = st.slider("Client Weight", min_value=0.0, max_value=10.0, key="client_weight")
+      ask_weight: float = st.slider("Ask Weight", min_value=0.0, max_value=10.0, key="ask_weight")
+      text_len_weight: float = st.slider("Text Len Weight", min_value=0.0, max_value=10.0, key="text_len_weight")
     generate_button = st.form_submit_button("Submit")
 
   #Composition and sending a request:
@@ -416,10 +421,17 @@ def main() -> None:
       use_bio=("Bio" in topics and account in bios)
       max_tokens = 4096
       promptsent, outputs = execute_prompting(model, account, ask_type, topics, additional_topics, tones, length_select, headline, num_outputs, temperature, use_bio, max_tokens, topic_weight = 4, tone_weight = 1, client_weight = 6, ask_weight = 2, text_len_weight = 4)
-      st.session_state['outputs'] = outputs
+      # TODO: output validation: implement some kind of similarity score threshhold, make this catch more edge cases, we'll talk
+      outputs_validated = []
+      for raw_outputs in outputs:
+        if raw_outputs == '' or raw_outputs.startswith(f"Here are "):
+          continue
+        else:
+          outputs_validated.append(raw_outputs)
+      st.session_state['outputs'] = outputs_validated
       st.session_state['human-facing_prompt'] = promptsent
       if 'history' not in st.session_state: st.session_state['history'] = []
-      st.session_state['history'] += outputs
+      st.session_state['history'] += outputs_validated
       st.session_state['character_counts_caption'] = "Character counts: "+str([len(o) for o in outputs])
 
   # The idea is for these output elements to persist after one query button, until overwritten by the results of the next query.
