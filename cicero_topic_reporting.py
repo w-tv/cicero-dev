@@ -2,8 +2,7 @@
 
 import streamlit as st
 from typing import Any, Sequence
-from cicero_prompter import topics_big, load_account_names #COULD: move these to cicero_shared some day. And probably will, as the project progresses and more changes are made. But it's fine here for now; it's whatever.
-from cicero_shared import sql_call
+from cicero_shared import load_account_names, sql_call, topics_big
 
 import pandas as pd
 import altair as alt

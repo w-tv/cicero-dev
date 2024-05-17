@@ -5,11 +5,12 @@ transformers
 google-auth
 databricks-genai-inference >= 0.2.3
 databricks-sql-connector >= 3.1.2
-setuptools # You need to import this to import databricks-vectorsearch, for some reason.
-databricks-vectorsearch >= 0.35
 num2words >= 0.5.13
 langchain == 0.1.20
-langchain-core == 0.1.52
+setuptools #needed for mlflow and databricks-vectorsearch, for some reason.
+databricks-vectorsearch >= 0.36
+mlflow #for some reason, you need to explicitly install this to get langchain-community to work
+langchain-community
 
 # Dev-only requirements (tooling)
 uv >= 0.1.35 # I'm not sure the exact version that added uv run, but that's really all we need.
