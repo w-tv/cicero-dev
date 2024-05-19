@@ -82,21 +82,12 @@ def main() -> None:
         Streamlit version: {st.version.STREAMLIT_VERSION_STRING}<br>
         Base url: {get_base_url()}
       """, unsafe_allow_html=True)
-      
-      @st.experimental_dialog("Test")
-      def f() -> None:
-        st.write(":)")
-      if st.button("test streamlit pop-up (experimental_dialog)"):
-        f()
-      
       st.caption("Web headers:")
       st.write(h := _get_websocket_headers())
       if h:
         st.write("X-Goog-Authenticated-User-Email", h.get("X-Goog-Authenticated-User-Email"))
         st.write("X-Goog-IAP-JWT-Assertion", h.get("X-Goog-IAP-JWT-Assertion"))
-
       if st.button("Crash the program."):
         exit_error(27)
-
       st.button("disable developer mode", on_click=disable_developer_mode, help="Click this button to disable developer mode, allowing you to see and interact with the app as a basic user would. You can refresh the page in your browser to re-enable developer mode.") #this is a callback for streamlit ui update-flow reasons.
 if __name__ == "__main__": main()
