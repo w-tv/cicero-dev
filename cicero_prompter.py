@@ -4,12 +4,10 @@
 
 import streamlit as st
 import pandas as pd
-import requests
 import json
 from datetime import datetime, date
 #COULD: use https://pypi.org/project/streamlit-profiler/ for profiling
-from transformers import GenerationConfig
-from typing import Literal, Iterable, TypedDict, TypeVar
+from typing import Literal, TypedDict, TypeVar
 from zoneinfo import ZoneInfo as z
 from cicero_shared import assert_always, exit_error, load_account_names, sql_call, sql_call_cacheless, topics_big, Row
 import cicero_rag_only
@@ -150,7 +148,7 @@ def execute_prompting(model: str, account: str, ask_type: str, topics: list[str]
   num_examples = 10 # Number of Documents to Use as Examples
   assert_always(num_examples <= doc_pool_size, "You can't ask to provide more examples than there are documents in the pool! Try again with a different value.")
   output_table_name = "models.lovelytics.gold_text_outputs" # Text Output Table Name
-  ref_tag_name = "models.lovelytics.ref_tags" # Tags Table Name #TODO: possibly use topic_tags = set(x["Tag_Name"] for x in spark.read.table(ref_tag_name).filter(col("Tag_Type") == "Topic").select("Tag_Name").collect()) etc etc logic. Probably this gets address when Wes emails me a second diff.
+  _ref_tag_name = "models.lovelytics.ref_tags" # Tags Table Name #TODO: possibly use topic_tags = set(x["Tag_Name"] for x in spark.read.table(ref_tag_name).filter(col("Tag_Type") == "Topic").select("Tag_Name").collect()) etc etc logic. Probably this gets address when Wes emails me a second diff.
   primary_key = "PROJECT_NAME" # Index Table Primary Key Name
 
   topics_str = ", ".join(topics)
@@ -380,6 +378,12 @@ def main() -> None:
         client_weight: float = st.slider("Client Weight", min_value=0.0, max_value=10.0, key="client_weight")
         ask_weight: float = st.slider("Ask Weight", min_value=0.0, max_value=10.0, key="ask_weight")
         text_len_weight: float = st.slider("Text Len Weight", min_value=0.0, max_value=10.0, key="text_len_weight")
+      else:
+        topic_weight = 4
+        tone_weight = 1
+        client_weight = 6
+        ask_weight = 2
+        text_len_weight = 4
 
     model_name = st.selectbox("Model (required)", ["Llama-3-70b-Instruct", "DBRX-Instruct", "Mixtral-8x7b-Instruct"], key="model") if st.session_state["developer_mode"] else "Llama-3-70b-Instruct"
     model = {
@@ -413,9 +417,9 @@ def main() -> None:
       st.session_state['use_count']+=1 #this is just an optimization for the front-end display of the query count
       use_bio=("Bio" in topics and account in bios)
       max_tokens = 4096
-      promptsent, outputs = execute_prompting(model, account, ask_type, topics, additional_topics, tones, length_select, headline, num_outputs, temperature, use_bio, max_tokens, topic_weight = 4, tone_weight = 1, client_weight = 6, ask_weight = 2, text_len_weight = 4)
+      promptsent, outputs = execute_prompting(model, account, ask_type, topics, additional_topics, tones, length_select, headline, num_outputs, temperature, use_bio, max_tokens, topic_weight, tone_weight, client_weight, ask_weight, text_len_weight)
       # TODO: output validation: implement some kind of similarity score threshhold, make this catch more edge cases, we'll talk
-      outputs_validated =[x for x in outputs if not (x.strip() == "" or x.startswith(f"Here") or x.startswith(f"Sure") or x.startswith(f"OK"))] # These are just my guesses about what the LLM likes to start things with in its insipid commentary.
+      outputs_validated = [x for x in outputs if not (x.strip() == "" or x.startswith("Here") or x.startswith("Sure") or x.startswith("OK"))] # These are just my guesses about what the LLM likes to start things with in its insipid commentary.
       st.session_state['outputs'] = outputs_validated
       st.session_state['human-facing_prompt'] = promptsent
       if 'history' not in st.session_state: st.session_state['history'] = []
