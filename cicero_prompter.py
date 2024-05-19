@@ -467,7 +467,7 @@ def main() -> None:
   # Activity logging takes a bit, so I've put it last to preserve immediate-feeling performance and responses for the user making a query.
   if did_a_query:
     # promptsent is only illustrative. But maybe that's enough. Maybe we should be using a different prompt?
-    write_to_activity_log_table( datetime=str(datetime.now()), useremail=st.session_state['email'], promptsent=promptsent, responsegiven=json.dumps(outputs), modelparams=str({"max_tokens": max_tokens, "temperature": temperature}), modelname=model_name, modelurl=model )
+    write_to_activity_log_table( datetime=str(datetime.now(z("US/Eastern"))), useremail=st.session_state['email'], promptsent=promptsent, responsegiven=json.dumps(outputs), modelparams=str({"max_tokens": max_tokens, "temperature": temperature}), modelname=model_name, modelurl=model )
 
   # st.components.v1.html('<!--<script>//you can include arbitrary html and javascript this way</script>-->') #or, use st.markdown, if you want arbitrary html but javascript isn't needed.
 
