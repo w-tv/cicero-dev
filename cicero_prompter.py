@@ -220,7 +220,7 @@ def execute_prompting(model: str, account: str, ask_type: str, topics: list[str]
   def read_output_table() -> list[Row]:
     return sql_call(f"SELECT * from {output_table_name}")
 
-  text_rows = read_output_table()
+  text_rows = read_output_table() # Keep in mind that row name-indexing is case-sensitive!
   # results_found is a set of every primary key we've search so far
   # This is to prevent duplicate documents/texts from showing up
   results_found = set()
@@ -233,8 +233,8 @@ def execute_prompting(model: str, account: str, ask_type: str, topics: list[str]
       results = [
         row[primary_key] for row in text_rows if # Only apply filters if they are present in the current filter combination.
           (row[primary_key] not in results_found                              )  and
-          ("topics"   not in c    or    re.search(c["topics"], row["topics"]) )  and
-          ("tones"    not in c    or    re.search(c["tones"], row["tones"])   )  and
+          ("topics"   not in c    or    re.search(c["topics"], row["Topics"]) )  and
+          ("tones"    not in c    or    re.search(c["tones"], row["Tones"])   )  and
           ("client"   not in c    or    c["client"] == row["Client_Name"]     )  and
           ("ask"      not in c    or    c["ask"] == row["Ask_Type"]           )  and
           ("text_len" not in c    or    c["text_len"] == row["Text_Length"]   )
