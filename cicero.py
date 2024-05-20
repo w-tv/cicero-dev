@@ -79,7 +79,7 @@ def main() -> None:
       st.caption(f"""Streamlit app memory usage: {psutil.Process(os.getpid()).memory_info().rss // 1024 ** 2} MiB.<br>
         Time to display: {(perf_counter_ns()-nanoseconds_base)/1000/1000/1000} seconds.<br>
         Python version: {platform.python_version()}<br>
-        Streamlit version: {st.version.STREAMLIT_VERSION_STRING}<br>
+        Streamlit version: {st.__version__}<br>
         Base url: {get_base_url()}
       """, unsafe_allow_html=True)
       st.caption("Web headers:")
