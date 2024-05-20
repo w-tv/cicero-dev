@@ -2,6 +2,7 @@ streamlit >= 1.34.0 # We use a bugfix from 1.34.0
 pandas
 psutil
 transformers
+cryptography #needed for google-auth's JWT's ES256
 google-auth
 databricks-genai-inference >= 0.2.3
 databricks-sql-connector >= 3.1.2
