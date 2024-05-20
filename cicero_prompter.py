@@ -224,8 +224,8 @@ def execute_prompting(model: str, account: str, ask_type: str, topics: list[str]
   # results_found is a set of every primary key we've search so far
   # This is to prevent duplicate documents/texts from showing up
   results_found = set()
-  # reference_texts will be a list of dictionaries containing example user prompts and assistant responses (i.e. the text messages)
-  reference_texts : list[dict[str, str]] = []
+  # reference_texts will be a list of dictionaries containing example user prompts and assistant responses (i.e. the text messages). Also, scores (a number, represented numerically).
+  reference_texts : list[dict[str, str|float]] = []
   # Setup Vector Search Client that we will use in the loop.
   vsc = VectorSearchClient( personal_access_token=st.secrets["databricks_api_token"], workspace_url="https://"+st.secrets['DATABRICKS_SERVER_HOSTNAME'], disable_notice=True )
   text_index = vsc.get_index(endpoint_name="rag_llm_vector", index_name="models.lovelytics.gold_text_outputs_index")
@@ -255,8 +255,8 @@ def execute_prompting(model: str, account: str, ask_type: str, topics: list[str]
         reference_texts.extend({"prompt": "Please write me a" + x[0].split(":\n\n", 1)[0][1:], "text": x[0].split(":\n\n", 1)[1], "score": x[-1]} for x in vs_search["result"]["data_array"] if x[-1] > score_threshold)
       # If we've found at least the number of desired documents, exit the loop and take the first doc_pool_size number of texts. The beginning of the reference_texts array will contain the texts that match the most important filters and the highest similarity scores.
       if len(reference_texts) >= doc_pool_size:
-          reference_texts = reference_texts[:doc_pool_size]
-          break
+        reference_texts = reference_texts[:doc_pool_size]
+        break
 
   ### Query Endpoints ###
 
@@ -291,7 +291,7 @@ def execute_prompting(model: str, account: str, ask_type: str, topics: list[str]
   if headline:
     sys_prompt += f""" Here is/are news headline(s) you should reference in your text messages: {headline}"""
 
-  combined_dict = {}  # combined_dict stores all of the string format variables used in the prompt and their values
+  combined_dict: dict[str, str|float] = {}  # combined_dict stores all of the string format variables used in the prompt and their values
   combined_dict["system_prompt"] = sys_prompt
 
   # Then for every example document, we add the corresponding assistant and user lines
@@ -327,8 +327,9 @@ def execute_prompting(model: str, account: str, ask_type: str, topics: list[str]
   # Assemble the LLM chain, which makes it easier to invoke the model and parse its outputs. This uses langchain's own pipe syntax to organize multiple components into a "pipe".
   model_chain = ( prompt | chat_model | StrOutputParser() )
   single_output = model_chain.invoke(combined_dict)
-  # Maybe do some kind of regex on this later? re.search("(\d+\.)
-  return combined_dict["question"], single_output.split('\n')
+  # Maybe do some kind of regex on this later? re.search("(\d+\.)")... something of this nature...
+  question = str(combined_dict["question"]) #the str call here is purely to help the typechecker.
+  return question, single_output.split('\n')
 
 def main() -> None:
 
@@ -392,7 +393,7 @@ def main() -> None:
       "Mixtral-8x7b-Instruct": "databricks-mixtral-8x7b-instruct"
     }[model_name]
     account = st.selectbox("Account (required)", list(account_names), key="account")
-    ask_type = str( st.selectbox("Ask Type", ['Hard Ask', 'Medium Ask', 'Soft Ask', 'Soft Ask Petition', 'Soft Ask Poll', 'Soft Ask Survey'], key="ask_type") ).lower()
+    ask_type = str( st.selectbox("Ask Type", ['Hard Ask', 'Medium Ask', 'Soft Ask', 'Soft Ask Petition', 'Soft Ask Poll', 'Soft Ask Survey'], key="ask_type") ).lower() #STREAMLIT-BUG-WORKAROUND: every time I, eg, wrap selectbox in str I think this is technically working around a bug in streamlit, although it's a typing bug and might be impossible for them to fix: https://github.com/streamlit/streamlit/issues/8717
     topics = st.multiselect("Topics", sorted([t for t, d in topics_big.items() if d["show in prompter?"]]), key="topics" )
     topics = external_topic_names_to_internal_topic_names_list_mapping(topics)
     length_select = st.selectbox("Length", ['Short', 'Medium', 'Long'], key='lengths').lower()
