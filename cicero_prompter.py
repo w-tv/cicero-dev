@@ -424,12 +424,13 @@ def main() -> None:
       max_tokens = 4096
       promptsent, outputs = execute_prompting(model, account, ask_type, topics, additional_topics, tones, length_select, headline, num_outputs, temperature, use_bio, max_tokens, topic_weight, tone_weight, client_weight, ask_weight, text_len_weight)
       # TODO: output validation: implement some kind of similarity score threshhold, make this catch more edge cases, we'll talk
-      outputs_validated = [x for x in outputs if not (x.strip() == "" or x.startswith("Here") or x.startswith("Sure") or x.startswith("OK"))] # These are just my guesses about what the LLM likes to start things with in its insipid commentary.
+      # I'm thinking because that first line tends to be "here are {numoutputs} {ask type} {length} texts about {topics}" we can do like a similarity score of that and set a super high threshold. that way we can catch minute differences, and not have to account for every variation. also i don't think it will be very computationally expensive
+      outputs_validated = [x for x in outputs if not (x.strip() == "" or x.startswith("Here are") or x.startswith("Sure") or x.startswith("OK"))] # These are just my guesses about what the LLM likes to start things with in its insipid commentary.
       st.session_state['outputs'] = outputs_validated
       st.session_state['human-facing_prompt'] = promptsent
       if 'history' not in st.session_state: st.session_state['history'] = []
       st.session_state['history'] += outputs_validated
-      st.session_state['character_counts_caption'] = "Character counts: "+str([len(o) for o in outputs])
+      st.session_state['character_counts_caption'] = "Character counts: "+str([len(o) for o in outputs_validated])
 
   # The idea is for these output elements to persist after one query button, until overwritten by the results of the next query.
   if 'human-facing_prompt' in st.session_state:
