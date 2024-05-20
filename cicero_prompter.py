@@ -7,7 +7,7 @@ import pandas as pd
 import json
 from datetime import datetime, date
 #COULD: use https://pypi.org/project/streamlit-profiler/ for profiling
-from typing import Literal, TypedDict, TypeVar
+from typing import Any, Literal, TypedDict, TypeVar
 from zoneinfo import ZoneInfo as z
 from cicero_shared import assert_always, exit_error, load_account_names, sql_call, sql_call_cacheless, topics_big, Row
 import cicero_rag_only
@@ -193,7 +193,7 @@ def execute_prompting(model: str, account: str, ask_type: str, topics: list[str]
   # ^(?=.*\btopic\b)(?=.*\btopic\b).*$ regex for matching
   topic_sets = [("topics", "(, .*){1,}".join(x), topic_weight * len(x)) for x in powerset(sorted(topics), start=min(1, len(topics)))]
   tone_sets = [("tones", "(, .*){1,}".join(x), tone_weight * len(x)) for x in powerset(sorted(tones), start=min(1, len(tones)))]
-  combos_set = set()
+  combos_set: set[Any] = set() # This isn't a great type annotation, but who knows what this is supposed to be.
   # Iterate through each pairing of topics and tones
   for tp in topic_sets:
     for to in tone_sets:
@@ -209,7 +209,7 @@ def execute_prompting(model: str, account: str, ask_type: str, topics: list[str]
       # Note that each filter tag (e.g. client, a topic set) has it's own weight value that dictate the filter's importance
       # Higher weight filters will be used first
       # When the sets of all filters are generated, their combined weight is summed together using the reduce function
-      combos_set.update( (x, reduce(lambda a, b: a+b[2], x, 0))  if len(x) != 0 else (x, 0) for x in powerset(temp_arr) )
+      combos_set.update( (x, reduce(lambda a, b: a+b[2], x, 0.0))  if len(x) != 0 else (x, 0) for x in powerset(temp_arr) )
   # Then, the filters are sorted by their weight in descending order
   # So higher weight filter combinations are first in the array which means any documents with those filters will be considered first
   combos = [{y[0]: y[1] for y in x[0]} for x in sorted(combos_set, key=lambda a: a[1], reverse=True)]
@@ -386,7 +386,7 @@ def main() -> None:
         ask_weight = 2
         text_len_weight = 4
 
-    model_name = st.selectbox("Model (required)", ["Llama-3-70b-Instruct", "DBRX-Instruct", "Mixtral-8x7b-Instruct"], key="model") if st.session_state["developer_mode"] else "Llama-3-70b-Instruct"
+    model_name = str( st.selectbox("Model (required)", ["Llama-3-70b-Instruct", "DBRX-Instruct", "Mixtral-8x7b-Instruct"], key="model") ) if st.session_state["developer_mode"] else "Llama-3-70b-Instruct"
     model = {
       "Llama-3-70b-Instruct":"databricks-meta-llama-3-70b-instruct",
       "DBRX-Instruct": "databricks-dbrx-instruct",
@@ -396,7 +396,11 @@ def main() -> None:
     ask_type = str( st.selectbox("Ask Type", ['Hard Ask', 'Medium Ask', 'Soft Ask', 'Soft Ask Petition', 'Soft Ask Poll', 'Soft Ask Survey'], key="ask_type") ).lower() #STREAMLIT-BUG-WORKAROUND: every time I, eg, wrap selectbox in str I think this is technically working around a bug in streamlit, although it's a typing bug and might be impossible for them to fix: https://github.com/streamlit/streamlit/issues/8717
     topics = st.multiselect("Topics", sorted([t for t, d in topics_big.items() if d["show in prompter?"]]), key="topics" )
     topics = external_topic_names_to_internal_topic_names_list_mapping(topics)
-    length_select = st.selectbox("Length", ['Short', 'Medium', 'Long'], key='lengths').lower()
+    lengths_selectable: list[Literal['short', 'medium', 'long']] = ['short', 'medium', 'long']
+    length_select = st.selectbox("Length", lengths_selectable, key='lengths', format_func=lambda x: x.capitalize())
+    if length_select is None:
+      print("length selection was None... that's not supposed to happen...")
+      exit_error(69)
     additional_topics = [x.strip().lower() for x in st.text_input("Additional Topics (examples: Biden, survey, deadline)", key="additional_topics" ).split(",") if x.strip()] # The list comprehension is to filter out empty strings on split, because otherwise this fails to make a truly empty list in the default case, instead having a list with an empty string in, because split changes its behavior when you give it arguments. Anyway, this also filters out trailing comma edge-cases and such.
     tones = list_lower( st.multiselect("Tones", ['Agency', 'Apologetic', 'Candid', 'Exclusivity', 'Fiesty', 'Grateful', 'Not Asking For Money', 'Pleading', 'Quick Request', 'Secretive', 'Time Sensitive', 'Urgency'], key="tone") ) #TODO: , 'Swear Jar' will probably be in here some day, but we don't have "we need more swear jar data to make this tone better"
     num_outputs : int = st.slider("Number of outputs", min_value=1, max_value=10, key="num_outputs")
