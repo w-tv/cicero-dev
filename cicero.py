@@ -31,16 +31,15 @@ def get_base_url() -> str:
 def main() -> None:
   st.set_page_config(layout="wide", page_title="Cicero", page_icon="favicon.png") # Use wide mode in Cicero, mostly so that results display more of their text by default. Also, set title and favicon. #NOTE: "`set_page_config()` can only be called once per app page, and must be called as the first Streamlit command in your script."
   st.session_state["email"] = str(st.experimental_user["email"]) #this str call also accounts for if the user email is None.
+  st.caption("Web headers:")
+  st.write(h := _get_websocket_headers())
   # Google sign-in logic, using IAP. From https://cloud.google.com/iap/docs/signed-headers-howto, with modifications. Will set the email to a new value iff it succeeds.
-  # Actually, we just do it the simple way.
   if h := _get_websocket_headers():
-    # if iap_jwt := h.get("X-Goog-IAP-JWT-Assertion"):
-    if xgaue := h.get("X-Goog-Authenticated-User-Email"):
+    if iap_jwt := h.get("X-Goog-Iap-Jwt-Assertion"):
       try:
-        # aud = "/projects/513922616175/global/backendServices/7187241006853512289" # should this be in st.secrets["aud"] ?
-        # decoded_jwt = id_token.verify_token(iap_jwt, requests.Request(), audience=aud, certs_url="https://www.gstatic.com/iap/verify/public_key")
-        # st.session_state["email"] = decoded_jwt["email"]
-        st.session_state["email"] = xgaue.split(":")[1]
+        aud = "/projects/513922616175/global/backendServices/7187241006853512289" # should this be in st.secrets["aud"] ?
+        decoded_jwt = id_token.verify_token(iap_jwt, requests.Request(), audience=aud, certs_url="https://www.gstatic.com/iap/verify/public_key")
+        st.session_state["email"] = decoded_jwt["email"]
       except Exception as e: # This pass probably hits if you don't have an aud, you don't have an X-Goog-IAP-JWT-Assertion header (you aren't behind an IAP), or the decode fails (the header is forged or otherwise invalid).
         st.write(e)
   if st.session_state['email'] == 'None':
