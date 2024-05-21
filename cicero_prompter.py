@@ -479,9 +479,6 @@ def main() -> None:
     elif not model:
       st.warning("***No Model is selected, so I can't send the request! (If you have no ability to select a Model and get this error, please contact the Optimization team.***")
     else:
-      if length_select == "long":
-        st.info("If text length is Long, then, regardless of any \"Number of outputs\" setting above, we only request one output, as it is generally then of higher quality, due to technical limitations. This is intended behavior.")
-        num_outputs = 1
       did_a_query = True
       st.session_state['use_count']+=1 #this is just an optimization for the front-end display of the query count
       use_bio=("Bio" in topics and account in bios)
