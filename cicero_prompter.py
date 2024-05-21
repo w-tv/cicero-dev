@@ -199,7 +199,7 @@ def execute_prompting(model: str, account: str, ask_type: str, topics: list[str]
     for to in tone_sets:
       # Generate every combination between client, ask type, text length, topic, and tone
       # This means that for each topic set and tone set, we're generating every possible combination between those and the client, ask, and length
-      temp_arr = [("client", account, client_weight), ("ask", ask_type, ask_weight), ("text_len", text_len, text_len_weight)]
+      temp_arr: list[tuple[str, str|tuple[str, ...], float]] = [("client", account, client_weight), ("ask", ask_type, ask_weight), ("text_len", text_len, text_len_weight)]
       # But only add the topics and tones if they exist i.e. are not an empty string
       if tp[-1] != 0:
         temp_arr.append(tp)
@@ -225,7 +225,8 @@ def execute_prompting(model: str, account: str, ask_type: str, topics: list[str]
   # This is to prevent duplicate documents/texts from showing up
   results_found = set()
   # reference_texts will be a list of dictionaries containing example user prompts and assistant responses (i.e. the text messages). Also, scores (a number, represented numerically).
-  reference_texts : list[dict[str, str|float]] = []
+  ReferenceTextElement = TypedDict('ReferenceTextElement', {'prompt': str, 'text': str, 'score': float})
+  reference_texts : list[ReferenceTextElement] = []
   # Setup Vector Search Client that we will use in the loop.
   vsc = VectorSearchClient( personal_access_token=st.secrets["databricks_api_token"], workspace_url="https://"+st.secrets['DATABRICKS_SERVER_HOSTNAME'], disable_notice=True )
   text_index = vsc.get_index(endpoint_name="rag_llm_vector", index_name="models.lovelytics.gold_text_outputs_index")
