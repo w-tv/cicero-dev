@@ -29,9 +29,15 @@ def get_base_url() -> str:
     return str(e)
 
 def main() -> None:
-  st.set_page_config(layout="wide", page_title="Cicero", page_icon="favicon.png") # Use wide mode in Cicero, mostly so that results display more of their text by default. Also, set title and favicon. #NOTE: "`set_page_config()` can only be called once per app page, and must be called as the first Streamlit command in your script."
+  st.set_page_config(layout="wide", page_title="Cicero", page_icon=r"assets\CiceroLogo_Favicon.png") # Use wide mode in Cicero, mostly so that results display more of their text by default. Also, set title and favicon. #NOTE: "`set_page_config()` can only be called once per app page, and must be called as the first Streamlit command in your script."
   st.session_state["email"] = str(st.experimental_user["email"]) #this str call also accounts for if the user email is None.
+  st.markdown("""
+  <style>
+    [data-testid="stDecoration"] {
+      display: none;
+    }
 
+  </style>""", unsafe_allow_html=True) #this code removes the red bar at the top but keeps the hamburger menu
   # Google sign-in logic, using IAP. From https://cloud.google.com/iap/docs/signed-headers-howto, with modifications. Will set the email to a new value iff it succeeds.
   if h := _get_websocket_headers():
     if iap_jwt := h.get("X-Goog-Iap-Jwt-Assertion"):
@@ -51,7 +57,7 @@ def main() -> None:
 
   title_and_loading_columns = st.columns(2)
   with title_and_loading_columns[0]:
-    st.markdown('<h1><img src="https://targetedvictory.com/wp-content/uploads/2019/07/favicon.png" alt="💬" style="display:inline-block; height:1em; width:auto;"> CICERO</h1>', unsafe_allow_html=True)
+    st.image(image="assets\CiceroLogo_Frontend_Cropped.png", caption="", width=400, use_column_width=False)
   with title_and_loading_columns[1]:
     loading_message = st.empty()
     loading_message.write("Loading CICERO.  This may take up to a minute...")

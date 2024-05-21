@@ -462,7 +462,7 @@ def main() -> None:
     ask_type = str( st.selectbox("Ask Type", ['Hard Ask', 'Medium Ask', 'Soft Ask', 'Soft Ask Petition', 'Soft Ask Poll', 'Soft Ask Survey'], key="ask_type") ).lower() #STREAMLIT-BUG-WORKAROUND: every time I, eg, wrap selectbox in str I think this is technically working around a bug in streamlit, although it's a typing bug and might be impossible for them to fix: https://github.com/streamlit/streamlit/issues/8717
     topics = st.multiselect("Topics", sorted([t for t, d in topics_big.items() if d["show in prompter?"]]), key="topics" )
     topics = external_topic_names_to_internal_topic_names_list_mapping(topics)
-    lengths_selectable: list[Literal['short', 'medium', 'long']] = ['short', 'medium', 'long']
+    lengths_selectable: list[Literal['short', 'medium', 'long']] = ['short', 'medium', 'long'] #TODO: need to add the approx character counts to how the dropdown is displayed
     length_select = st.selectbox("Length", lengths_selectable, key='lengths', format_func=lambda x: x.capitalize())
     if length_select is None:
       print("length selection was None... that's not supposed to happen...")
