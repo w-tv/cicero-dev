@@ -148,7 +148,7 @@ def execute_prompting(model: str, account: str, ask_type: str, topics: list[str]
   num_examples = 10 # Number of Documents to Use as Examples
   assert_always(num_examples <= doc_pool_size, "You can't ask to provide more examples than there are documents in the pool! Try again with a different value.")
   output_table_name = "models.lovelytics.gold_text_outputs" # Text Output Table Name
-  _ref_tag_name = "models.lovelytics.ref_tags" # Tags Table Name #TODO: possibly use topic_tags = set(x["Tag_Name"] for x in spark.read.table(ref_tag_name).filter(col("Tag_Type") == "Topic").select("Tag_Name").collect()) etc etc logic. Probably this gets address when Wes emails me a second diff.
+  ref_tag_name = "models.lovelytics.ref_tags" # Tags Table Name
   primary_key = "PROJECT_NAME" # Index Table Primary Key Name
 
   topics_str = ", ".join(topics)
@@ -191,7 +191,7 @@ def execute_prompting(model: str, account: str, ask_type: str, topics: list[str]
   # This would match the string a, b and a, c, d, e, f, g, b
   # And would not match the string acdb
   # ^(?=.*\btopic\b)(?=.*\btopic\b).*$ regex for matching
-  topic_sets = [("topics", "(, .*){1,}".join(x), topic_weight * len(x)) for x in powerset(sorted(topics), start=min(1, len(topics)))]
+  topic_sets = [("topics", x, topic_weight * len(x)) for x in powerset(sorted(topics), start=min(1, len(topics)))]
   tone_sets = [("tones", "(, .*){1,}".join(x), tone_weight * len(x)) for x in powerset(sorted(tones), start=min(1, len(tones)))]
   combos_set: set[Any] = set() # This isn't a great type annotation, but who knows what this is supposed to be.
   # Iterate through each pairing of topics and tones
@@ -229,34 +229,69 @@ def execute_prompting(model: str, account: str, ask_type: str, topics: list[str]
   # Setup Vector Search Client that we will use in the loop.
   vsc = VectorSearchClient( personal_access_token=st.secrets["databricks_api_token"], workspace_url="https://"+st.secrets['DATABRICKS_SERVER_HOSTNAME'], disable_notice=True )
   text_index = vsc.get_index(endpoint_name="rag_llm_vector", index_name="models.lovelytics.gold_text_outputs_index")
+  # Get a list of all existing tagged topics
+  topic_tags = set(x["Tag_Name"] for x in sql_call(f"SELECT Tag_Name FROM {ref_tag_name} WHERE Tag_Type = 'Topic'") )
   for c in combos:
-      results = [
-        row[primary_key] for row in text_rows if # Only apply filters if they are present in the current filter combination.
-          (row[primary_key] not in results_found                              )  and
-          ("topics"   not in c    or    re.search(c["topics"], row["Topics"]) )  and
-          ("tones"    not in c    or    re.search(c["tones"], row["Tones"])   )  and
-          ("client"   not in c    or    c["client"] == row["Client_Name"]     )  and
-          ("ask"      not in c    or    c["ask"] == row["Ask_Type"]           )  and
-          ("text_len" not in c    or    c["text_len"] == row["Text_Length"]   )
-      ]
-      # If no results were found, move onto the next filter combination. Otherwise, continue the process of considering these candidate results.
-      if not results:
-        continue
-      results_found.update(results) # add the found primary key values to the results_found set
-      # Perform a similarity search using the target_prompt defined beforehand. Filter for only the results we found earlier in this current iteration.
-      vs_search = text_index.similarity_search(
-        num_results=min(len(results), 10000),
-        columns=["Final_Text"],
-        filters={primary_key: results},
-        query_text=target_prompt
-      )
-      # Then add all results returned by the similarity search to the reference_texts list. But only if their similarity score is greater than the score_threshold parameter.
-      if vs_search["result"]["row_count"] != 0:
-        reference_texts.extend({"prompt": "Please write me a" + x[0].split(":\n\n", 1)[0][1:], "text": x[0].split(":\n\n", 1)[1], "score": x[-1]} for x in vs_search["result"]["data_array"] if x[-1] > score_threshold)
-      # If we've found at least the number of desired documents, exit the loop and take the first doc_pool_size number of texts. The beginning of the reference_texts array will contain the texts that match the most important filters and the highest similarity scores.
-      if len(reference_texts) >= doc_pool_size:
-        reference_texts = reference_texts[:doc_pool_size]
-        break
+    if "topics" not in c: #TODO: Perhaps one could replace all this regex nonsense with several sql CONTAINS statements some day?
+        topic_regex = ""
+        text_regex = ""
+    else:
+        tagged_topics = []
+        new_topics = []
+        for t in c["topics"]:
+            if t in topic_tags:
+                tagged_topics.append(t)
+            else:
+                new_topics.append(t)
+        # Join together the topics that have been tagged using the same pattern the tones were joined together with
+        # For any new topics (i.e. topics that haven't been tagged) join them together using a new pattern
+        # (?is)^(?=.*\bTOPIC_X\b)(?=.*\bTOPIC_Y\b).*$
+        # To breakdown the regex
+        #   (?is)   - Perform case insensitive search and have the . pattern match newlines as well
+        #   ^       - At the start of a string
+        #   (?=)    - Positive lookahead. Which basically means look forward for a match
+        #   .*      - Match any character 0 or more times
+        #   \b      - Word boundary
+        #   TOPIC_X - The word/phrase we're looking for. In this case it's a placeholder example for the actual topics we want and there could be any number of them
+        #   $       - The end of a string
+        # To sum up, the regex above says perform a case insensitive search across multiple lines from start to end of a string looking for the topics specified in the forward lookaheads in any order.
+        # The key benefit of this is that the words/phrases being looked for can come in any order due to how lookaheads function. So TOPIC_X can come before or after TOPIC_Y in the string and the regex will match either way
+        topic_regex = "(, .*){1,}".join(tagged_topics)
+        if len(new_topics) != 0:
+            text_regex = "(?is)^" + "".join(f"(?=.*\\b{x}\\b)" for x in new_topics) + ".*$"
+        else:
+            text_regex = ""
+    if "tones" not in c:
+        tone_regex = ""
+    else:
+        tone_regex = c["tones"]
+    results = [
+      row[primary_key] for row in text_rows if # Only apply filters if they are present in the current filter combination.
+        (row[primary_key] not in results_found                              )  and
+        ("topics"   not in c    or    re.search(text_regex, row["Topics"]) )  and
+        ("tones"    not in c    or    re.search(tone_regex, row["Tones"])   )  and
+        ("client"   not in c    or    c["client"] == row["Client_Name"]     )  and
+        ("ask"      not in c    or    c["ask"] == row["Ask_Type"]           )  and
+        ("text_len" not in c    or    c["text_len"] == row["Text_Length"]   )
+    ]
+    # If no results were found, move onto the next filter combination. Otherwise, continue the process of considering these candidate results.
+    if not results:
+      continue
+    results_found.update(results) # add the found primary key values to the results_found set
+    # Perform a similarity search using the target_prompt defined beforehand. Filter for only the results we found earlier in this current iteration.
+    vs_search = text_index.similarity_search(
+      num_results=min(len(results), 10000),
+      columns=["Final_Text"],
+      filters={primary_key: results},
+      query_text=target_prompt
+    )
+    # Then add all results returned by the similarity search to the reference_texts list. But only if their similarity score is greater than the score_threshold parameter.
+    if vs_search["result"]["row_count"] != 0:
+      reference_texts.extend({"prompt": "Please write me a" + x[0].split(":\n\n", 1)[0][1:], "text": x[0].split(":\n\n", 1)[1], "score": x[-1]} for x in vs_search["result"]["data_array"] if x[-1] > score_threshold)
+    # If we've found at least the number of desired documents, exit the loop and take the first doc_pool_size number of texts. The beginning of the reference_texts array will contain the texts that match the most important filters and the highest similarity scores.
+    if len(reference_texts) >= doc_pool_size:
+      reference_texts = reference_texts[:doc_pool_size]
+      break
 
   ### Query Endpoints ###
 
