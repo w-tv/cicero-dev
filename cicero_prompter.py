@@ -369,8 +369,7 @@ def execute_prompting(model: str, account: str, ask_type: str, topics: list[str]
   # Assemble the LLM chain, which makes it easier to invoke the model and parse its outputs. This uses langchain's own pipe syntax to organize multiple components into a "pipe".
   model_chain = ( prompt | chat_model | StrOutputParser() )
   if text_len != "long":
-    # Randomize the order of the example texts. Unclear if this actually helps
-    # But maybe it prevents the model from learning any ordering pattern we didn't intend for it to learn
+    # Randomize the order of the example texts.
     texts_to_use = random.sample(reference_texts, k=num_exes)
     # We reinsert and separate the found documents into two separate dictionaries
     # This makes it easier to assemble the RAG prompt and pass them as string format variables to langchain
@@ -393,11 +392,13 @@ def execute_prompting(model: str, account: str, ask_type: str, topics: list[str]
         inv_res = model_chain.invoke(combined_dict)
         single_output += f"{i + 1}. " + inv_res + "\n"
   # Maybe do some kind of regex on this later? re.search("(\d+\.)")... something of this nature...
+  st.session_state['human-facing_prompt'] = str(combined_dict) #TODO:show entire prompt to the dev user, will need some extra formatting to make it more legible, maybe put it into a dropdown that the user can expand if he wants to see it?
   question = str(combined_dict["question"]) #the str call here is purely to help the typechecker.
   return question, single_output.split('\n')
 
 def main() -> None:
 
+  st.session_state['human-facing_prompt'] = '' #to clear the prompt between prompts. could definitely be placed in a better spot.
   if not st.session_state.get('email'): #this line is of dubious usefulness. It's supposed to let you run cicero_prompter.py locally and stand-alone without cicero.py, however.
     st.session_state["email"] = str(st.experimental_user["email"]) #this str call also accounts for if the user email is None.
   if 'use_count' not in st.session_state:
@@ -486,9 +487,9 @@ def main() -> None:
       max_tokens = 4096
       promptsent, outputs = execute_prompting(model, account, ask_type, topics, additional_topics, tones, length_select, headline, num_outputs, temperature, use_bio, max_tokens, topic_weight, tone_weight, client_weight, ask_weight, text_len_weight)
       # TODO: output validation: implement some kind of similarity score threshhold, make this catch more edge cases, we'll talk. I'm thinking because that first line tends to be "here are {numoutputs} {ask type} {length} texts about {topics}" we can do like a similarity score of that and set a super high threshold. that way we can catch minute differences, and not have to account for every variation. also i don't think it will be very computationally expensive
-      outputs_validated = [x for x in outputs if not (x.strip() == "" or x.startswith("Here ") or x.startswith("Sure") or x.startswith("OK"))] # These are just my guesses about what the LLM likes to start things with in its insipid commentary.
+      # TODO: add validation for english, you could do some kind of regex (or something) to check if there are any non-english characters
+      outputs_validated = [x for x in outputs if not (x.strip() == "" or x.startswith("Here ") or x.startswith("Sure") or x.startswith("OK"))]
       st.session_state['outputs'] = outputs_validated
-      st.session_state['human-facing_prompt'] = promptsent
       if 'history' not in st.session_state: st.session_state['history'] = []
       st.session_state['history'] += outputs_validated
       st.session_state['character_counts_caption'] = "Character counts: "+str([len(o) for o in outputs_validated])
