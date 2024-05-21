@@ -483,6 +483,7 @@ def main() -> None:
       st.warning("***No Model is selected, so I can't send the request! (If you have no ability to select a Model and get this error, please contact the Optimization team.***")
     else:
       did_a_query = True
+      cicero_rag_only.reset_chat()
       st.session_state['use_count']+=1 #this is just an optimization for the front-end display of the query count
       use_bio=("Bio" in topics and account in bios)
       max_tokens = 4096

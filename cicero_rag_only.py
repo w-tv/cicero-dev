@@ -35,6 +35,10 @@ def grow_chat(streamlit_key_suffix: str = "", alternate_content: str = "", displ
     {"timestamp": datetime.now(z("US/Eastern")), "user_email": st.session_state["email"], "model_name": st.session_state.chat.model, "model_parameters": str(st.session_state.chat.parameters), "system_prompt": st.session_state.chat.system_message, "user_prompt": p, "response_given": st.session_state.chat.last}
   )
 
+def reset_chat() -> None:
+  st.session_state["chat"] = None
+  st.session_state["messages"] = None
+
 # chat.history
 # return: [
 #     {'role': 'system', 'content': 'You are a helpful assistant.'},
