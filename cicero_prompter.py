@@ -229,7 +229,7 @@ def execute_prompting(model: str, account: str, ask_type: str, topics: list[str]
   # Setup Vector Search Client that we will use in the loop.
   vsc = VectorSearchClient( personal_access_token=st.secrets["databricks_api_token"], workspace_url="https://"+st.secrets['DATABRICKS_SERVER_HOSTNAME'], disable_notice=True )
   text_index = vsc.get_index(endpoint_name="rag_llm_vector", index_name="models.lovelytics.gold_text_outputs_index")
-  # Get a list of all existing tagged topics
+  # Get a list of all existing tagged topics #COULD: cache. but probably will refactor instead
   topic_tags = set(x["Tag_Name"] for x in sql_call(f"SELECT Tag_Name FROM {ref_tag_name} WHERE Tag_Type = 'Topic'") )
   for c in combos:
     if "topics" not in c: #TODO: Perhaps one could replace all this regex nonsense with several sql CONTAINS statements some day?
@@ -268,8 +268,9 @@ def execute_prompting(model: str, account: str, ask_type: str, topics: list[str]
     results = [
       row[primary_key] for row in text_rows if # Only apply filters if they are present in the current filter combination.
         (row[primary_key] not in results_found                              )  and
-        ("topics"   not in c    or    re.search(text_regex, row["Topics"]) )  and
+        ("topics"   not in c    or    re.search(topic_regex, row["Topics"]) )  and
         ("tones"    not in c    or    re.search(tone_regex, row["Tones"])   )  and
+        (not text_regex         or re.search(text_regex, row["Final_Text"]) )  and
         ("client"   not in c    or    c["client"] == row["Client_Name"]     )  and
         ("ask"      not in c    or    c["ask"] == row["Ask_Type"]           )  and
         ("text_len" not in c    or    c["text_len"] == row["Text_Length"]   )
