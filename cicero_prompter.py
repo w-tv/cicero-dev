@@ -487,7 +487,9 @@ def main() -> None:
       max_tokens = 4096
       promptsent, outputs = execute_prompting(model, account, ask_type, topics, additional_topics, tones, length_select, headline, num_outputs, temperature, use_bio, max_tokens, topic_weight, tone_weight, client_weight, ask_weight, text_len_weight)
       # TODO: output validation: implement some kind of similarity score threshhold, make this catch more edge cases, we'll talk. I'm thinking because that first line tends to be "here are {numoutputs} {ask type} {length} texts about {topics}" we can do like a similarity score of that and set a super high threshold. that way we can catch minute differences, and not have to account for every variation. also i don't think it will be very computationally expensive
+      # TODO: maybe what we could do is a regex to check the first three characters. if it starts with something like "1. " then strip those characters, and then apply the current existing filters.
       # TODO: add validation for english, you could do some kind of regex (or something) to check if there are any non-english characters
+      # TODO: check for number of newlines, if num_newlines != num_outputs_asked_for-1, apologize for potential formatting mistakes
       outputs_validated = [x for x in outputs if not (x.strip() == "" or x.startswith("Here ") or x.startswith("Sure") or x.startswith("OK"))]
       st.session_state['outputs'] = outputs_validated
       if 'history' not in st.session_state: st.session_state['history'] = []
@@ -496,6 +498,7 @@ def main() -> None:
 
   # The idea is for these output elements to persist after one query button, until overwritten by the results of the next query.
   if 'human-facing_prompt' in st.session_state:
+    # TODO: Sorry I guess I broke this somehow because it comes up outside of dev mode now. Needs fixing.
     st.caption("Developer Mode Message: the prompt passed to the model is:")
     st.caption(st.session_state['human-facing_prompt'].replace("$", r"\$"))
 
