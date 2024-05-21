@@ -150,7 +150,7 @@ def execute_prompting(model: str, account: str, ask_type: str, topics: list[str]
   output_table_name = "models.lovelytics.gold_text_outputs" # Text Output Table Name
   ref_tag_name = "models.lovelytics.ref_tags" # Tags Table Name
   primary_key = "PROJECT_NAME" # Index Table Primary Key Name
-
+  client = account # we never use this variable, but client is considered a synonym for account currently
   topics_str = ", ".join(topics)
   tones_str = ", ".join(tones)
 
@@ -295,31 +295,13 @@ def execute_prompting(model: str, account: str, ask_type: str, topics: list[str]
 
   ### Query Endpoints ###
 
-  # Randomize the order of the example texts. If you pass in the texts in some order, such as short, medium, and long, if you ask for a short, it is more likely to write a short, then medium, then long
-  texts_to_use = random.sample(reference_texts, k=min(num_examples, len(reference_texts)))
-  # We reinsert and separate the found documents into two separate dictionaries. This makes it easier to assemble the RAG prompt and pass them as string format variables to langchain
-  ms_prompts = {}
-  ms_texts = {}
-  for num, content in enumerate(texts_to_use):
-    ms_prompts[f"example_{num + 1}_p"] = content["prompt"]
-    ms_texts[f"example_{num + 1}_t"] = content["text"]
-
   ##### INSERT PROMPT HERE #####
   # Llama-3 Prompt Styling
   # Base beginning structure of the RAG prompt
   rag_prompt = "<|begin_of_text|><|start_header_id|>system<|end_header_id|>\n\n{system_prompt}<|eot_id|>"
 
   # Define the system prompt
-  sys_prompt = """You are an expert copywriter who specializes in writing text messages for conservative candidates in the United States of America. Do not start your message with 'Dear', 'Subject', or 'Hello'. Try to grab the reader's attention in the first line. Do not explicitly use language such as 'Donate now' or '[DONATE]', instead use language like 'Rush', 'Support', or 'Chip in'. Do not make up facts or statistics. Do not use emojis or hashtags in your messages. Do not exactly copy the example text messages. Write the exact number of text messages asked for. Do not write anything other than the text messages."""
-  # Add instructions on how long or short a text should be depending on the text length we want the model to generate
-  # Add specificity of specific ask type of the text message too
-  # Try to make the model understand that the outputs we specifically are asking for should be this length
-  sys_prompt += {
-    "": "",
-    "short": f" Your short {ask_type} text messages should be less than 160 characters in length, use less than 35 words, and have less than 2 sentences.",
-    "medium": f" Your medium-length {ask_type} text messages should be between 160 and 400 characters in length, use between 35 to 70 words, and have between 3 to 5 sentences.",
-    "long": f" Your long {ask_type} text messages should be more than 400 characters in length, use more than 70 words, and have more than 6 sentences."
-  }[text_len]
+  sys_prompt = """You are an expert copywriter who specializes in writing text messages for conservative political candidates in the United States of America. Try to grab the reader's attention in the first line. Do not start your message like an email. Make sure to have an explicit call to action. Do not make up facts or statistics. Do not use emojis or hashtags in your messages. Do not copy previously written text messages in content or structure. Make sure each written text message is unique. Write the exact number of text messages asked for."""
 
   if use_bio and account:
     sys_prompt += f""" Here is important biographical information about the conservative candidate you are writing for: {load_bio(account)}"""
@@ -332,18 +314,40 @@ def execute_prompting(model: str, account: str, ask_type: str, topics: list[str]
   # Then for every example document, we add the corresponding assistant and user lines
   # Triple brackets are used so the actual key name in the ms_prompts and ms_texts dictionaries can be inserted dynamically while also keeping the curly braces in the final string
   # So for example, if k = "apples" f"I like to eat {{{k}}}" would return the string "I like to eat {apples}"
-  for k in ms_prompts.keys():
-    ok = k.rsplit("_", 1)[0] + "_t"
-    rag_prompt += f"<|start_header_id|>user<|end_header_id|>\n\n{{{k}}}<|eot_id|><|start_header_id|>assistant<|end_header_id|>\n\n{{{ok}}}<|eot_id|>"
+  num_exes = min(num_examples, len(reference_texts))
+  multishot_items = {}
+  base_chat_history = []
+  for i in range(num_exes):
+      k = f"example_{i + 1}_p"
+      multishot_items[k] = ""
+      ok = f"example_{i + 1}_t"
+      multishot_items[ok] = ""
+      base_chat_history.append(f"""<|start_header_id|>user<|end_header_id|>{{{k}}}<|eot_id|><|start_header_id|>assistant<|end_header_id|>{{{ok}}}<|eot_id|>""")
+  rag_prompt += "{chat_history}"
 
   # Add in the final component of the RAG prompt where we pass in the prompt/question we want to send to the model
   rag_prompt += "<|start_header_id|>user<|end_header_id|>\n\n{question}<|eot_id|><|start_header_id|>assistant<|end_header_id|>"
   # Combine all of the dictionaries with the string format keys and values for langchain parameter passing usage
-  combined_dict = combined_dict | ms_prompts | ms_texts
+  # combined_dict = combined_dict | ms_prompts | ms_texts
+  combined_dict["chat_history"] = ""
 
   # Create the question prompt and add it to the combined_dict dictionary
-  combined_dict["question"] = f"Please write me {num2words(num_outputs)} {text_len} {ask_type} text message(s) from {account}" + bool(topics)*f" about {topics_str}" + bool(tones)*f" written with an emphasis on {tones_str}."
+  question_prompt = f"Please write me {num2words(num_outputs)} {text_len} {ask_type} text messages for {account}" if text_len != "long" else f"Please write me a {text_len} {ask_type} text message for {account}"
+  # Add instructions on how long or short a text should be depending on the text length we want the model to generate
+  # Add specificity of specific ask type of the text message too
+  # Try to make the model understand that the outputs we specifically are asking for should be this length
+  question_prompt += {
+    "": "",
+    "short": " that each use at most 160 characters",
+    "medium": " that each use between 160 and 400 characters",
+    "long": " that uses at least 400 characters"
+  }[text_len]
+  if topics:
+    question_prompt += f" about {topics}"
+  if tones:
+    question_prompt += f" written with an emphasis on {tones}"
 
+  combined_dict["question"] = question_prompt
   ##### END PROMPT INSERTION #####
   # print(rag_prompt)
 
@@ -354,6 +358,8 @@ def execute_prompting(model: str, account: str, ask_type: str, topics: list[str]
     template=rag_prompt
   )
 
+  # Note: The Llama-3 model has a limit of 8192 tokens for its input and output combined. e.g. if our input is 8000 tokens, then we can only have 192 tokens for the output. However, we don't handle that eventuality. The code I'm porting just gives basically an error message, which will already happen.
+
   # see note about environ in rag_only
   environ['DATABRICKS_HOST'] = "https://"+st.secrets['DATABRICKS_SERVER_HOSTNAME']
   environ['DATABRICKS_TOKEN'] = st.secrets["databricks_api_token"]
@@ -361,7 +367,30 @@ def execute_prompting(model: str, account: str, ask_type: str, topics: list[str]
 
   # Assemble the LLM chain, which makes it easier to invoke the model and parse its outputs. This uses langchain's own pipe syntax to organize multiple components into a "pipe".
   model_chain = ( prompt | chat_model | StrOutputParser() )
-  single_output = model_chain.invoke(combined_dict)
+  if text_len != "long":
+    # Randomize the order of the example texts. Unclear if this actually helps
+    # But maybe it prevents the model from learning any ordering pattern we didn't intend for it to learn
+    texts_to_use = random.sample(reference_texts, k=num_exes)
+    # We reinsert and separate the found documents into two separate dictionaries
+    # This makes it easier to assemble the RAG prompt and pass them as string format variables to langchain
+    for num, content in enumerate(texts_to_use):
+        multishot_items[f"example_{num + 1}_p"] = content["prompt"]
+        multishot_items[f"example_{num + 1}_t"] = content["text"]
+    combined_dict["chat_history"] = "".join(base_chat_history).format(**multishot_items)
+    filled_in_prompt = (prompt.format(**combined_dict))
+    print(filled_in_prompt)
+    single_output = model_chain.invoke(combined_dict)
+  else:
+      single_output = ""
+      for i in range(num_outputs):
+        texts_to_use = random.sample(reference_texts, k=num_exes)
+        for num, content in enumerate(texts_to_use):
+            multishot_items[f"example_{num + 1}_p"] = content["prompt"]
+            multishot_items[f"example_{num + 1}_t"] = content["text"]
+        combined_dict["chat_history"] = "".join(base_chat_history).format(**multishot_items)
+        filled_in_prompt = (prompt.format(**combined_dict))
+        inv_res = model_chain.invoke(combined_dict)
+        single_output += f"{i + 1}. " + inv_res + "\n"
   # Maybe do some kind of regex on this later? re.search("(\d+\.)")... something of this nature...
   question = str(combined_dict["question"]) #the str call here is purely to help the typechecker.
   return question, single_output.split('\n')
