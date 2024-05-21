@@ -393,7 +393,7 @@ def execute_prompting(model: str, account: str, ask_type: str, topics: list[str]
         inv_res = model_chain.invoke(combined_dict)
         single_output += f"{i + 1}. " + inv_res + "\n"
   # Maybe do some kind of regex on this later? re.search("(\d+\.)")... something of this nature...
-  st.session_state['human-facing_prompt'] = str(combined_dict) #TODO:show entire prompt to the dev user, will need some extra formatting to make it more legible, maybe put it into a dropdown that the user can expand if he wants to see it?
+  st.session_state['human-facing_prompt'] = str(combined_dict) #TODO:show entire prompt to the dev user (already done now?), will need some extra formatting to make it more legible, maybe put it into a dropdown that the user can expand if he wants to see it? #TODO: this flow-control is bad. Easy fix.
   question = str(combined_dict["question"]) #the str call here is purely to help the typechecker.
   return question, single_output.split('\n')
 
@@ -498,10 +498,10 @@ def main() -> None:
       st.session_state['character_counts_caption'] = "Character counts: "+str([len(o) for o in outputs_validated])
 
   # The idea is for these output elements to persist after one query button, until overwritten by the results of the next query.
-  if 'human-facing_prompt' in st.session_state:
-    # TODO: Sorry I guess I broke this somehow because it comes up outside of dev mode now. Needs fixing.
-    st.caption("Developer Mode Message: the prompt passed to the model is:")
-    st.caption(st.session_state['human-facing_prompt'].replace("$", r"\$"))
+
+  if 'human-facing_prompt' in st.session_state and st.session_state.get("developer_mode"):
+    with st.expander("Developer Mode Message: the prompt passed to the model"):
+      st.caption(st.session_state['human-facing_prompt'].replace("$", r"\$"))
 
   st.error("WARNING! Outputs have not been fact checked. CICERO is not responsible for inaccuracies in deployed copy. Please check all *names*, *places*, *counts*, *times*, *events*, and *titles* (esp. military titles) for accuracy.  \nAll numbers included in outputs are suggestions only and should be updated. They are NOT analytically optimized to increase conversions (yet) and are based solely on frequency in past copy.", icon="⚠️")
   if 'outputs' in st.session_state:
