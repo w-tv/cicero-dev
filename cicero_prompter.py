@@ -307,12 +307,10 @@ def execute_prompting(model: str, account: str, ask_type: str, topics: list[str]
   rag_prompt = "<|begin_of_text|><|start_header_id|>system<|end_header_id|>\n\n{system_prompt}<|eot_id|>"
 
   # Define the system prompt
-  sys_prompt = """You are an expert copywriter who specializes in writing text messages for conservative political candidates in the United States of America. Try to grab the reader's attention in the first line. Do not start your message like an email. Make sure to have an explicit call to action. Do not make up facts or statistics. Do not use emojis or hashtags in your messages. Do not copy previously written text messages in content or structure. Make sure each written text message is unique. Write the exact number of text messages asked for."""
+  sys_prompt = """You are an expert copywriter who specializes in writing text messages for conservative political candidates in the United States of America. Make sure all texts are in English. Try to grab the reader's attention in the first line. Do not start your message like an email. Make sure to have an explicit call to action. Do not make up facts or statistics. Do not use emojis or hashtags in your messages. Do not copy previously written text messages in content or structure. Make sure each written text message is unique. Write the exact number of text messages asked for."""
 
   if use_bio and account:
     sys_prompt += f""" Here is important biographical information about the conservative candidate you are writing for: {load_bio(account)}"""
-  if headline:
-    sys_prompt += f""" Here is/are news headline(s) you should reference in your text messages: {headline}"""
 
   combined_dict: dict[str, str|float] = {}  # combined_dict stores all of the string format variables used in the prompt and their values
   combined_dict["system_prompt"] = sys_prompt
@@ -352,6 +350,8 @@ def execute_prompting(model: str, account: str, ask_type: str, topics: list[str]
     question_prompt += f" about {topics}"
   if tones:
     question_prompt += f" written with an emphasis on {tones}"
+  if headline:
+    sys_prompt += f""" Here is/are news headline(s) you should reference in your text messages: {headline}"""
 
   combined_dict["question"] = question_prompt
   ##### END PROMPT INSERTION #####
@@ -364,7 +364,7 @@ def execute_prompting(model: str, account: str, ask_type: str, topics: list[str]
     template=rag_prompt
   )
 
-  # Note: The Llama-3 model has a limit of 8192 tokens for its input and output combined. e.g. if our input is 8000 tokens, then we can only have 192 tokens for the output. However, we don't handle that eventuality. The code I'm porting just gives basically an error message, which will already happen.
+  # Note: The Llama-3 model has a limit of 8192 tokens for its input and output combined. e.g. if our input is 8000 tokens, then we can only have 192 tokens for the output. However, we don't handle that eventuality; the code I'm porting just gives basically an error message, which will already happen.
 
   # Keep in mind that unless DATABRICKS_HOST and DATABRICKS_TOKEN are in the environment (streamlit does this with secret value by default), then the following line of code will fail with an extremely cryptic error asking you to run this program with a `setup` command line argument (which won't do anything)
   chat_model = ChatDatabricks(endpoint=model, max_tokens=max_tokens, temperature=model_temperature)
