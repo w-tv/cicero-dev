@@ -18,6 +18,8 @@ from functools import reduce
 from langchain.prompts import PromptTemplate
 from langchain_community.chat_models.databricks import ChatDatabricks
 from langchain.schema.output_parser import StrOutputParser
+from langchain_community.vectorstores import Chroma
+from langchain_community.embeddings import DatabricksEmbeddings
 
 import re
 import random
@@ -211,7 +213,7 @@ def execute_prompting(model: str, account: str, ask_type: str, topics: list[str]
   # Get a list of all existing tagged topics #COULD: cache. but probably will refactor instead
   topic_tags = set(x["Tag_Name"] for x in sql_call(f"SELECT Tag_Name FROM {ref_tag_name} WHERE Tag_Type = 'Topic'") )
   for c in combos:
-    if "topics" not in c: #TODO: Perhaps one could replace all this regex nonsense with several sql CONTAINS statements some day?
+    if "topics" not in c: #TODO: Perhaps one could replace all this regex with several sql CONTAINS statements some day?
         topic_regex = ""
         text_regex = ""
     else:
@@ -318,8 +320,8 @@ def execute_prompting(model: str, account: str, ask_type: str, topics: list[str]
   # Try to make the model understand that the outputs we specifically are asking for should be this length
   question_prompt += {
     "": "",
-    "short": " that each use at most 160 characters",
-    "medium": " that each use between 160 and 400 characters",
+    "short": " that each use about 175 characters",
+    "medium": " that each use about 300 characters",
     "long": " that uses at least 400 characters"
   }[text_len]
   if topics:
@@ -443,15 +445,15 @@ def main() -> None:
     topics = st.multiselect("Topics", sorted([t for t, d in topics_big.items() if d["show in prompter?"]]), key="topics" )
     topics = external_topic_names_to_internal_topic_names_list_mapping(topics)
     lengths_selectable: list[Literal['short', 'medium', 'long']] = ['short', 'medium', 'long'] #TODO: need to add the approx character counts to how the dropdown is displayed
-    length_select = st.selectbox("Length", lengths_selectable, key='lengths', format_func=lambda x: x.capitalize())
+    length_select = st.selectbox("Length", lengths_selectable, key='lengths', format_func=lambda x: f"{x.capitalize()} {('(<160 characters)' if x == 'short' else '(161-399 characters)' if x == 'medium' else '(400+ characters)')}")
     if length_select is None:
       print("length selection was None... that's not supposed to happen...")
       exit_error(69)
     additional_topics = [x.strip().lower() for x in st.text_input("Additional Topics (examples: Biden, survey, deadline)", key="additional_topics" ).split(",") if x.strip()] # The list comprehension is to filter out empty strings on split, because otherwise this fails to make a truly empty list in the default case, instead having a list with an empty string in, because split changes its behavior when you give it arguments. Anyway, this also filters out trailing comma edge-cases and such.
     tones = list_lower( st.multiselect("Tones", ['Agency', 'Apologetic', 'Candid', 'Exclusivity', 'Fiesty', 'Grateful', 'Not Asking For Money', 'Pleading', 'Quick Request', 'Secretive', 'Time Sensitive', 'Urgency'], key="tone") ) #TODO: , 'Swear Jar' will probably be in here some day, but we don't have "we need more swear jar data to make this tone better"
-    num_outputs : int = st.slider("Number of outputs", min_value=1, max_value=10, key="num_outputs")
+    num_outputs: int = st.selectbox("\# Outputs", [1,3,5,10], key='num_outputs')
     temperature: float = st.slider("Output Variance:", min_value=0.0, max_value=1.0, key="temperature") if st.session_state["developer_mode"] else 0.7
-    generate_button = st.form_submit_button("Submit")
+    generate_button = st.form_submit_button("Submit", type="primary")
 
   #Composition and sending a request:
   did_a_query = False
@@ -489,7 +491,7 @@ def main() -> None:
         st.write( output.replace("$", r"\$") ) #this prevents us from entering math mode when we ask about money.
       if st.session_state.get("developer_mode"):
         with col2:
-          if st.button("🖋️", key="🖋️"+str(key_collision_preventer), help="Send down to Cicero"):
+          if st.button("⚡", key="⚡"+str(key_collision_preventer), help="Edit with Cicero"):
             default_reply = "Here is a conservative fundraising text: [" + output + "] Analyze the quality of the text based off of these five fundraising elements: the Hook, Urgency, Agency, Stakes, and the Call to Action (CTA). Do not assign scores to the elements. It's possible one or more of these elements is missing from the text provided. If so, please point that out. Then, directly ask the user what assistance they need with the text. Additionally, mention that you can also help edit the text to be shorter or longer, and convert the text into an email."
             st.session_state['cicero_ai']=default_reply
             st.session_state['display_only_this_at_first_blush'] = "«"+output+"»"
