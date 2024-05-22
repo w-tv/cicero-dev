@@ -276,7 +276,7 @@ def execute_prompting(model: str, account: str, ask_type: str, topics: list[str]
       #maybe this is a model?
       #vsc = VectorSearchClient( personal_access_token=st.secrets["DATABRICKS_TOKEN"], workspace_url=st.secrets['DATABRICKS_HOST'], disable_notice=True )
       #text_index = vsc.get_index(endpoint_name="rag_llm_vector", index_name="models.lovelytics.gold_text_outputs_index")
-      embeddings = DatabricksEmbeddings(target_uri="databricks", endpoint="serving-endpoints/gte_small_embeddings/invocations") #TODO: probably bad to do this each time. Maybe it's fine though. This is only a backup, anyway.
+      embeddings = DatabricksEmbeddings(target_uri="databricks", endpoint="/serving-endpoints/gte_small_embeddings/invocations") #TODO: probably bad to do this each time. Maybe it's fine though. This is only a backup, anyway.
       chroma_vs = Chroma("example_texts", embeddings)
       added_ids = chroma_vs.add_texts(texts=[y for _, y in results])
       sim_search = [ (x[0].page_content, x[1]) for x in chroma_vs.similarity_search_with_relevance_scores(query=target_prompt, k=min(len(results), 10000), score_threshold=score_threshold) ]
