@@ -492,7 +492,8 @@ def main() -> None:
       use_bio=("Bio" in topics and account in bios)
       max_tokens = 4096
       promptsent, st.session_state['outputs'], st.session_state['entire_prompt'] = execute_prompting(model, account, ask_type, topics, additional_topics, tones, length_select, headline, num_outputs, temperature, use_bio, max_tokens, topic_weight, tone_weight, client_weight, ask_weight, text_len_weight)
-      # TODO: check for number of newlines, if num_newlines != num_outputs_asked_for-1, apologize for potential formatting mistakes
+      if len(st.session_state['outputs']) != num_outputs:
+        st.info("Number of outputs may be wrong.")
       if 'history' not in st.session_state:
         st.session_state['history'] = []
       st.session_state['history'] += st.session_state['outputs']
