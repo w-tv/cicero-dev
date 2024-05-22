@@ -320,7 +320,7 @@ def execute_prompting(model: str, account: str, ask_type: str, topics: list[str]
   # Try to make the model understand that the outputs we specifically are asking for should be this length
   question_prompt += {
     "": "",
-    "short": " that each use about 175 characters",
+    "short": " that each use about 200 characters",
     "medium": " that each use about 300 characters",
     "long": " that uses at least 400 characters"
   }[text_len]
