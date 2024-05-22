@@ -42,6 +42,8 @@ If you have any questions about streamlit, checkout its [documentation](https://
 
 On an architectural note, we probably should not have used streamlit. It's a fine library, but it just abstracts over, and therefore repackages, html. This means using streamlit does not reduce the final complexity of our project. It also means that as we desire features that would be somewhat trivial in html+js, we have to wait for streamlit to provide those features to us (sometimes you can embed html+js into the streamlit page, but sometimes something about how streamlit works breaks this). The streamlit ImGui flow is also not trivial to reason about, which means that, to some extent, you have to "learn streamlit", much as you might "learn html". In the famous words of somebody or other, "Any problem can be solved with another layer of indirection. Except of course for the problem of too many layers of indirection."
 
+For compatibility reasons, NEVER use \ as a file path delimiter (example: "assets\CiceroChat_800x800.jpg"); ALWAYS use / (example: "assets/CiceroChat_800x800.jpg"). Forward slash ( / ) is supported on more systems, and backslash ( \ ) is also the string escape character in Python, which means if you use it your file paths might get messed up.
+
 And remember: the first thing to do is get the best of both worlds. You can!
 
 ―

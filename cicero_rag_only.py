@@ -22,7 +22,7 @@ def grow_chat(streamlit_key_suffix: str = "", alternate_content: str = "", displ
   p: str = alternate_content or st.session_state["user_input_for_chatbot_this_frame"+streamlit_key_suffix]
   st.session_state.chat.reply(p)
   st.session_state.messages.append({"role": "user", "content": display_only_this_at_first_blush or p})
-  st.session_state.messages.append({"avatar": "assets\CiceroChat_800x800.jpg", "role": "assistant", "content": st.session_state.chat.last})
+  st.session_state.messages.append({"avatar": "assets/CiceroChat_800x800.jpg", "role": "assistant", "content": st.session_state.chat.last})
   # Write to the chatbot activity log:
   # (There's no model_uri field because I don't know how to access that from here.)
   # (Note that this table uses a real timestamp object instead of a mere string datetime. You can `SET TIME ZONE "US/Eastern";` in sql to read the timestamps in some non-UTC timezone. (UTC being the default) (Specifically this gets them in US Eastern time.))
