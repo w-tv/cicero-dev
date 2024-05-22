@@ -16,7 +16,7 @@ from num2words import num2words
 from itertools import combinations
 from functools import reduce
 from langchain.prompts import PromptTemplate
-from langchain_community.chat_models import ChatDatabricks
+from langchain_community.chat_models.databricks import ChatDatabricks
 from langchain.schema.output_parser import StrOutputParser
 
 import re
