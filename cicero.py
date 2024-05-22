@@ -73,7 +73,6 @@ def main() -> None:
         Streamlit version: {st.__version__}<br>
         Base url: {get_base_url()}
       """, unsafe_allow_html=True)
-      st.write("aud", st.secrets.get("aud"))
       st.caption("Web headers:")
       st.write(h := _get_websocket_headers())
       if h:
