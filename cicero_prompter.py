@@ -395,7 +395,12 @@ def execute_prompting(model: str, account: str, ask_type: str, topics: list[str]
   # Maybe do some kind of regex on this later? re.search("(\d+\.)")... something of this nature...
   st.session_state['human-facing_prompt'] = str(combined_dict) #TODO:show entire prompt to the dev user (already done now?), will need some extra formatting to make it more legible, maybe put it into a dropdown that the user can expand if he wants to see it? #TODO: this flow-control is bad. Easy fix.
   question = str(combined_dict["question"]) #the str call here is purely to help the typechecker.
-  return question, single_output.split('\n')
+  # Output "validation" and compliance"
+  # TODO: add validation for english, you could do some kind of regex (or something) to check if there are any non-english characters
+  outputs = single_output.split('\n')
+  outputs_denumbered = [re.sub(r"^\s*\d*.\s", "", o) for o in outputs]
+  outputs_validated = [x for x in outputs_denumbered if not (x.strip() == "" or x.startswith("Here ") or x.startswith("Sure") or x.startswith("OK"))]
+  return question, outputs_validated
 
 def main() -> None:
 
@@ -488,15 +493,12 @@ def main() -> None:
       use_bio=("Bio" in topics and account in bios)
       max_tokens = 4096
       promptsent, outputs = execute_prompting(model, account, ask_type, topics, additional_topics, tones, length_select, headline, num_outputs, temperature, use_bio, max_tokens, topic_weight, tone_weight, client_weight, ask_weight, text_len_weight)
-      # TODO: output validation: implement some kind of similarity score threshhold, make this catch more edge cases, we'll talk. I'm thinking because that first line tends to be "here are {numoutputs} {ask type} {length} texts about {topics}" we can do like a similarity score of that and set a super high threshold. that way we can catch minute differences, and not have to account for every variation. also i don't think it will be very computationally expensive
-      # TODO: maybe what we could do is a regex to check the first three characters. if it starts with something like "1. " then strip those characters, and then apply the current existing filters.
-      # TODO: add validation for english, you could do some kind of regex (or something) to check if there are any non-english characters
       # TODO: check for number of newlines, if num_newlines != num_outputs_asked_for-1, apologize for potential formatting mistakes
-      outputs_validated = [x for x in outputs if not (x.strip() == "" or x.startswith("Here ") or x.startswith("Sure") or x.startswith("OK"))]
-      st.session_state['outputs'] = outputs_validated
-      if 'history' not in st.session_state: st.session_state['history'] = []
-      st.session_state['history'] += outputs_validated
-      st.session_state['character_counts_caption'] = "Character counts: "+str([len(o) for o in outputs_validated])
+      st.session_state['outputs'] = outputs
+      if 'history' not in st.session_state:
+        st.session_state['history'] = []
+      st.session_state['history'] += outputs
+      st.session_state['character_counts_caption'] = "Character counts: "+str([len(o) for o in outputs])
 
   # The idea is for these output elements to persist after one query button, until overwritten by the results of the next query.
 
@@ -544,7 +546,7 @@ def main() -> None:
   # Activity logging takes a bit, so I've put it last to preserve immediate-feeling performance and responses for the user making a query.
   if did_a_query:
     # promptsent is only illustrative. But maybe that's enough. Maybe we should be using a different prompt?
-    write_to_activity_log_table( datetime=str(datetime.now(z("US/Eastern"))), useremail=st.session_state['email'], promptsent=promptsent, responsegiven=json.dumps(outputs_validated), modelparams=str({"max_tokens": max_tokens, "temperature": temperature}), modelname=model_name, modelurl=model )
+    write_to_activity_log_table( datetime=str(datetime.now(z("US/Eastern"))), useremail=st.session_state['email'], promptsent=promptsent, responsegiven=json.dumps(outputs), modelparams=str({"max_tokens": max_tokens, "temperature": temperature}), modelname=model_name, modelurl=model )
 
   # st.components.v1.html('<!--<script>//you can include arbitrary html and javascript this way</script>-->') #or, use st.markdown, if you want arbitrary html but javascript isn't needed.
 
