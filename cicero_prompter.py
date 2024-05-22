@@ -279,7 +279,7 @@ def execute_prompting(model: str, account: str, ask_type: str, topics: list[str]
       embeddings = DatabricksEmbeddings(target_uri="databricks", endpoint="gte_small_embeddings") #TODO: probably bad to do this each time. Maybe it's fine though. This is only a backup, anyway.
       chroma_vs = Chroma("example_texts", embeddings)
       added_ids = chroma_vs.add_texts(texts=[y for _, y in results])
-      sim_search = [ (x[0].page_content, x[1]) for x in chroma_vs.similarity_search_with_relevance_scores(query=target_prompt, k=min(len(results), 10000), score_threshold=score_threshold) ]
+      sim_search = [ (x[0].page_content, x[1]) for x in chroma_vs.similarity_search_with_relevance_scores(query=target_prompt, k=min(len(results), 100), score_threshold=score_threshold) ]
       reference_texts.extend({"prompt": "Please write me a" + x.split(":\n\n", 1)[0][1:], "text": x.split(":\n\n", 1)[1], "score": y} for x, y in sim_search)
       # We delete the texts we were looking at for one reason
       # The ChromaDB vector search client/collection is being instantiated and saved in memory. Unlike the Databricks vector search which is searching through
