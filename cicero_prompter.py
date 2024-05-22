@@ -272,7 +272,7 @@ def execute_prompting(model: str, account: str, ask_type: str, topics: list[str]
       if vs_search["result"]["row_count"] != 0:
         reference_texts.extend({"prompt": "Please write me a" + x[0].split(":\n\n", 1)[0][1:], "text": x[0].split(":\n\n", 1)[1], "score": x[-1]} for x in vs_search["result"]["data_array"] if x[-1] > score_threshold)
     except:
-      embeddings = DatabricksEmbeddings(target_uri="databricks", endpoint="databricks-bge-large-en") #TODO: probably bad to do this each time. Maybe it's fine though. This is only a backup, anyway.
+      embeddings = DatabricksEmbeddings(target_uri="https://c996c2e15417489d87ab0db3f1cc6fc0.serving.cloud.databricks.com/8188181812650195/serving-endpoints/gte_small_embeddings/invocations", endpoint="gte_small_embeddings") #TODO: probably bad to do this each time. Maybe it's fine though. This is only a backup, anyway.
       chroma_vs = Chroma("example_texts", embeddings)
       added_ids = chroma_vs.add_texts(texts=[y for _, y in results])
       sim_search = [ (x[0].page_content, x[1]) for x in chroma_vs.similarity_search_with_relevance_scores(query=target_prompt, k=min(len(results), 10000), score_threshold=score_threshold) ]
