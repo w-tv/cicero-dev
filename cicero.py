@@ -28,8 +28,7 @@ def main() -> None:
   if h := _get_websocket_headers():
     if iap_jwt := h.get("X-Goog-Iap-Jwt-Assertion"):
       try:
-        aud = "/projects/513922616175/global/backendServices/7187241006853512289" # should this be in st.secrets["aud"] ?
-        decoded_jwt = id_token.verify_token(iap_jwt, requests.Request(), audience=aud, certs_url="https://www.gstatic.com/iap/verify/public_key")
+        decoded_jwt = id_token.verify_token(iap_jwt, requests.Request(), audience=st.secrets["aud"], certs_url="https://www.gstatic.com/iap/verify/public_key")
         st.session_state["email"] = decoded_jwt["email"].split(":")[1]
       except Exception as e: # This pass probably hits if you don't have an aud, you don't have an X-Goog-IAP-JWT-Assertion header (you aren't behind an IAP), or the decode fails (the header is forged or otherwise invalid).
         st.write(e)
