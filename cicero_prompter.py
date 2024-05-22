@@ -408,8 +408,9 @@ def main() -> None:
   # Because parts of it update when other parts of it are changed, this news dialogue can't go within the st.form (which precludes that on purpose, as a feature to improve performance)
   #Restyle the news headline heading to Helvetica Neue. (nb: I think it's crazy to want to change from streamlit default sans-serif font to helvetica, because every font of that general style looks pretty much identical; but the boss gets what the boss wants, within possibility.)
   #st.markdown(""" <style> .size8 {color: yellow; font-family: Times} </style> """, unsafe_allow_html=True) # This line shows we could do it by size instead, if we wanted.
-  st.markdown(""" <style> @import url('https://fonts.cdnfonts.com/css/helvetica-neue-55'); .textsf {font-family: Helvetica Neue !important}  </style> """, unsafe_allow_html=True) # Thanks to this random for hosting this font for us, I guess! https://www.cdnfonts.com/helvetica-neue-55.font
-  with st.expander(r"$\textsf{\Large NEWS HEADLINES}$"):
+  st.markdown(""" <style> @import url('https://fonts.cdnfonts.com/css/helvetica-neue-55'); .textsf {font-family: Helvetica Neue !important; font-size: 18px !important;}  </style> """, unsafe_allow_html=True) # Thanks to this random for hosting this font for us, I guess! https://www.cdnfonts.com/helvetica-neue-55.font
+  # TODO: make the label in this expander match, or just more closely match, the size of the "History of Replies"
+  with st.expander(r"$\textsf{\Large NEWS HEADLINES}$"): # I tried to remove the LaTeX, but then the font size wouldn't change without it
     exact_match_query = st.text_input("Headline Search  \n*Returns headlines containing the search terms. Hit Enter to filter the headlines.*", key="exact_match_query")
     overdrive: bool = st.checkbox("Only search headlines from the last 3 days.", key="overdrive")
     h: list[str] = load_headlines(get_all=False) if not overdrive else load_headlines(get_all=False, past_days=3)
