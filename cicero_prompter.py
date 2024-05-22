@@ -392,15 +392,14 @@ def execute_prompting(model: str, account: str, ask_type: str, topics: list[str]
         filled_in_prompt = (prompt.format(**combined_dict))
         inv_res = model_chain.invoke(combined_dict)
         single_output += f"{i + 1}. " + inv_res + "\n"
-  # Maybe do some kind of regex on this later? re.search("(\d+\.)")... something of this nature...
-  st.session_state['human-facing_prompt'] = str(combined_dict) #TODO:show entire prompt to the dev user (already done now?), will need some extra formatting to make it more legible, maybe put it into a dropdown that the user can expand if he wants to see it? #TODO: this flow-control is bad. Easy fix.
+  entire_prompt = str(combined_dict)
   question = str(combined_dict["question"]) #the str call here is purely to help the typechecker.
   # Output "validation" and compliance"
   # TODO: add validation for english, you could do some kind of regex (or something) to check if there are any non-english characters
   outputs = single_output.split('\n')
   outputs_denumbered = [re.sub(r"^\s*\d*.\s", "", o) for o in outputs]
   outputs_validated = [x for x in outputs_denumbered if not (x.strip() == "" or x.startswith("Here ") or x.startswith("Sure") or x.startswith("OK"))]
-  return question, outputs_validated
+  return question, outputs_validated, entire_prompt
 
 def main() -> None:
 
@@ -492,19 +491,18 @@ def main() -> None:
       st.session_state['use_count']+=1 #this is just an optimization for the front-end display of the query count
       use_bio=("Bio" in topics and account in bios)
       max_tokens = 4096
-      promptsent, outputs = execute_prompting(model, account, ask_type, topics, additional_topics, tones, length_select, headline, num_outputs, temperature, use_bio, max_tokens, topic_weight, tone_weight, client_weight, ask_weight, text_len_weight)
+      promptsent, st.session_state['outputs'], st.session_state['entire_prompt'] = execute_prompting(model, account, ask_type, topics, additional_topics, tones, length_select, headline, num_outputs, temperature, use_bio, max_tokens, topic_weight, tone_weight, client_weight, ask_weight, text_len_weight)
       # TODO: check for number of newlines, if num_newlines != num_outputs_asked_for-1, apologize for potential formatting mistakes
-      st.session_state['outputs'] = outputs
       if 'history' not in st.session_state:
         st.session_state['history'] = []
-      st.session_state['history'] += outputs
-      st.session_state['character_counts_caption'] = "Character counts: "+str([len(o) for o in outputs])
+      st.session_state['history'] += st.session_state['outputs']
+      st.session_state['character_counts_caption'] = "Character counts: "+str([len(o) for o in st.session_state['outputs']])
 
   # The idea is for these output elements to persist after one query button, until overwritten by the results of the next query.
 
-  if 'human-facing_prompt' in st.session_state and st.session_state.get("developer_mode"):
+  if 'entire_prompt' in st.session_state and st.session_state.get("developer_mode"):
     with st.expander("Developer Mode Message: the prompt passed to the model"):
-      st.caption(st.session_state['human-facing_prompt'].replace("$", r"\$"))
+      st.caption(st.session_state['entire_prompt'].replace("$", r"\$"))
 
   st.error("WARNING! Outputs have not been fact checked. CICERO is not responsible for inaccuracies in deployed copy. Please check all *names*, *places*, *counts*, *times*, *events*, and *titles* (esp. military titles) for accuracy.  \nAll numbers included in outputs are suggestions only and should be updated. They are NOT analytically optimized to increase conversions (yet) and are based solely on frequency in past copy.", icon="⚠️")
   if 'outputs' in st.session_state:
@@ -546,7 +544,7 @@ def main() -> None:
   # Activity logging takes a bit, so I've put it last to preserve immediate-feeling performance and responses for the user making a query.
   if did_a_query:
     # promptsent is only illustrative. But maybe that's enough. Maybe we should be using a different prompt?
-    write_to_activity_log_table( datetime=str(datetime.now(z("US/Eastern"))), useremail=st.session_state['email'], promptsent=promptsent, responsegiven=json.dumps(outputs), modelparams=str({"max_tokens": max_tokens, "temperature": temperature}), modelname=model_name, modelurl=model )
+    write_to_activity_log_table( datetime=str(datetime.now(z("US/Eastern"))), useremail=st.session_state['email'], promptsent=promptsent, responsegiven=json.dumps(st.session_state['outputs']), modelparams=str({"max_tokens": max_tokens, "temperature": temperature}), modelname=model_name, modelurl=model )
 
   # st.components.v1.html('<!--<script>//you can include arbitrary html and javascript this way</script>-->') #or, use st.markdown, if you want arbitrary html but javascript isn't needed.
 
