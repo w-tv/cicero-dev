@@ -357,7 +357,7 @@ def execute_prompting(model: str, account: str, ask_type: str, topics: list[str]
         multishot_items[f"example_{num + 1}_t"] = content["text"]
     combined_dict["chat_history"] = "".join(base_chat_history).format(**multishot_items)
     filled_in_prompt = (prompt.format(**combined_dict))
-    print(filled_in_prompt)
+    # print(filled_in_prompt)
     single_output = model_chain.invoke(combined_dict)
   else:
       single_output = ""
@@ -444,7 +444,7 @@ def main() -> None:
     ask_type = str( st.selectbox("Ask Type", ['Hard Ask', 'Medium Ask', 'Soft Ask', 'Soft Ask Petition', 'Soft Ask Poll', 'Soft Ask Survey'], key="ask_type") ).lower() #STREAMLIT-BUG-WORKAROUND: every time I, eg, wrap selectbox in str I think this is technically working around a bug in streamlit, although it's a typing bug and might be impossible for them to fix: https://github.com/streamlit/streamlit/issues/8717
     topics = st.multiselect("Topics", sorted([t for t, d in topics_big.items() if d["show in prompter?"]]), key="topics" )
     topics = external_topic_names_to_internal_topic_names_list_mapping(topics)
-    lengths_selectable: list[Literal['short', 'medium', 'long']] = ['short', 'medium', 'long'] #TODO: need to add the approx character counts to how the dropdown is displayed
+    lengths_selectable: list[Literal['short', 'medium', 'long']] = ['short', 'medium', 'long']
     length_select = st.selectbox("Length", lengths_selectable, key='lengths', format_func=lambda x: f"{x.capitalize()} {('(<160 characters)' if x == 'short' else '(161-399 characters)' if x == 'medium' else '(400+ characters)')}")
     if length_select is None:
       print("length selection was None... that's not supposed to happen...")
@@ -470,7 +470,7 @@ def main() -> None:
       max_tokens = 4096
       promptsent, st.session_state['outputs'], st.session_state['entire_prompt'] = execute_prompting(model, account, ask_type, topics, additional_topics, tones, length_select, headline, num_outputs, temperature, use_bio, max_tokens, topic_weight, tone_weight, client_weight, ask_weight, text_len_weight)
       if len(st.session_state['outputs']) != num_outputs:
-        st.info("Number of outputs may be wrong.")
+        st.info("CICERO has detected that the number of outputs may be wrong.")
       if 'history' not in st.session_state:
         st.session_state['history'] = []
       st.session_state['history'] += st.session_state['outputs']
@@ -494,7 +494,7 @@ def main() -> None:
           if st.button("⚡", key="⚡"+str(key_collision_preventer), help="Edit with Cicero"):
             default_reply = "Here is a conservative fundraising text: [" + output + "] Analyze the quality of the text based off of these five fundraising elements: the Hook, Urgency, Agency, Stakes, and the Call to Action (CTA). Do not assign scores to the elements. It's possible one or more of these elements is missing from the text provided. If so, please point that out. Then, directly ask the user what assistance they need with the text. Additionally, mention that you can also help edit the text to be shorter or longer, and convert the text into an email."
             st.session_state['cicero_ai']=default_reply
-            st.session_state['display_only_this_at_first_blush'] = "«"+output+"»"
+            st.session_state['display_only_this_at_first_blush'] = "« "+output+" »"
           key_collision_preventer += 1
     st.caption(st.session_state.get('character_counts_caption'))
     if st.session_state.get('cicero_ai'):
