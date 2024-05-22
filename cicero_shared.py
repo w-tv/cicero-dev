@@ -131,6 +131,6 @@ topics_big: dict[str, Topics_Big_Payload] = {
   'Trump MAGA': {'color': '#EF823D', 'internal name': 't_maga', 'show in prompter?': False},
   'Trump Mar-a-Lago Raid': {'color': '#E1743D', 'internal name': 't_mal_raid', 'show in prompter?': False},
   'Trump Supporter': {'color': '#BD6040', 'internal name': 't_supporter', 'show in prompter?': False},
-  'Trump Witchhunt': {'color': '#AB563F', 'internal name': 't_witchhunt', 'show in prompter?': False},
+  'Trump Witchhunt': {'color': '#AB563F', 'internal name': 't_witchhunt', 'show in prompter?': True},
   'Ukraine': {'color': '#0056B9', 'internal name': 'ukraine', 'show in prompter?': True},
 }
