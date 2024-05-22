@@ -520,17 +520,17 @@ def main() -> None:
           st.session_state['cicero_ai']=default_reply
           st.session_state['display_only_this_at_first_blush'] = "« "+output+" »"
         key_collision_preventer += 1
-  st.caption(st.session_state.get('character_counts_caption'))
-  if st.session_state.get('cicero_ai'):
-    if isinstance(st.session_state['cicero_ai'], int): # Arbitrary truthy value that isn't a string (so thus can't be from the responses above, which are text)
-      cicero_rag_only.main(streamlit_key_suffix="_prompter")
-    else:
-      #clear previous chat history
-      st.session_state.chat = None
-      st.session_state.messages = None
-      cicero_rag_only.grow_chat(streamlit_key_suffix="_prompter", alternate_content=st.session_state['cicero_ai'], display_only_this_at_first_blush=st.session_state['display_only_this_at_first_blush'])
-      cicero_rag_only.main(streamlit_key_suffix="_prompter")
-      st.session_state['cicero_ai'] = 2 # This sets the arbitrary value discussed above.
+    st.caption(st.session_state.get('character_counts_caption'))
+    if st.session_state.get('cicero_ai'):
+      if isinstance(st.session_state['cicero_ai'], int): # Arbitrary truthy value that isn't a string (so thus can't be from the responses above, which are text)
+        cicero_rag_only.main(streamlit_key_suffix="_prompter")
+      else:
+        #clear previous chat history
+        st.session_state.chat = None
+        st.session_state.messages = None
+        cicero_rag_only.grow_chat(streamlit_key_suffix="_prompter", alternate_content=st.session_state['cicero_ai'], display_only_this_at_first_blush=st.session_state['display_only_this_at_first_blush'])
+        cicero_rag_only.main(streamlit_key_suffix="_prompter")
+        st.session_state['cicero_ai'] = 2 # This sets the arbitrary value discussed above.
 
   st.error('**REMINDER!** Please tag all projects with "**optimization**" in the LABELS field in Salesforce.')
 
