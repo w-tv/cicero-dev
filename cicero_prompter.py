@@ -33,7 +33,7 @@ def external_topic_names_to_internal_topic_names_list_mapping(external_topic_nam
 def ensure_existence_of_activity_log() -> None:
   sql_call("CREATE TABLE IF NOT EXISTS cicero.default.activity_log (datetime string, useremail string, promptsent string, responsegiven string, modelparams string, modelname string, modelurl string, pod string)")
 
-@st.cache_data() #STREAMLIT-BUG-WORKAROUND: Necessity demands we do a manual cache of this function's result anyway in the one place we call it, but (for some reason) it seems like our deployed environment is messed up in some way I cannot locally replicate, which causes it to run this function once every five minutes. So, we cache it as well, to prevent waking up our server and costing us money.
+@st.cache_data(show_spinner=False) #STREAMLIT-BUG-WORKAROUND: Necessity demands we do a manual cache of this function's result anyway in the one place we call it, but (for some reason) it seems like our deployed environment is messed up in some way I cannot locally replicate, which causes it to run this function once every five minutes. So, we cache it as well, to prevent waking up our server and costing us money.
 def count_from_activity_log_times_used_today(useremail: str) -> int: #this goes by whatever the datetime default timezone is because we don't expect the exact boundary to matter much.
   ensure_existence_of_activity_log()
   return int( sql_call(f"SELECT COUNT(*) FROM cicero.default.activity_log WHERE useremail = :useremail AND datetime LIKE '{date.today()}%%'", {'useremail': useremail})[0][0] )
@@ -50,15 +50,15 @@ def write_to_activity_log_table(datetime: str, useremail: str, promptsent: str, 
     keyword_arguments
   )
 
-@st.cache_data()
+@st.cache_data(show_spinner=False)
 def load_bios() -> dict[str, str]:
   return {row["candidate"]:row["bio"] for row in sql_call("SELECT candidate, bio FROM cicero.default.ref_bios")}
 
-@st.cache_data()
+@st.cache_data(show_spinner=False)
 def load_bio(candidate: str) -> str:
   return str( sql_call("SELECT bio FROM cicero.default.ref_bios WHERE candidate = :candidate", locals())[0][0] )
 
-@st.cache_data()
+@st.cache_data(show_spinner=False)
 def load_headlines(get_all: bool = False, past_days: int = 7) -> list[str]:
    # The (arbitrary) requirement is that we return results from the last 7 days by default.
   sql_call("CREATE TABLE IF NOT EXISTS cicero.default.headline_log (datetime string, headline string)")
@@ -196,7 +196,7 @@ def execute_prompting(model: str, account: str, ask_type: str, topics: list[str]
 
   ### Find as Many Relevant Documents as Possible ###
 
-  @st.cache_data()
+  @st.cache_data(show_spinner=False)
   def read_output_table() -> list[Row]:
     return sql_call(f"SELECT * from {output_table_name}")
 

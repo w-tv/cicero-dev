@@ -31,7 +31,7 @@ def die_with_database_error_popup(e_args: tuple[Any, ...]) -> NoReturn:
   st.code(e_args)
   exit_error(4)
 
-@st.cache_data()
+@st.cache_data(show_spinner=False)
 def sql_call(query: str, sql_params_dict:dict[str, Any]|None=None) -> list[Row]:
   """This is a wrapper function for sql_call_cacheless that *is* cached. See that other function for more information about the actual functionality."""
   return sql_call_cacheless(query, sql_params_dict)
@@ -46,7 +46,7 @@ def sql_call_cacheless(query: str, sql_params_dict:dict[str, Any]|None=None) -> 
   except Exception as e:
     die_with_database_error_popup(e.args)
 
-@st.cache_data()
+@st.cache_data(show_spinner=False)
 def load_account_names() -> list[str]:
   return [row[0] for row in sql_call("SELECT * FROM cicero.default.client_list")]
 
