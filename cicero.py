@@ -3,12 +3,6 @@
 You must have streamlit installed to run this program. Among other things. Why not run this script using run.bat instead?
 Check the cicero_*.py files for various functionalities of Cicero.
 """
-
-#Chroma pysqlite fix, from https://docs.trychroma.com/troubleshooting#sqlite and  https://gist.github.com/defulmere/8b9695e415a44271061cc8e272f3c300?permalink_comment_id=4650539#gistcomment-4650539
-__import__('pysqlite3')
-import sys
-sys.modules['sqlite3'] = sys.modules.pop('pysqlite3')
-
 from time import perf_counter_ns
 nanoseconds_base : int = perf_counter_ns()
 import streamlit as st
