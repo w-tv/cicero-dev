@@ -394,12 +394,9 @@ def execute_prompting(model: str, account: str, ask_type: str, topics: list[str]
         single_output += f"{i + 1}. " + inv_res + "\n"
   entire_prompt = str(combined_dict)
   question = str(combined_dict["question"]) #the str call here is purely to help the typechecker.
-  # Output "validation" and compliance"
-  outputs = single_output.split('\n')
-  outputs_ascii =  [x for x in outputs if x.isascii()] # Check for "English", by checking for ascii as a proxy.
-  outputs_denumbered = [re.sub(r"^\s*\d*.\s", "", o) for o in outputs]
-  outputs_validated = [x for x in outputs_denumbered if not (x.strip() == "" or x.startswith("Here ") or x.startswith("Sure") or x.startswith("OK"))]
-  return question, outputs_validated, entire_prompt
+  # Output "validation" and conformance". For example, check if English by using ascii as proxy.
+  outputs = [ x for o in single_output.split('\n') for x in [re.sub(r"^\s*\d*.\s", "", o)] if x.isascii() and not (x.strip() == "" or x.startswith("Here ") or x.startswith("Sure") or x.startswith("OK")) ]
+  return question, outputs, entire_prompt
 
 def main() -> None:
 
