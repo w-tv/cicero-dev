@@ -13,6 +13,7 @@ databricks-vectorsearch >= 0.36
 mlflow #for some reason, you need to explicitly install this to get langchain-community to work
 langchain-community
 chromadb #oddly, you seem to need this here, although not an explicit import in our code (transdep I guess)
+pysqlite3-binary # also needed for chroma, to deploy on streamlit community cloud where the bundled sqlite version is too old I guess.
 
 # Dev-only requirements (tooling)
 uv >= 0.1.35 # I'm not sure the exact version that added uv run, but that's really all we need.
