@@ -72,17 +72,6 @@ def load_headlines(get_all: bool = False, past_days: int = 7) -> list[str]:
 #IMPORTANT: these field names are the same field names as what we eventually submit. HOWEVER, these are just the default values, and are only used for that, and are stored in this particular data structure, and do not overwrite the other variables of the same names that represent the returned values.
 class PresetsPayload(TypedDict):
   temperature: float
-  target_charcount_min: int
-  target_charcount_max: int
-  num_beams: int
-  top_k: int
-  top_p: float
-  repetition_penalty: float
-  no_repeat_ngram_size: int
-  num_return_sequences: int
-  early_stopping: bool
-  do_sample: bool
-  output_scores: bool
   model_name: str
   account: str | None
   ask_type: str
@@ -102,17 +91,6 @@ class PresetsPayload(TypedDict):
 presets: dict[str, PresetsPayload] = {
   "default": {
     "temperature": 0.7,
-    "target_charcount_min": 80, #TODO: remove these
-    "target_charcount_max": 160,
-    "num_beams" : 1,
-    "top_k" : 50,
-    "top_p" : 1.0,
-    "repetition_penalty" : 1.2,
-    "no_repeat_ngram_size" : 4,
-    "num_return_sequences" : 5,
-    "early_stopping" : False,
-    "do_sample" : True,
-    "output_scores" : False,
     "model_name": "Llama-3-70b-Instruct",
     "account" : None,
     "ask_type": "Hard Ask",
