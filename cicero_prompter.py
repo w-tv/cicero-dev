@@ -107,7 +107,7 @@ presets: dict[str, PresetsPayload] = {
     "tone_weight": 1,
     "client_weight": 6,
     "ask_weight": 2,
-    "text_len_weight": 4
+    "text_len_weight": 3
   },
 }
 
@@ -122,7 +122,7 @@ def list_lower(l: list[str]) -> list[str]:
 def only_those_strings_of_the_list_that_contain_the_given_substring_case_insensitively(l: list[str], s: str) -> list[str]:
   return [x for x in l if s.lower() in x.lower()]
 
-def execute_prompting(model: str, account: str, ask_type: str, topics: list[str], additional_topics: list[str], tones: list[str], text_len: Literal["short", "medium", "long", ""], headline: str|None, num_outputs: int, model_temperature: float = 0.8, use_bio: bool = True, max_tokens: int = 4096, topic_weight: float = 4, tone_weight: float = 1, client_weight: float = 6, ask_weight: float = 2, text_len_weight: float = 4) -> tuple[str, list[str], str]:
+def execute_prompting(model: str, account: str, ask_type: str, topics: list[str], additional_topics: list[str], tones: list[str], text_len: Literal["short", "medium", "long", ""], headline: str|None, num_outputs: int, model_temperature: float = 0.8, use_bio: bool = True, max_tokens: int = 4096, topic_weight: float = 4, tone_weight: float = 1, client_weight: float = 6, ask_weight: float = 2, text_len_weight: float = 3) -> tuple[str, list[str], str]:
   score_threshold = 0.5 # Document Similarity Score Acceptance Threshold
   doc_pool_size = 10 # Document Pool Size
   num_examples = 10 # Number of Documents to Use as Examples
@@ -433,7 +433,7 @@ def main() -> None:
         tone_weight = 1
         client_weight = 6
         ask_weight = 2
-        text_len_weight = 4
+        text_len_weight = 3
 
     model_name = str( st.selectbox("Model (required)", ["Llama-3-70b-Instruct", "DBRX-Instruct", "Mixtral-8x7b-Instruct"], key="model") ) if st.session_state["developer_mode"] else "Llama-3-70b-Instruct"
     model = {
