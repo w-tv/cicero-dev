@@ -12,6 +12,7 @@ setuptools #needed for mlflow and databricks-vectorsearch, for some reason.
 databricks-vectorsearch >= 0.36
 mlflow #for some reason, you need to explicitly install this to get langchain-community to work
 langchain-community
+chromadb #oddly, you seem to need this here, although not an explicit import in our code (transdep I guess)
 
 # Dev-only requirements (tooling)
 uv >= 0.1.35 # I'm not sure the exact version that added uv run, but that's really all we need.

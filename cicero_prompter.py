@@ -247,7 +247,7 @@ def execute_prompting(model: str, account: str, ask_type: str, topics: list[str]
     else:
         tone_regex = c["tones"]
     results = [
-      row[primary_key] for row in text_rows if # Only apply filters if they are present in the current filter combination.
+      (row[primary_key], row["Final_Text"]) for row in text_rows if # Only apply filters if they are present in the current filter combination.
         (row[primary_key] not in results_found                              )  and
         ("topics"   not in c    or    re.search(topic_regex, row["Topics"]) )  and
         ("tones"    not in c    or    re.search(tone_regex, row["Tones"])   )  and
@@ -259,17 +259,41 @@ def execute_prompting(model: str, account: str, ask_type: str, topics: list[str]
     # If no results were found, move onto the next filter combination. Otherwise, continue the process of considering these candidate results.
     if not results:
       continue
-    results_found.update(results) # add the found primary key values to the results_found set
+    results_found.update([x for x, _ in results]) # add the found primary key values to the results_found set
     # Perform a similarity search using the target_prompt defined beforehand. Filter for only the results we found earlier in this current iteration.
-    vs_search = text_index.similarity_search(
-      num_results=min(len(results), 10000),
-      columns=["Final_Text"],
-      filters={primary_key: results},
-      query_text=target_prompt
-    )
-    # Then add all results returned by the similarity search to the reference_texts list. But only if their similarity score is greater than the score_threshold parameter.
-    if vs_search["result"]["row_count"] != 0:
-      reference_texts.extend({"prompt": "Please write me a" + x[0].split(":\n\n", 1)[0][1:], "text": x[0].split(":\n\n", 1)[1], "score": x[-1]} for x in vs_search["result"]["data_array"] if x[-1] > score_threshold)
+    try: # Occasionally we get a cryptic "something went wrong unexpectedly" internal(?) DBX VSC error. So we have Chroma as a backup.
+      vs_search = text_index.similarity_search(
+        num_results=min(len(results), 10000),
+        columns=["Final_Text"],
+        filters={primary_key: [x for x, _ in results]},
+        query_text=target_prompt
+      )
+      # Then add all results returned by the similarity search to the reference_texts list. But only if their similarity score is greater than the score_threshold parameter.
+      if vs_search["result"]["row_count"] != 0:
+        reference_texts.extend({"prompt": "Please write me a" + x[0].split(":\n\n", 1)[0][1:], "text": x[0].split(":\n\n", 1)[1], "score": x[-1]} for x in vs_search["result"]["data_array"] if x[-1] > score_threshold)
+    except:
+      embeddings = DatabricksEmbeddings(target_uri="databricks", endpoint="databricks-bge-large-en") #TODO: probably bad to do this each time. Maybe it's fine though. This is only a backup, anyway.
+      chroma_vs = Chroma("example_texts", embeddings)
+      added_ids = chroma_vs.add_texts(texts=[y for _, y in results])
+      sim_search = [ (x[0].page_content, x[1]) for x in chroma_vs.similarity_search_with_relevance_scores(query=target_prompt, k=min(len(results), 10000), core_threshold=score_threshold) ]
+      reference_texts.extend({"prompt": "Please write me a" + x.split(":\n\n", 1)[0][1:], "text": x.split(":\n\n", 1)[1], "score": y} for x, y in sim_search)
+      # We delete the texts we were looking at for one reason
+      # The ChromaDB vector search client/collection is being instantiated and saved in memory. Unlike the Databricks vector search which is searching through
+      # and querying texts that are stored in a table in Databricks
+      # This means that documents added to the collection persist in memory, so I'm deleting records we've already looked at to preserve memory
+      chroma_vs.delete(ids=added_ids)
+      # Note: We could persist all documents added to the ChromaDB collection with minimal changes. Primarily, we'd need to add a few lines of code to make sure we don't return any texts we've already found when we do the similarity search
+      # We'd need to add metadatas information to the add_texts function call. Then we add a filter to the similarity_search_with_relevance_scores function call
+      # The last change would be to remove the delete function call
+      # The exact code we would use is this
+      # added_ids = chroma_vs.add_texts(texts=[y for _, y in results],
+      #                                 metadatas=[{primary_key: x} for x, _ in results]
+      #                                 )
+      # sim_search = [(x[0].page_content, x[1]) for x in
+      #               chroma_vs.similarity_search_with_relevance_scores(query=target_prompt, k=num_searches,
+      #                                                                 score_threshold=score_threshold,
+      #                                                                 filter={primary_key: {"$in": [x for x, _ in results]}})]
+
     # If we've found at least the number of desired documents, exit the loop and take the first doc_pool_size number of texts. The beginning of the reference_texts array will contain the texts that match the most important filters and the highest similarity scores.
     if len(reference_texts) >= doc_pool_size:
       reference_texts = reference_texts[:doc_pool_size]
