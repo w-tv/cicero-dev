@@ -16,6 +16,7 @@ def grow_chat(streamlit_key_suffix: str = "", alternate_content: str = "", displ
   # the streamlit_key_suffix is only necessary because we use this code in two places #TODO: actually, it's not clear that we want to do that. And, the chat histories overlap, currently... So, maybe rethink this concept later. I don't even know why we have two of them. Maybe they were supposed to mutate in concept independently?
   if not st.session_state.get("chat"):
     # TODO: let dev user view and change model and system prompt in this ChatSession
+    # Keep in mind that unless DATABRICKS_HOST and DATABRICKS_TOKEN are in the environment (streamlit does this with secret value by default), then the following line of code will fail with an extremely cryptic error asking you to run this program with a `setup` command line argument (which won't do anything)
     st.session_state.chat = ChatSession(model=model_name, system_message=default_sys_prompt, max_tokens=4096)
   if not st.session_state.get("messages"):
       st.session_state.messages = []
@@ -49,9 +50,6 @@ def reset_chat() -> None:
 # ]
 
 def main(streamlit_key_suffix: str = "") -> None:
-  # For some reason this is how databricks wants me to provide these secrets for this API. #COULD: I'm fairly certain st already puts these in the environ, so we could save these lines if we changed the secrets variable names slightly... on the other hand, this is more explicit I guess.
-  environ['DATABRICKS_HOST'] = "https://"+st.secrets['DATABRICKS_SERVER_HOSTNAME']
-  environ['DATABRICKS_TOKEN'] = st.secrets["databricks_api_token"]
   # st.error("*A computer can never be held accountable. Therefore a computer must never make a management decision.*[꙳](https://twitter.com/bumblebike/status/832394003492564993)")
   
   # st.markdown("What do you need help with? Cicero can help you: <ul><li>Rewrite a message<li>Analyze a message<li>_**MORE!**_</ul>", unsafe_allow_html=True)

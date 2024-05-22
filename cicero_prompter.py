@@ -206,7 +206,7 @@ def execute_prompting(model: str, account: str, ask_type: str, topics: list[str]
   ReferenceTextElement = TypedDict('ReferenceTextElement', {'prompt': str, 'text': str, 'score': float})
   reference_texts : list[ReferenceTextElement] = []
   # Setup Vector Search Client that we will use in the loop.
-  vsc = VectorSearchClient( personal_access_token=st.secrets["databricks_api_token"], workspace_url="https://"+st.secrets['DATABRICKS_SERVER_HOSTNAME'], disable_notice=True )
+  vsc = VectorSearchClient( personal_access_token=st.secrets["DATABRICKS_TOKEN"], workspace_url=st.secrets['DATABRICKS_HOST'], disable_notice=True )
   text_index = vsc.get_index(endpoint_name="rag_llm_vector", index_name="models.lovelytics.gold_text_outputs_index")
   # Get a list of all existing tagged topics #COULD: cache. but probably will refactor instead
   topic_tags = set(x["Tag_Name"] for x in sql_call(f"SELECT Tag_Name FROM {ref_tag_name} WHERE Tag_Type = 'Topic'") )
@@ -340,9 +340,7 @@ def execute_prompting(model: str, account: str, ask_type: str, topics: list[str]
 
   # Note: The Llama-3 model has a limit of 8192 tokens for its input and output combined. e.g. if our input is 8000 tokens, then we can only have 192 tokens for the output. However, we don't handle that eventuality. The code I'm porting just gives basically an error message, which will already happen.
 
-  # see note about environ in rag_only
-  environ['DATABRICKS_HOST'] = "https://"+st.secrets['DATABRICKS_SERVER_HOSTNAME']
-  environ['DATABRICKS_TOKEN'] = st.secrets["databricks_api_token"]
+  # Keep in mind that unless DATABRICKS_HOST and DATABRICKS_TOKEN are in the environment (streamlit does this with secret value by default), then the following line of code will fail with an extremely cryptic error asking you to run this program with a `setup` command line argument (which won't do anything)
   chat_model = ChatDatabricks(endpoint=model, max_tokens=max_tokens, temperature=model_temperature)
 
   # Assemble the LLM chain, which makes it easier to invoke the model and parse its outputs. This uses langchain's own pipe syntax to organize multiple components into a "pipe".
