@@ -268,6 +268,7 @@ def execute_prompting(model: str, account: str, ask_type: str, topics: list[str]
     start = batch_bounds[0]
     # Perform a similarity search using the target_prompt defined beforehand. Filter for only the results we found earlier in this current iteration.
     try: # In case something goes wrong, we have FAISS as a backup.
+      # assert for_testing_purposes_dont_use_dbx_vcs #uncomment to enable this test
       for end in batch_bounds[1:]:
         sim_search = text_index.similarity_search(
           num_results=doc_pool_size, # This must be at most about 2**13 (8192) I have no idea what the actual max is
@@ -426,7 +427,7 @@ def execute_prompting(model: str, account: str, ask_type: str, topics: list[str]
   # Output validation and conformance. For example, check if English by using ascii as proxy.
   def dequote(s: str) -> str:
     """If s is a string that starts and ends with quotation marks, but contains no other quotation marks, return it without those quotations marks. Return anything else untouched."""
-    return s[1:-1] if ( s[0] == s[-1] == '"' and '"' not in s[1:-1] ) else s
+    return s[1:-1] if ( len(s)>=2 and s[0] == s[-1] == '"' and '"' not in s[1:-1] ) else s
   def behead(s: str) -> str:
     """Strip off annoying LLM numbering often found at the beginning of a response. Returns anything else untouched."""
     return re.sub(r"^\s*(?:Message )*\d*\s*[.:]*\s*", "", s)

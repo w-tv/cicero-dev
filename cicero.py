@@ -17,13 +17,6 @@ from streamlit.web.server.websocket_headers import _get_websocket_headers
 
 st.set_page_config(layout="wide", page_title="Cicero", page_icon=r"assets/CiceroLogo_Favicon.png") # Use wide mode in Cicero, mostly so that results display more of their text by default. Also, set title and favicon. #NOTE: "`set_page_config()` can only be called once per app page, and must be called as the first Streamlit command in your script."
 
-if not st.session_state.get("Chroma fixed?"):
-  #Chroma pysqlite fix, from https://docs.trychroma.com/troubleshooting#sqlite and  https://gist.github.com/defulmere/8b9695e415a44271061cc8e272f3c300?permalink_comment_id=4650539#gistcomment-4650539
-  __import__('pysqlite3')
-  import sys
-  sys.modules['sqlite3'] = sys.modules.pop('pysqlite3')
-  st.session_state["Chroma fixed?"] = True
-
 def main() -> None:
   st.session_state["email"] = str(st.experimental_user["email"]) #this str call also accounts for if the user email is None.
   st.markdown("""
