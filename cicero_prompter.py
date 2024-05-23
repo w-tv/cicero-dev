@@ -264,7 +264,7 @@ def execute_prompting(model: str, account: str, ask_type: str, topics: list[str]
     results_found.update([x for x, _ in results]) # add the found primary key values to the results_found set
     search_results = []
     lowest_score = score_threshold
-    batch_bounds = [x for x in range(0, num_searches, doc_pool_size)] + [num_searches]
+    batch_bounds = [x for x in range(0, len(results), doc_pool_size)] + [len(results)]
     start = batch_bounds[0]
     # Perform a similarity search using the target_prompt defined beforehand. Filter for only the results we found earlier in this current iteration.
     try: # In case something goes wrong, we have FAISS as a backup.
