@@ -371,7 +371,7 @@ def execute_prompting(model: str, account: str, ask_type: str, topics: list[str]
   question_prompt += {
     "": "",
     "short": " that each use about 250 characters",
-    "medium": " that each use about 300 characters",
+    "medium": " that each use about 350 characters",
     "long": " that uses at least 400 characters"
   }[text_len]
   if topics:
@@ -409,7 +409,6 @@ def execute_prompting(model: str, account: str, ask_type: str, topics: list[str]
         multishot_items[f"example_{num + 1}_t"] = content["text"]
     combined_dict["chat_history"] = "".join(base_chat_history).format(**multishot_items)
     filled_in_prompt = (prompt.format(**combined_dict))
-    # print(filled_in_prompt)
     single_output = model_chain.invoke(combined_dict)
   else:
       single_output = ""
@@ -433,7 +432,9 @@ def execute_prompting(model: str, account: str, ask_type: str, topics: list[str]
     return re.sub(r"^\s*(?:Message )*\d*\s*[.:]*\s*", "", s)
   def is_natter(x: str) -> bool:
     """Detect if a string is likely random natter often produced by LLMs, based on how it starts."""
-    return x.startswith("Here ") or x.startswith("Sure") or x.startswith("OK")
+    msg_pattern = r"\*?\*?Message \d\.?\*?\*?$"
+    # TODO: eventually there could be other regex to check, there's got to be a better way than just slapping on more bool()s
+    return x.startswith("Here ") or x.startswith("Sure") or x.startswith("OK") or bool(re.match(msg_pattern, x))
   outputs = [ x for o in single_output.split('\n') for x in [dequote(behead(dequote(o))).strip()] if x and x.isascii() and not is_natter(x) ]
   return question, outputs, entire_prompt
 
