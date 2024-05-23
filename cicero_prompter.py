@@ -193,11 +193,16 @@ def execute_prompting(model: str, account: str, ask_type: str, topics: list[str]
       combos_set.update( (x, reduce(lambda a, b: a+b[2], x, 0.0))  if len(x) != 0 else (x, 0) for x in powerset(temp_arr) )
   # Then, the filters are sorted by their weight in descending order
   # So higher weight filter combinations are first in the array which means any documents with those filters will be considered first
-  combos = [{y[0]: y[1] for y in x[0]} for x in sorted(combos_set, key=lambda a: a[1], reverse=True)]
-  st.write(combos[0])
-  st.markdown(combos[0])
-  os.write(2, f"\nStart Len for combos: {len(combos)} ".encode())
-
+  combos = [{y[0]: y[1] for y in x[0]} for x in sorted(combos_set, key=lambda a: a[1], reverse=True)] #a list of dictionaries
+  # TODO: write example of a combo here
+  st.write(len(combos))
+  if len(combos) >= 1000:
+    retain_count = int(len(combos) * 0.55)
+    combos = combos[:retain_count]
+  elif len(combos) < 1000 and len(combos) > 500:
+    retain_count = int(len(combos) * 0.75)
+    combos = combos[:retain_count]
+  st.write(len(combos))
 
 
 
@@ -268,25 +273,25 @@ def execute_prompting(model: str, account: str, ask_type: str, topics: list[str]
       continue
     results_found.update([x for x, _ in results]) # add the found primary key values to the results_found set'
     # it seems that this code was largely ineffective for filtering down
-    os.write(2, f"\nStart Len for results_found: {len(results_found)} ".encode())
-    os.write(2, f"\nStart Len for results: {len(results)} ".encode())
-    if text_len == "short":
-      # Step 1: Filter results to include only those with "Final_Text" length <= 200
-      results = [(pk, text) for pk, text in results if len(text) < 200]
-      # Step 2: Identify primary keys to remove (where "Final_Text" length > 200)
-      keys_to_remove = {pk for pk, text in results if len(text) >= 200}
-      # Step 3: Update results_found by removing the corresponding primary keys
-      results_found -= keys_to_remove
-    elif text_len == "medium":
-      results = [(pk, text) for pk, text in results if len(text) < 400 and len(text) > 120]
-      keys_to_remove = {pk for pk, text in results if len(text) >= 400 or len(text) <= 120}
-      results_found -= keys_to_remove
-    else:
-      results = [(pk, text) for pk, text in results if len(text) > 175]
-      keys_to_remove = {pk for pk, text in results if len(text) <= 175}
-      results_found -= keys_to_remove   
-    os.write(2, f"\nEnd Len for results_found: {len(results_found)} ".encode())
-    os.write(2, f"\nEnd Len for results: {len(results)} ".encode())
+    # os.write(2, f"\nStart Len for results_found: {len(results_found)} ".encode())
+    # os.write(2, f"\nStart Len for results: {len(results)} ".encode())
+    # if text_len == "short":
+    #   # Step 1: Filter results to include only those with "Final_Text" length <= 200
+    #   results = [(pk, text) for pk, text in results if len(text) < 200]
+    #   # Step 2: Identify primary keys to remove (where "Final_Text" length > 200)
+    #   keys_to_remove = {pk for pk, text in results if len(text) >= 200}
+    #   # Step 3: Update results_found by removing the corresponding primary keys
+    #   results_found -= keys_to_remove
+    # elif text_len == "medium":
+    #   results = [(pk, text) for pk, text in results if len(text) < 400 and len(text) > 120]
+    #   keys_to_remove = {pk for pk, text in results if len(text) >= 400 or len(text) <= 120}
+    #   results_found -= keys_to_remove
+    # else:
+    #   results = [(pk, text) for pk, text in results if len(text) > 175]
+    #   keys_to_remove = {pk for pk, text in results if len(text) <= 175}
+    #   results_found -= keys_to_remove   
+    # os.write(2, f"\nEnd Len for results_found: {len(results_found)} ".encode())
+    # os.write(2, f"\nEnd Len for results: {len(results)} ".encode())
 
     # Perform a similarity search using the target_prompt defined beforehand. Filter for only the results we found earlier in this current iteration.
     try: # Occasionally we get a cryptic "something went wrong unexpectedly" internal(?) DBX VSC error. So we have Chroma as a backup.
