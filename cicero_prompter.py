@@ -334,14 +334,8 @@ def execute_prompting(model: str, account: str, ask_type: str, topics: list[str]
   # Base beginning structure of the RAG prompt
   rag_prompt = "<|begin_of_text|><|start_header_id|>system<|end_header_id|>\n\n{system_prompt}<|eot_id|>"
 
-  # Define the system prompt
-  sys_prompt = """You are an expert copywriter who specializes in writing text messages for conservative political candidates in the United States of America. Make sure all texts are in English. Try to grab the reader's attention in the first line. Do not start your message like an email. Make sure to have an explicit call to action. Do not make up facts or statistics. Do not use emojis or hashtags in your messages. Do not copy previously written text messages in content or structure. Make sure each written text message is unique. Write the exact number of text messages asked for."""
-
-  if use_bio and account:
-    sys_prompt += f""" Here is important biographical information about the conservative candidate you are writing for: {load_bio(account)}"""
-
   combined_dict: dict[str, str|float] = {}  # combined_dict stores all of the string format variables used in the prompt and their values
-  combined_dict["system_prompt"] = sys_prompt
+  combined_dict["system_prompt"] = """You are an expert copywriter who specializes in writing text messages for conservative political candidates in the United States of America. Make sure all texts are in English. Try to grab the reader's attention in the first line. Do not start your message like an email. Make sure to have an explicit call to action. Do not make up facts or statistics. Do not use emojis or hashtags in your messages. Do not copy previously written text messages in content or structure. Make sure each written text message is unique. Write the exact number of text messages asked for."""
 
   # Then for every example document, we add the corresponding assistant and user lines
   # Triple brackets are used so the actual key name in the ms_prompts and ms_texts dictionaries can be inserted dynamically while also keeping the curly braces in the final string
@@ -378,8 +372,10 @@ def execute_prompting(model: str, account: str, ask_type: str, topics: list[str]
     question_prompt += f" about {topics}"
   if tones:
     question_prompt += f" written with an emphasis on {tones}"
+  if use_bio and account:
+    sys_prompt += f""" Here is important biographical information about the conservative candidate you are writing for: {load_bio(account)}"""
   if headline:
-    sys_prompt += f""" Here is/are news headline(s) you should reference in your text messages: {headline}"""
+    question_prompt += f""" Here is/are news headline(s) you should reference in your text messages: {headline}"""
 
   combined_dict["question"] = question_prompt
   ##### END PROMPT INSERTION #####
