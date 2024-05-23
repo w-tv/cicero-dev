@@ -427,7 +427,16 @@ def execute_prompting(model: str, account: str, ask_type: str, topics: list[str]
   entire_prompt = str(combined_dict)
   question = str(combined_dict["question"]) #the str call here is purely to help the typechecker.
   # Output validation and conformance. For example, check if English by using ascii as proxy.
-  outputs = [ x for o in single_output.split('\n') for x in [re.sub(r"^\s*(?:Message )*\d*\s*[.:]*\s*", "", o)] if x.isascii() and not (x.strip() == "" or x.startswith("Here ") or x.startswith("Sure") or x.startswith("OK")) ]
+  def dequote(s: str) -> str:
+    """If s is a string that starts and ends with quotation marks, but contains no other quotation marks, return it without those quotations marks. Return anything else untouched."""
+    return s[1:-1] if ( s[0] == s[-1] == '"' and '"' not in s[1:-1] ) else s
+  def behead(s: str) -> str:
+    """Strip off annoying LLM numbering often found at the beginning of a response. Returns anything else untouched."""
+    return re.sub(r"^\s*(?:Message )*\d*\s*[.:]*\s*", "", s)
+  def is_natter(x: str) -> bool:
+    """Detect if a string is likely random natter often produced by LLMs, based on how it starts."""
+    return x.startswith("Here ") or x.startswith("Sure") or x.startswith("OK")
+  outputs = [ x for o in single_output.split('\n') for x in [dequote(behead(dequote(o))).strip()] if x and x.isascii() and not is_natter(x) ]
   return question, outputs, entire_prompt
 
 def main() -> None:
