@@ -194,6 +194,12 @@ def execute_prompting(model: str, account: str, ask_type: str, topics: list[str]
   # Then, the filters are sorted by their weight in descending order
   # So higher weight filter combinations are first in the array which means any documents with those filters will be considered first
   combos = [{y[0]: y[1] for y in x[0]} for x in sorted(combos_set, key=lambda a: a[1], reverse=True)]
+  st.write(combos[0])
+  st.markdown(combos[0])
+  os.write(2, f"\nStart Len for combos: {len(combos)} ".encode())
+
+
+
 
   ### Find as Many Relevant Documents as Possible ###
 
@@ -261,11 +267,9 @@ def execute_prompting(model: str, account: str, ask_type: str, topics: list[str]
     if not results:
       continue
     results_found.update([x for x, _ in results]) # add the found primary key values to the results_found set'
-    os.write(1, f"\nStart Len for results_found: {len(results_found)} ".encode())
-    os.write(1, f"\nStart Len for results: {len(results)} ".encode())
-    st.write(text_len)
-    st.markdown(text_len)
-    os.write(1, f"\n{text_len}".encode())
+    # it seems that this code was largely ineffective for filtering down
+    os.write(2, f"\nStart Len for results_found: {len(results_found)} ".encode())
+    os.write(2, f"\nStart Len for results: {len(results)} ".encode())
     if text_len == "short":
       # Step 1: Filter results to include only those with "Final_Text" length <= 200
       results = [(pk, text) for pk, text in results if len(text) < 200]
@@ -281,10 +285,8 @@ def execute_prompting(model: str, account: str, ask_type: str, topics: list[str]
       results = [(pk, text) for pk, text in results if len(text) > 175]
       keys_to_remove = {pk for pk, text in results if len(text) <= 175}
       results_found -= keys_to_remove   
-
-    os.write(1, f"\nEnd Len for results_found: {len(results_found)} ".encode())
-    os.write(1, f"\nEnd Len for results: {len(results)} ".encode())
-    os.write(1, "will this print?".encode())
+    os.write(2, f"\nEnd Len for results_found: {len(results_found)} ".encode())
+    os.write(2, f"\nEnd Len for results: {len(results)} ".encode())
 
     # Perform a similarity search using the target_prompt defined beforehand. Filter for only the results we found earlier in this current iteration.
     try: # Occasionally we get a cryptic "something went wrong unexpectedly" internal(?) DBX VSC error. So we have Chroma as a backup.
