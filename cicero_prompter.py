@@ -18,8 +18,8 @@ from functools import reduce
 from langchain.prompts import PromptTemplate
 from langchain_community.chat_models.databricks import ChatDatabricks
 from langchain.schema.output_parser import StrOutputParser
-from langchain_community.vectorstores import Chroma
-from langchain_community.embeddings import DatabricksEmbeddings
+from langchain_community.vectorstores import FAISS
+from langchain_community.embeddings import HuggingFaceEmbeddings
 
 import re
 import random
@@ -261,68 +261,65 @@ def execute_prompting(model: str, account: str, ask_type: str, topics: list[str]
     # If no results were found, move onto the next filter combination. Otherwise, continue the process of considering these candidate results.
     if not results:
       continue
-    results_found.update([x for x, _ in results]) # add the found primary key values to the results_found set'
-    # it seems that this code was largely ineffective for filtering down
-    # if text_len == "short":
-    #   # Step 1: Filter results to include only those with "Final_Text" length <= 200
-    #   results = [(pk, text) for pk, text in results if len(text) < 200]
-    #   # Step 2: Identify primary keys to remove (where "Final_Text" length > 200)
-    #   keys_to_remove = {pk for pk, text in results if len(text) >= 200}
-    #   # Step 3: Update results_found by removing the corresponding primary keys
-    #   results_found -= keys_to_remove
-    # elif text_len == "medium":
-    #   results = [(pk, text) for pk, text in results if len(text) < 400 and len(text) > 120]
-    #   keys_to_remove = {pk for pk, text in results if len(text) >= 400 or len(text) <= 120}
-    #   results_found -= keys_to_remove
-    # else:
-    #   results = [(pk, text) for pk, text in results if len(text) > 175]
-    #   keys_to_remove = {pk for pk, text in results if len(text) <= 175}
-    #   results_found -= keys_to_remove
-
+    results_found.update([x for x, _ in results]) # add the found primary key values to the results_found set
+    search_results = []
+    lowest_score = score_threshold
+    batch_bounds = [x for x in range(0, num_searches, doc_pool_size)] + [num_searches]
+    start = batch_bounds[0]
     # Perform a similarity search using the target_prompt defined beforehand. Filter for only the results we found earlier in this current iteration.
-    try: # Occasionally we get a cryptic "something went wrong unexpectedly" internal(?) DBX VSC error. So we have Chroma as a backup.
-      vs_search = text_index.similarity_search(
-        num_results=min(len(results), 10000),
-        columns=["Final_Text"],
-        filters={primary_key: [x for x, _ in results]},
-        query_text=target_prompt
-      )
-      # Then add all results returned by the similarity search to the reference_texts list. But only if their similarity score is greater than the score_threshold parameter.
-      if vs_search["result"]["row_count"] != 0:
-        reference_texts.extend({"prompt": "Please write me a" + x[0].split(":\n\n", 1)[0][1:], "text": x[0].split(":\n\n", 1)[1], "score": x[-1]} for x in vs_search["result"]["data_array"] if x[-1] > score_threshold)
+    try: # In case something goes wrong, we have FAISS as a backup.
+      for end in batch_bounds[1:]:
+        sim_search = text_index.similarity_search(
+          num_results=doc_pool_size, # This must be at most about 2**13 (8192) I have no idea what the actual max is
+          columns=["Final_Text"],
+          filters={primary_key: [x for x, _ in results[start:end]]}, # The filter statement can only provide at most 1024 items
+          query_text=target_prompt
+        )
+        # Add results returned by the similarity search to the search_results list only if their similarity score is greater than or equal to the lowest similarity score we've stored. We only keep the top doc_pool_size number of documents for a single combination
+        if sim_search["result"]["row_count"] != 0:
+          search_results.extend({"prompt": "Please write me a" + x[0].split(":\n\n", 1)[0][1:], "text": x[0].split(":\n\n", 1)[1], "score": x[-1]} for x in sim_search["result"]["data_array"] if x[-1] >= lowest_score)
+          search_results = sorted(search_results, key=lambda x: x["score"], reverse=True)[:doc_pool_size]
+          lowest_score = search_results[-1]["score"] if search_results else lowest_score
+        start = end
+      # Then add all results sorted by score descending to the reference_texts list
+      reference_texts.extend(search_results)
     except:
+      search_results = []
+      lowest_score = score_threshold
+      start = batch_bounds[0]
       # embeddings = DatabricksEmbeddings(target_uri="https://c996c2e15417489d87ab0db3f1cc6fc0.serving.cloud.databricks.com/8188181812650195/serving-endpoints/gte_small_embeddings/invocations", endpoint="gte_small_embeddings") #TODO: probably bad to do this each time. Maybe it's fine though. This is only a backup, anyway. #doesn't work
       #maybe this is a model?
       #vsc = VectorSearchClient( personal_access_token=st.secrets["DATABRICKS_TOKEN"], workspace_url=st.secrets['DATABRICKS_HOST'], disable_notice=True )
       #text_index = vsc.get_index(endpoint_name="rag_llm_vector", index_name="models.lovelytics.gold_text_outputs_index")
-      # extremely hacky fix to get our memory leak under control
-      if len(results) >= 1000:
-        retain_count = int(len(results) * 0.45)
-        results = results[:retain_count]
-      elif len(results) < 1000 and len(results) > 500:
-        retain_count = int(len(results) * 0.75)
-        results = results[:retain_count]
-      embeddings = DatabricksEmbeddings(target_uri="databricks", endpoint="gte_small_embeddings") #TODO: probably bad to do this each time. Maybe it's fine though. This is only a backup, anyway.
-      chroma_vs = Chroma("example_texts", embeddings)
-      added_ids = chroma_vs.add_texts(texts=[y for _, y in results])
-      sim_search = [ (x[0].page_content, x[1]) for x in chroma_vs.similarity_search_with_relevance_scores(query=target_prompt, k=min(len(results), 100), score_threshold=score_threshold) ]
-      reference_texts.extend({"prompt": "Please write me a" + x.split(":\n\n", 1)[0][1:], "text": x.split(":\n\n", 1)[1], "score": y} for x, y in sim_search)
-      # We delete the texts we were looking at for one reason
-      # The ChromaDB vector search client/collection is being instantiated and saved in memory. Unlike the Databricks vector search which is searching through
-      # and querying texts that are stored in a table in Databricks
-      # This means that documents added to the collection persist in memory, so I'm deleting records we've already looked at to preserve memory
-      chroma_vs.delete(ids=added_ids)
-      # Note: We could persist all documents added to the ChromaDB collection with minimal changes. Primarily, we'd need to add a few lines of code to make sure we don't return any texts we've already found when we do the similarity search
+      embeddings = HuggingFaceEmbeddings(model_name="sentence-transformers/all-MiniLM-L12-v2") #TODO: probably bad to do this each time. Maybe it's fine though. This is only a backup, anyway.
+      # Using the from_texts instantiation so it automatically creates a Docstore for us. Need to provide at least one text/document, so we're providing a dummy value that will be immediately removed
+      faiss_vs = FAISS.from_texts(["TEMP_REMOVE"], embeddings, ids=["TEMP_REMOVE"])
+      faiss_vs.delete(ids=["TEMP_REMOVE"])
+      for end in batch_bounds[1:]:
+        added_ids = faiss_vs.add_texts(texts=[y for _, y in results[start:end]])
+        sim_search = [(x[0].page_content, x[1]) for x in faiss_vs.similarity_search_with_relevance_scores(query=target_prompt, k=doc_pool_size, score_threshold=lowest_score)]
+        if sim_search:
+          search_results.extend({"prompt": "Please write me a" + x.split(":\n\n", 1)[0][1:], "text": x.split(":\n\n", 1)[1], "score": y} for x, y in sim_search)
+          search_results = sorted(search_results, key=lambda x: x["score"], reverse=True)[:doc_pool_size]
+          lowest_score = search_results[-1]["score"]
+        # We delete the texts we were looking at for one reason
+        # The FAISS vector search client/collection is being instantiated and saved in memory. Unlike the Databricks vector search which is searching through
+        # and querying texts that are stored in a table in Databricks
+        # This means that documents added to the collection persist in memory, so I'm deleting records we've already looked at to preserve memory
+        faiss_vs.delete(ids=added_ids)
+        start = end
+      reference_texts.extend(search_results)
+      # Note: We could persist all documents added to the FAISS collection with minimal changes. Primarily, we'd need to add a few lines of code to make sure we don't return any texts we've already found when we do the similarity search
       # We'd need to add metadatas information to the add_texts function call. Then we add a filter to the similarity_search_with_relevance_scores function call
       # The last change would be to remove the delete function call
       # The exact code we would use is this
-      # added_ids = chroma_vs.add_texts(texts=[y for _, y in results],
-      #                                 metadatas=[{primary_key: x} for x, _ in results]
-      #                                 )
+      # added_ids = faiss_vs.add_texts(texts=[y for _, y in results],
+      #                                metadatas=[{primary_key: x} for x, _ in results]
+      #                                )
       # sim_search = [(x[0].page_content, x[1]) for x in
-      #               chroma_vs.similarity_search_with_relevance_scores(query=target_prompt, k=num_searches,
-      #                                                                 score_threshold=score_threshold,
-      #                                                                 filter={primary_key: {"$in": [x for x, _ in results]}})]
+      #               faiss_vs.similarity_search_with_relevance_scores(query=target_prompt, k=num_searches,
+      #                                                                score_threshold=score_threshold,
+      #                                                                filter={primary_key: {"$in": [x for x, _ in results]}})]
 
     # If we've found at least the number of desired documents, exit the loop and take the first doc_pool_size number of texts. The beginning of the reference_texts array will contain the texts that match the most important filters and the highest similarity scores.
     if len(reference_texts) >= doc_pool_size:
