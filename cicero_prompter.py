@@ -296,14 +296,12 @@ def execute_prompting(model: str, account: str, ask_type: str, topics: list[str]
       #vsc = VectorSearchClient( personal_access_token=st.secrets["DATABRICKS_TOKEN"], workspace_url=st.secrets['DATABRICKS_HOST'], disable_notice=True )
       #text_index = vsc.get_index(endpoint_name="rag_llm_vector", index_name="models.lovelytics.gold_text_outputs_index")
       # extremely hacky fix to get our memory leak under control
-      st.write(len(results))
       if len(results) >= 1000:
         retain_count = int(len(results) * 0.45)
         results = results[:retain_count]
       elif len(results) < 1000 and len(results) > 500:
         retain_count = int(len(results) * 0.75)
         results = results[:retain_count]
-      st.write(len(results))
       embeddings = DatabricksEmbeddings(target_uri="databricks", endpoint="gte_small_embeddings") #TODO: probably bad to do this each time. Maybe it's fine though. This is only a backup, anyway.
       chroma_vs = Chroma("example_texts", embeddings)
       added_ids = chroma_vs.add_texts(texts=[y for _, y in results])
