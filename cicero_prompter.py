@@ -262,7 +262,10 @@ def execute_prompting(model: str, account: str, ask_type: str, topics: list[str]
       continue
     results_found.update([x for x, _ in results]) # add the found primary key values to the results_found set'
     os.write(1, f"\nStart Len for results_found: {len(results_found)} ".encode())
-    os.write(1, f"\nStart Len for results: {len(results)} ".encode()) 
+    os.write(1, f"\nStart Len for results: {len(results)} ".encode())
+    st.write(text_len)
+    st.markdown(text_len)
+    os.write(1, f"\n{text_len}".encode())
     if text_len == "short":
       # Step 1: Filter results to include only those with "Final_Text" length <= 200
       results = [(pk, text) for pk, text in results if len(text) < 200]
