@@ -195,16 +195,6 @@ def execute_prompting(model: str, account: str, ask_type: str, topics: list[str]
   # So higher weight filter combinations are first in the array which means any documents with those filters will be considered first
   combos = [{y[0]: y[1] for y in x[0]} for x in sorted(combos_set, key=lambda a: a[1], reverse=True)] #a list of dictionaries
   # TODO: write example of a combo here
-  st.write(len(combos))
-  if len(combos) >= 1000:
-    retain_count = int(len(combos) * 0.55)
-    combos = combos[:retain_count]
-  elif len(combos) < 1000 and len(combos) > 500:
-    retain_count = int(len(combos) * 0.75)
-    combos = combos[:retain_count]
-  st.write(len(combos))
-
-
 
   ### Find as Many Relevant Documents as Possible ###
 
@@ -273,8 +263,6 @@ def execute_prompting(model: str, account: str, ask_type: str, topics: list[str]
       continue
     results_found.update([x for x, _ in results]) # add the found primary key values to the results_found set'
     # it seems that this code was largely ineffective for filtering down
-    # os.write(2, f"\nStart Len for results_found: {len(results_found)} ".encode())
-    # os.write(2, f"\nStart Len for results: {len(results)} ".encode())
     # if text_len == "short":
     #   # Step 1: Filter results to include only those with "Final_Text" length <= 200
     #   results = [(pk, text) for pk, text in results if len(text) < 200]
@@ -289,9 +277,7 @@ def execute_prompting(model: str, account: str, ask_type: str, topics: list[str]
     # else:
     #   results = [(pk, text) for pk, text in results if len(text) > 175]
     #   keys_to_remove = {pk for pk, text in results if len(text) <= 175}
-    #   results_found -= keys_to_remove   
-    # os.write(2, f"\nEnd Len for results_found: {len(results_found)} ".encode())
-    # os.write(2, f"\nEnd Len for results: {len(results)} ".encode())
+    #   results_found -= keys_to_remove
 
     # Perform a similarity search using the target_prompt defined beforehand. Filter for only the results we found earlier in this current iteration.
     try: # Occasionally we get a cryptic "something went wrong unexpectedly" internal(?) DBX VSC error. So we have Chroma as a backup.
@@ -309,6 +295,15 @@ def execute_prompting(model: str, account: str, ask_type: str, topics: list[str]
       #maybe this is a model?
       #vsc = VectorSearchClient( personal_access_token=st.secrets["DATABRICKS_TOKEN"], workspace_url=st.secrets['DATABRICKS_HOST'], disable_notice=True )
       #text_index = vsc.get_index(endpoint_name="rag_llm_vector", index_name="models.lovelytics.gold_text_outputs_index")
+      # extremely hacky fix to get our memory leak under control
+      st.write(len(results))
+      if len(results) >= 1000:
+        retain_count = int(len(results) * 0.45)
+        results = results[:retain_count]
+      elif len(results) < 1000 and len(results) > 500:
+        retain_count = int(len(results) * 0.75)
+        results = results[:retain_count]
+      st.write(len(results))
       embeddings = DatabricksEmbeddings(target_uri="databricks", endpoint="gte_small_embeddings") #TODO: probably bad to do this each time. Maybe it's fine though. This is only a backup, anyway.
       chroma_vs = Chroma("example_texts", embeddings)
       added_ids = chroma_vs.add_texts(texts=[y for _, y in results])
