@@ -261,23 +261,22 @@ def execute_prompting(model: str, account: str, ask_type: str, topics: list[str]
     if not results:
       continue
     results_found.update([x for x, _ in results]) # add the found primary key values to the results_found set'
-    os.write(1, f"Len for results_found: {len(results_found)}".encode()) 
-    os.write(1, f"Len for results: {len(results)}".encode()) 
+    os.write(1, f"\nStart Len for results_found: {len(results_found)} ".encode()) 
+    os.write(1, f"\nStart Len for results: {len(results)} ".encode()) 
     # remove the top and bottom 10% by length from results and results_found
     num_to_remove = len(results) // 10
     st.write("num to remove", num_to_remove)
-    if num_to_remove > 0:
+    if len(results) > 500:
       # Step 1: Sort the results by the length of the "Final_Text" values
       sorted_results = sorted(results, key=lambda x: len(x[1]))
       # Step 2: Identify the primary keys to be removed (shortest 10% and longest 10%)
       keys_to_remove = {pk for pk, _ in (sorted_results[:num_to_remove] + sorted_results[-num_to_remove:])}
-      os.write(1, f"Len for results_found: {len(results_found)}".encode())
       # Step 3: Remove the shortest 10% and longest 10% entries from the sorted results
       results = sorted_results[num_to_remove:-num_to_remove]
-      os.write(1, f"Len for results: {len(results)}".encode()) 
-
       # Step 4: Update results_found by removing the corresponding primary keys
       results_found -= keys_to_remove
+      os.write(1, f"\nEnd Len for results_found: {len(results_found)} ".encode())
+      os.write(1, f"\nEnd Len for results: {len(results)} ".encode()) 
 
     # Perform a similarity search using the target_prompt defined beforehand. Filter for only the results we found earlier in this current iteration.
     try: # Occasionally we get a cryptic "something went wrong unexpectedly" internal(?) DBX VSC error. So we have Chroma as a backup.
