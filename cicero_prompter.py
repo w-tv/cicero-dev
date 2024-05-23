@@ -280,7 +280,7 @@ def execute_prompting(model: str, account: str, ask_type: str, topics: list[str]
         if sim_search["result"]["row_count"] != 0:
           search_results.extend({"prompt": "Please write me a" + x[0].split(":\n\n", 1)[0][1:], "text": x[0].split(":\n\n", 1)[1], "score": x[-1]} for x in sim_search["result"]["data_array"] if x[-1] >= lowest_score)
           search_results = sorted(search_results, key=lambda x: x["score"], reverse=True)[:doc_pool_size]
-          lowest_score = search_results[-1]["score"] if search_results else lowest_score
+          lowest_score = search_results[-1]["score"] if len(search_results) == doc_pool_size else lowest_score
         start = end
       # Then add all results sorted by score descending to the reference_texts list
       reference_texts.extend(search_results)
@@ -302,7 +302,7 @@ def execute_prompting(model: str, account: str, ask_type: str, topics: list[str]
         if sim_search:
           search_results.extend({"prompt": "Please write me a" + x.split(":\n\n", 1)[0][1:], "text": x.split(":\n\n", 1)[1], "score": y} for x, y in sim_search)
           search_results = sorted(search_results, key=lambda x: x["score"], reverse=True)[:doc_pool_size]
-          lowest_score = search_results[-1]["score"]
+          lowest_score = search_results[-1]["score"] if len(search_results) == doc_pool_size else lowest_score
         # We delete the texts we were looking at for one reason
         # The FAISS vector search client/collection is being instantiated and saved in memory. Unlike the Databricks vector search which is searching through
         # and querying texts that are stored in a table in Databricks
