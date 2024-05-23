@@ -266,7 +266,7 @@ def execute_prompting(model: str, account: str, ask_type: str, topics: list[str]
     # remove the top and bottom 10% by length from results and results_found
     num_to_remove = (len(results) // 10) * 2
     if len(results) > 500:
-      os.write(1, f"\nnum to remove: {num_to_remove}")
+      os.write(1, f"\nnum to remove: {num_to_remove}".encode())
       # Step 1: Sort the results by the length of the "Final_Text" values
       sorted_results = sorted(results, key=lambda x: len(x[1]))
       # Step 2: Identify the primary keys to be removed (shortest 10% and longest 10%)
