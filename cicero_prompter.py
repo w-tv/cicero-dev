@@ -264,9 +264,9 @@ def execute_prompting(model: str, account: str, ask_type: str, topics: list[str]
     os.write(1, f"\nStart Len for results_found: {len(results_found)} ".encode())
     os.write(1, f"\nStart Len for results: {len(results)} ".encode()) 
     # remove the top and bottom 10% by length from results and results_found
-    num_to_remove = (len(results) // 10) * 2
+    num_to_remove = (len(results) // 10)
     if len(results) > 500:
-      os.write(1, f"\nnum to remove: {num_to_remove}".encode())
+      os.write(1, f"\nnum to remove: {num_to_remove * 2}".encode())
       # Step 1: Sort the results by the length of the "Final_Text" values
       sorted_results = sorted(results, key=lambda x: len(x[1]))
       # Step 2: Identify the primary keys to be removed (shortest 10% and longest 10%)
@@ -276,7 +276,8 @@ def execute_prompting(model: str, account: str, ask_type: str, topics: list[str]
       # Step 4: Update results_found by removing the corresponding primary keys
       results_found -= keys_to_remove
       os.write(1, f"\nEnd Len for results_found: {len(results_found)} ".encode())
-      os.write(1, f"\nEnd Len for results: {len(results)} ".encode()) 
+      os.write(1, f"\nEnd Len for results: {len(results)} ".encode())
+      os.write(1, "will this print?".encode())
 
     # Perform a similarity search using the target_prompt defined beforehand. Filter for only the results we found earlier in this current iteration.
     try: # Occasionally we get a cryptic "something went wrong unexpectedly" internal(?) DBX VSC error. So we have Chroma as a backup.
