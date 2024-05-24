@@ -28,6 +28,9 @@ from os import environ
 
 from databricks.vector_search.client import VectorSearchClient
 
+def disable_submit_button_til_complete():
+  st.session_state["submit_button_disabled"] = True
+
 def external_topic_names_to_internal_topic_names_list_mapping(external_topic_names: list[str]) -> list[str]:
   return [topics_big[e]["internal name"].replace("_", " ").lower() for e in external_topic_names]
 
@@ -512,11 +515,16 @@ def main() -> None:
     tones = list_lower( st.multiselect("Tones", ['Agency', 'Apologetic', 'Candid', 'Exclusivity', 'Fiesty', 'Grateful', 'Not Asking For Money', 'Pleading', 'Quick Request', 'Secretive', 'Time Sensitive', 'Urgency'], key="tone") ) #TODO: , 'Swear Jar' will probably be in here some day, but we don't have "we need more swear jar data to make this tone better"
     num_outputs: int = st.selectbox("\# Outputs", [1,3,5,10], key='num_outputs')
     temperature: float = st.slider("Output Variance:", min_value=0.0, max_value=1.0, key="temperature") if st.session_state["developer_mode"] else 0.7
-    generate_button = st.form_submit_button("Submit", type="primary")
+    buttonhole = st.empty()
+    with buttonhole:
+      if st.session_state.get("submit_button_disabled"):
+        st.form_submit_button("Processing...", type="primary", disabled=True)
+      else:
+        st.form_submit_button("Submit", type="primary", on_click=disable_submit_button_til_complete)
 
   #Composition and sending a request:
   did_a_query = False
-  if generate_button:
+  if st.session_state.get("submit_button_disabled"):
     if not account:
       st.warning("***No Account is selected, so I can't send the request!***")
     elif not model:
@@ -577,6 +585,8 @@ def main() -> None:
     f"""You are logged in as {st.session_state['email']}{" (internally, "+str(st.experimental_user['email'])+")" if st.session_state["developer_mode"] else ""}. You have prompted {st.session_state['use_count']} time{'s' if st.session_state['use_count'] != 1 else ''} today, out of a limit of {use_count_limit}. {"You are in developer mode." if st.session_state["developer_mode"] else ""}"""
   )
 
+  st.session_state["submit_button_disabled"] = False
+  buttonhole.form_submit_button("Submit ", type="primary", on_click=disable_submit_button_til_complete) # After everything, re-enable the submit button.
   # Activity logging takes a bit, so I've put it last to preserve immediate-feeling performance and responses for the user making a query.
   if did_a_query:
     # promptsent is only illustrative. But maybe that's enough. Maybe we should be using a different prompt?
