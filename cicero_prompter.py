@@ -586,7 +586,7 @@ def main() -> None:
   )
 
   st.session_state["submit_button_disabled"] = False
-  buttonhole.form_submit_button("Submit ", type="primary", on_click=disable_submit_button_til_complete) # After everything, re-enable the submit button.
+  buttonhole.form_submit_button("Submit ", type="primary", on_click=disable_submit_button_til_complete) # After everything, re-enable the submit button. Note that the space at the end of Submit here doesn't show up in the UI; it's just a convenient way to make the key of this replacement button not identical to the original button (which would cause an error). I didn't even bother to file an issue about this because who cares.
   # Activity logging takes a bit, so I've put it last to preserve immediate-feeling performance and responses for the user making a query.
   if did_a_query:
     # promptsent is only illustrative. But maybe that's enough. Maybe we should be using a different prompt?
