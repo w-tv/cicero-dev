@@ -495,7 +495,7 @@ def main() -> None:
         client_weight: float = st.slider("Client Weight", min_value=0.0, max_value=10.0, key="client_weight")
         ask_weight: float = st.slider("Ask Weight", min_value=0.0, max_value=10.0, key="ask_weight")
         text_len_weight: float = st.slider("Text Len Weight", min_value=0.0, max_value=10.0, key="text_len_weight")
-        st.session_state["the_real_dude_model_name"] = st.selectbox("Model selection for Cicero (the actual, historical man (it's really him))", ['databricks-meta-llama-3-70b-instruct']) or '' #TODO: this is deliberately not in the preset system, because it might get removed later.
+        st.session_state["the_real_dude_model_name"] = st.selectbox("Model selection for Cicero (the actual, historical man (it's really him))", ['databricks-meta-llama-3-70b-instruct', "databricks-dbrx-instruct", "databricks-mixtral-8x7b-instruct"]) or 'databricks-meta-llama-3-70b-instruct' #TODO: this is deliberately not in the preset system, because it might get removed later.
         st.session_state["the_real_dude_system_prompt"] = st.selectbox("Model system prompt for Cicero (the actual, historical man (it's really him))", [default_sys_prompt, rewrite_sys_prompt, analyze_sys_prompt]) or default_sys_prompt #TODO: this is deliberately not in the preset system, because it might get removed later.
       else:
         topic_weight = 4
