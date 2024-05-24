@@ -1,10 +1,10 @@
 [server]
 headless = true # This option is set to true to suppress the "Welcome to Streamlit! [blah blah blah] Email:" message, and keep streamlit from generating a .streamlit folder in my home dir with the config file that has that email address, which I find annoying. You can also run streamlit run with the --server.headless true flag if you're outside this directory but still want this behavior.
 runOnSave = true # We always want to rerun when the files change, for a smooth development experience.
+address = "0.0.0.0" # This is the IP address that was set in the Dockerfile so let's go with that for now. It should also work for local development and probably streamlit. It's unclear to me if we could change this requirement just by changing the appropriate cloudbuild yaml or a setting in GCP or something.
 
 [browser]
 gatherUsageStats = false # This makes start-up very slightly faster.
-serverAddress = "0.0.0.0" # This is the IP address that was set in the Dockerfile so let's go with that for now. It should also work for local development and probably streamlit. It's unclear to me if we could change this requirement just by changing the appropriate cloudbuild yaml or a setting in GCP or something.
 
 [theme]
 base = "dark" # It seems like setting the primary color forces us to light mode, so we have to force back to dark mode (possibly this is a STREAMLIT-BUG-WORKAROUND?)
