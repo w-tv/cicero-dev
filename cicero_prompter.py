@@ -28,7 +28,7 @@ from os import environ
 
 from databricks.vector_search.client import VectorSearchClient
 
-def disable_submit_button_til_complete():
+def disable_submit_button_til_complete() -> None:
   st.session_state["submit_button_disabled"] = True
 
 def external_topic_names_to_internal_topic_names_list_mapping(external_topic_names: list[str]) -> list[str]:
@@ -265,7 +265,7 @@ def execute_prompting(model: str, account: str, ask_type: str, topics: list[str]
     if not results:
       continue
     results_found.update([x for x, _ in results]) # add the found primary key values to the results_found set
-    search_results = []
+    search_results: list[ReferenceTextElement] = []
     lowest_score = score_threshold
     batch_bounds = [x for x in range(0, len(results), doc_pool_size)] + [len(results)]
     start = batch_bounds[0]
@@ -273,15 +273,15 @@ def execute_prompting(model: str, account: str, ask_type: str, topics: list[str]
     try: # In case something goes wrong, we have FAISS as a backup.
       # assert for_testing_purposes_dont_use_dbx_vcs #uncomment to enable this test
       for end in batch_bounds[1:]:
-        sim_search = text_index.similarity_search(
+        dbx_search = text_index.similarity_search(
           num_results=doc_pool_size, # This must be at most about 2**13 (8192) I have no idea what the actual max is
           columns=["Final_Text"],
           filters={primary_key: [x for x, _ in results[start:end]]}, # The filter statement can only provide at most 1024 items
           query_text=target_prompt
         )
         # Add results returned by the similarity search to the search_results list only if their similarity score is greater than or equal to the lowest similarity score we've stored. We only keep the top doc_pool_size number of documents for a single combination
-        if sim_search["result"]["row_count"] != 0:
-          search_results.extend({"prompt": "Please write me a" + x[0].split(":\n\n", 1)[0][1:], "text": x[0].split(":\n\n", 1)[1], "score": x[-1]} for x in sim_search["result"]["data_array"] if x[-1] >= lowest_score)
+        if dbx_search["result"]["row_count"] != 0:
+          search_results.extend({"prompt": "Please write me a" + x[0].split(":\n\n", 1)[0][1:], "text": x[0].split(":\n\n", 1)[1], "score": x[-1]} for x in dbx_search["result"]["data_array"] if x[-1] >= lowest_score)
           search_results = sorted(search_results, key=lambda x: x["score"], reverse=True)[:doc_pool_size]
           lowest_score = search_results[-1]["score"] if len(search_results) == doc_pool_size else lowest_score
         start = end
@@ -301,9 +301,9 @@ def execute_prompting(model: str, account: str, ask_type: str, topics: list[str]
       faiss_vs.delete(ids=["TEMP_REMOVE"])
       for end in batch_bounds[1:]:
         added_ids = faiss_vs.add_texts(texts=[y for _, y in results[start:end]])
-        sim_search = [(x[0].page_content, x[1]) for x in faiss_vs.similarity_search_with_relevance_scores(query=target_prompt, k=doc_pool_size, score_threshold=lowest_score)]
-        if sim_search:
-          search_results.extend({"prompt": "Please write me a" + x.split(":\n\n", 1)[0][1:], "text": x.split(":\n\n", 1)[1], "score": y} for x, y in sim_search)
+        faiss_search = [(x[0].page_content, x[1]) for x in faiss_vs.similarity_search_with_relevance_scores(query=target_prompt, k=doc_pool_size, score_threshold=lowest_score)]
+        if faiss_search:
+          search_results.extend({"prompt": "Please write me a" + x.split(":\n\n", 1)[0][1:], "text": x.split(":\n\n", 1)[1], "score": y} for x, y in faiss_search)
           search_results = sorted(search_results, key=lambda x: x["score"], reverse=True)[:doc_pool_size]
           lowest_score = search_results[-1]["score"] if len(search_results) == doc_pool_size else lowest_score
         # We delete the texts we were looking at for one reason
@@ -320,7 +320,7 @@ def execute_prompting(model: str, account: str, ask_type: str, topics: list[str]
       # added_ids = faiss_vs.add_texts(texts=[y for _, y in results],
       #                                metadatas=[{primary_key: x} for x, _ in results]
       #                                )
-      # sim_search = [(x[0].page_content, x[1]) for x in
+      # faiss_search = [(x[0].page_content, x[1]) for x in
       #               faiss_vs.similarity_search_with_relevance_scores(query=target_prompt, k=num_searches,
       #                                                                score_threshold=score_threshold,
       #                                                                filter={primary_key: {"$in": [x for x, _ in results]}})]
@@ -376,7 +376,7 @@ def execute_prompting(model: str, account: str, ask_type: str, topics: list[str]
   if tones:
     question_prompt += f" written with an emphasis on {tones}"
   if use_bio and account:
-    sys_prompt += f""" Here is important biographical information about the conservative candidate you are writing for: {load_bio(account)}"""
+    question_prompt += f""" Here is important biographical information about the conservative candidate you are writing for: {load_bio(account)}"""
   if headline:
     question_prompt += f""" Here is/are news headline(s) you should reference in your text messages: {headline}"""
 
@@ -513,7 +513,7 @@ def main() -> None:
       exit_error(69)
     additional_topics = [x.strip().lower() for x in st.text_input("Additional Topics (examples: Biden, survey, deadline)", key="additional_topics" ).split(",") if x.strip()] # The list comprehension is to filter out empty strings on split, because otherwise this fails to make a truly empty list in the default case, instead having a list with an empty string in, because split changes its behavior when you give it arguments. Anyway, this also filters out trailing comma edge-cases and such.
     tones = list_lower( st.multiselect("Tones", ['Agency', 'Apologetic', 'Candid', 'Exclusivity', 'Fiesty', 'Grateful', 'Not Asking For Money', 'Pleading', 'Quick Request', 'Secretive', 'Time Sensitive', 'Urgency'], key="tone") ) #TODO: , 'Swear Jar' will probably be in here some day, but we don't have "we need more swear jar data to make this tone better"
-    num_outputs: int = st.selectbox("\# Outputs", [1,3,5,10], key='num_outputs')
+    num_outputs: int = st.selectbox("\# Outputs", [1,3,5,10], key='num_outputs') or 0 # STREAMLIT-BUG-WORKAROUND: the "or 0" is just a type assurance https://github.com/streamlit/streamlit/issues/8717
     temperature: float = st.slider("Output Variance:", min_value=0.0, max_value=1.0, key="temperature") if st.session_state["developer_mode"] else 0.7
     buttonhole = st.empty()
     with buttonhole:
