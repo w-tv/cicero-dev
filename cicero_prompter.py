@@ -271,7 +271,7 @@ def execute_prompting(model: str, account: str, ask_type: str, topics: list[str]
     start = batch_bounds[0]
     # Perform a similarity search using the target_prompt defined beforehand. Filter for only the results we found earlier in this current iteration.
     try: # In case something goes wrong, we have FAISS as a backup.
-      # assert for_testing_purposes_dont_use_dbx_vcs #uncomment to enable this test
+      assert not st.session_state.get("use_backup_similarity_search_library")
       for end in batch_bounds[1:]:
         dbx_search = text_index.similarity_search(
           num_results=doc_pool_size, # This must be at most about 2**13 (8192) I have no idea what the actual max is
@@ -288,6 +288,8 @@ def execute_prompting(model: str, account: str, ask_type: str, topics: list[str]
       # Then add all results sorted by score descending to the reference_texts list
       reference_texts.extend(search_results)
     except:
+      if st.session_state.get("developer_mode"):
+        st.write("developer mode message: error was encountered in the main similiarity search library (or perhaps you induced a fake error there for testing purposes) so we are using the backup option")
       search_results = []
       lowest_score = score_threshold
       start = batch_bounds[0]
@@ -521,6 +523,8 @@ def main() -> None:
         st.form_submit_button("Processing...", type="primary", disabled=True)
       else:
         st.form_submit_button("Submit", type="primary", on_click=disable_submit_button_til_complete)
+    if st.session_state.get("developer_mode"):
+      st.session_state["use_backup_similarity_search_library"] = st.selectbox("(developer mode option) use backup similarity search library", [False, True])
 
   #Composition and sending a request:
   did_a_query = False
