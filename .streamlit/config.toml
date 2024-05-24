@@ -5,3 +5,7 @@ runOnSave = true # We always want to rerun when the files change, for a smooth d
 [browser]
 gatherUsageStats = false # This makes start-up very slightly faster.
 serverAddress = "localhost" # This explicitly directs the user to the correct address, localhost (which is important because we have google oauth approved for that domain) despite the fact that this is already supposed to be the default if no value is provided (which doesn't work; see https://github.com/streamlit/streamlit/issues/8629)
+
+[theme]
+base = "dark"
+primaryColor = "#FD4844"
