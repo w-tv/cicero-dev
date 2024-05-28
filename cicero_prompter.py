@@ -7,9 +7,9 @@ import pandas as pd
 import json
 from datetime import datetime, date
 #COULD: use https://pypi.org/project/streamlit-profiler/ for profiling
-from typing import Any, Literal, TypedDict, TypeVar
+from typing import Any, Literal, TypedDict, TypeVar, get_args
 from zoneinfo import ZoneInfo as z
-from cicero_shared import assert_always, exit_error, load_account_names, sql_call, sql_call_cacheless, topics_big, Row
+from cicero_shared import assert_always, exit_error, load_account_names, sql_call, sql_call_cacheless, topics_big, Row, typesafe_selectbox
 import cicero_rag_only
 
 from num2words import num2words
@@ -23,8 +23,6 @@ from langchain_community.embeddings import HuggingFaceEmbeddings
 
 import re
 import random
-import os
-from os import environ
 
 from databricks.vector_search.client import VectorSearchClient
 
@@ -134,7 +132,7 @@ def execute_prompting(model: str, account: str, ask_type: str, topics: list[str]
   output_table_name = "models.lovelytics.gold_text_outputs" # Text Output Table Name
   ref_tag_name = "models.lovelytics.ref_tags" # Tags Table Name
   primary_key = "PROJECT_NAME" # Index Table Primary Key Name
-  client = account # we never use this variable, but client is considered a synonym for account currently
+  client = account # we never use this variable, but client is considered a synonym for account currently #TODO: actually we should refactor out the word "client" I guess. Either one of client or account should go. And begone from variable names.
   topics_str = ", ".join(topics)
   tones_str = ", ".join(tones)
 
@@ -159,7 +157,7 @@ def execute_prompting(model: str, account: str, ask_type: str, topics: list[str]
   # Tp, C, L
   # Tp, C
 
-  T = TypeVar('T') # Could: Changed in version 3.12: Syntactic support for generics is new in Python 3.12.
+  T = TypeVar('T') # TODO: Changed in version 3.12: Syntactic support for generics is new in Python 3.12.
   def powerset(l: list[T], start: int = 0) -> list[tuple[T, ...]]:
     """powerset([1,2,3]) → () (1,) (2,) (3,) (1,2) (1,3) (2,3) (1,2,3)
     Used to generate powersets of filters."""
@@ -377,7 +375,7 @@ def execute_prompting(model: str, account: str, ask_type: str, topics: list[str]
     question_prompt += f" about {topics}"
   if tones:
     question_prompt += f" written with an emphasis on {tones}"
-  if use_bio and account:
+  if use_bio:
     question_prompt += f""" Here is important biographical information about the conservative candidate you are writing for: {load_bio(account)}"""
   if headline:
     question_prompt += f""" Here is/are news headline(s) you should reference in your text messages: {headline}"""
@@ -479,7 +477,7 @@ def main() -> None:
     h: list[str] = load_headlines(get_all=False) if not overdrive else load_headlines(get_all=False, past_days=3)
     if exact_match_query:
       h = only_those_strings_of_the_list_that_contain_the_given_substring_case_insensitively(h, exact_match_query)
-    headline = st.selectbox("If a headline is selected here, it will be added to your prompt below.", list(h), key="headline")
+    headline = st.selectbox("If a headline is selected here, it will be added to your prompt below.", list(h), key="headline") # No typesafe_selectbox here because we actually do want this to possibly be unselected.
 
   st.text("") # Just for vertical spacing.
 
@@ -495,8 +493,8 @@ def main() -> None:
         client_weight: float = st.slider("Client Weight", min_value=0.0, max_value=10.0, key="client_weight")
         ask_weight: float = st.slider("Ask Weight", min_value=0.0, max_value=10.0, key="ask_weight")
         text_len_weight: float = st.slider("Text Len Weight", min_value=0.0, max_value=10.0, key="text_len_weight")
-        st.session_state["the_real_dude_model_name"] = st.selectbox("Model selection for Cicero (the actual, historical man (it's really him))", ['databricks-meta-llama-3-70b-instruct', "databricks-dbrx-instruct", "databricks-mixtral-8x7b-instruct"]) or 'databricks-meta-llama-3-70b-instruct' #TODO: this is deliberately not in the preset system, because it might get removed later.
-        st.session_state["the_real_dude_system_prompt"] = st.selectbox("Model system prompt for Cicero (the actual, historical man (it's really him))", [default_sys_prompt, rewrite_sys_prompt, analyze_sys_prompt]) or default_sys_prompt #TODO: this is deliberately not in the preset system, because it might get removed later.
+        st.session_state["the_real_dude_model_name"] = typesafe_selectbox("Model selection for Cicero (the actual, historical man (it's really him))", ['databricks-meta-llama-3-70b-instruct', "databricks-dbrx-instruct", "databricks-mixtral-8x7b-instruct"]) #TODO: this is deliberately not in the preset system, because it might get removed later.
+        st.session_state["the_real_dude_system_prompt"] = typesafe_selectbox("Model system prompt for Cicero (the actual, historical man (it's really him))", [default_sys_prompt, rewrite_sys_prompt, analyze_sys_prompt]) #TODO: this is deliberately not in the preset system, because it might get removed later.
       else:
         topic_weight = 4
         tone_weight = 1
@@ -506,24 +504,21 @@ def main() -> None:
         st.session_state["the_real_dude_model_name"] = 'databricks-meta-llama-3-70b-instruct'
         st.session_state["the_real_dude_system_prompt"] = default_sys_prompt
 
-    model_name = str( st.selectbox("Model (required)", ["Llama-3-70b-Instruct", "DBRX-Instruct", "Mixtral-8x7b-Instruct"], key="model") ) if st.session_state["developer_mode"] else "Llama-3-70b-Instruct"
+    model_name = typesafe_selectbox("Model (required)", ["Llama-3-70b-Instruct", "DBRX-Instruct", "Mixtral-8x7b-Instruct"], key="model") if st.session_state["developer_mode"] else "Llama-3-70b-Instruct"
     model = {
       "Llama-3-70b-Instruct":"databricks-meta-llama-3-70b-instruct",
       "DBRX-Instruct": "databricks-dbrx-instruct",
       "Mixtral-8x7b-Instruct": "databricks-mixtral-8x7b-instruct"
     }[model_name]
-    account = st.selectbox("Account (required)", list(account_names), key="account")
-    ask_type = str( st.selectbox("Ask Type", ['Hard Ask', 'Medium Ask', 'Soft Ask', 'Soft Ask Petition', 'Soft Ask Poll', 'Soft Ask Survey'], key="ask_type") ).lower() #STREAMLIT-BUG-WORKAROUND: every time I, eg, wrap selectbox in str I think this is technically working around a bug in streamlit, although it's a typing bug and might be impossible for them to fix: https://github.com/streamlit/streamlit/issues/8717
+    account = st.selectbox("Account (required)", list(account_names), key="account") # No typesafe_selectbox here because we actually do want this to possibly be unselected.
+    ask_type = typesafe_selectbox("Ask Type", ['Hard Ask', 'Medium Ask', 'Soft Ask', 'Soft Ask Petition', 'Soft Ask Poll', 'Soft Ask Survey'], key="ask_type").lower()
     topics = st.multiselect("Topics", sorted([t for t, d in topics_big.items() if d["show in prompter?"]]), key="topics" )
     topics = external_topic_names_to_internal_topic_names_list_mapping(topics)
     lengths_selectable: list[Literal['short', 'medium', 'long']] = ['short', 'medium', 'long']
-    length_select = st.selectbox("Length", lengths_selectable, key='lengths', format_func=lambda x: f"{x.capitalize()} {('(<160 characters)' if x == 'short' else '(161-399 characters)' if x == 'medium' else '(400+ characters)')}")
-    if length_select is None:
-      print("length selection was None... that's not supposed to happen...")
-      exit_error(69)
+    length_select = typesafe_selectbox("Length", lengths_selectable, key='lengths', format_func=lambda x: f"{x.capitalize()} ({'<160' if x == 'short' else '161-399' if x == 'medium' else '400+'} characters)")
     additional_topics = [x.strip().lower() for x in st.text_input("Additional Topics (examples: Biden, survey, deadline)", key="additional_topics" ).split(",") if x.strip()] # The list comprehension is to filter out empty strings on split, because otherwise this fails to make a truly empty list in the default case, instead having a list with an empty string in, because split changes its behavior when you give it arguments. Anyway, this also filters out trailing comma edge-cases and such.
     tones = list_lower( st.multiselect("Tones", ['Agency', 'Apologetic', 'Candid', 'Exclusivity', 'Fiesty', 'Grateful', 'Not Asking For Money', 'Pleading', 'Quick Request', 'Secretive', 'Time Sensitive', 'Urgency'], key="tone") ) #TODO: , 'Swear Jar' will probably be in here some day, but we don't have "we need more swear jar data to make this tone better"
-    num_outputs: int = st.selectbox("\# Outputs", [1,3,5,10], key='num_outputs') or 0 # STREAMLIT-BUG-WORKAROUND: the "or 0" is just a type assurance https://github.com/streamlit/streamlit/issues/8717
+    num_outputs: int = typesafe_selectbox("\# Outputs", [1,3,5,10], key='num_outputs')
     temperature: float = st.slider("Output Variance:", min_value=0.0, max_value=1.0, key="temperature") if st.session_state["developer_mode"] else 0.7
     buttonhole = st.empty()
     with buttonhole:
@@ -532,7 +527,7 @@ def main() -> None:
       else:
         st.form_submit_button("Submit", type="primary", on_click=disable_submit_button_til_complete)
     if st.session_state.get("developer_mode"):
-      st.session_state["use_backup_similarity_search_library"] = st.selectbox("(developer mode option) use backup similarity search library", [False, True])
+      st.session_state["use_backup_similarity_search_library"] = typesafe_selectbox("(developer mode option) use backup similarity search library", [False, True])
 
   #Composition and sending a request:
   did_a_query = False

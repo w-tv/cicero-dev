@@ -2,7 +2,6 @@
 
 import streamlit as st
 from databricks_genai_inference import ChatSession
-from os import environ
 from cicero_shared import sql_call_cacheless
 from zoneinfo import ZoneInfo as z
 from datetime import datetime
@@ -12,7 +11,6 @@ def grow_chat(streamlit_key_suffix: str = "", alternate_content: str = "", displ
   model_name = st.session_state["the_real_dude_model_name"]
   sys_prompt = st.session_state["the_real_dude_system_prompt"]
   if not st.session_state.get("chat"):
-    # TODO: let dev user view and change model and system prompt in this ChatSession
     # Keep in mind that unless DATABRICKS_HOST and DATABRICKS_TOKEN are in the environment (streamlit does this with secret value by default), then the following line of code will fail with an extremely cryptic error asking you to run this program with a `setup` command line argument (which won't do anything)
     st.session_state.chat = ChatSession(model=model_name, system_message=sys_prompt, max_tokens=4096)
   if not st.session_state.get("messages"):

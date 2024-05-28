@@ -4,7 +4,7 @@
 from databricks import sql # Spooky that this is not the same name as the pypi package databricks-sql-connector, but is the way to refer to the same thing.
 from databricks.sql.types import Row as Row
 import streamlit as st
-from typing import Any, NoReturn, TypedDict
+from typing import Any, NoReturn, TypedDict, TypeVar, Sequence
 import urllib.parse
 
 def get_base_url() -> str:
@@ -50,11 +50,35 @@ def sql_call_cacheless(query: str, sql_params_dict:dict[str, Any]|None=None) -> 
 def load_account_names() -> list[str]:
   return [row[0] for row in sql_call("SELECT * FROM cicero.default.client_list")]
 
-def assert_always(x: Any, message_to_assert: str|None = None) -> None | NoReturn:
+def assert_always(x: Any, message_to_assert: str|None = None) -> None | NoReturn: #COULD: currently this enjoys no type-narrowing properties, alas.
   """This function is equivalent to assert, but cannot be disabled by -O"""
   if not x:
     raise AssertionError(message_to_assert or x)
   return None
+
+#STREAMLIT-BUG-WORKAROUND: every time I use this instead of st.selectbox I think this is technically working around a bug in streamlit, although it's a typing bug and might be impossible for them to fix: https://github.com/streamlit/streamlit/issues/8717
+T = TypeVar("T") # TODO: in python 3.12 you can just use type parameter syntax instead of this TypeVar https://docs.python.org/3/whatsnew/3.12.html#whatsnew312-pep695
+def typesafe_selectbox(label: str, options: Sequence[T], default: T|None = None, **kwargs: Any) -> T:
+  """Call `st.selectbox` but don't pollute your type with `None` in the process;
+  if the selectbox would return `None`, return the value passed in as `default`.
+  If `default` is `None` (eg: not passed in), the value of `options[0]` is used.
+  The value of `default` (unless `None`) must be in `options`, on pain of runtime error;
+  and, furthermore, `options` must not be empty.
+
+  `options` is also a `Sequence` type rather than the broader `Iterable`
+  to ensure it isn't an exhaustible iterator that would be harmed by a call to `.index()`
+
+  `default` is named in analogy to a parameter in `st.multiselect`.
+  But there are other widgets, like `st.text_input`, that have an analogous parameter named `value` 🤷.
+
+  All arguments, including kwargs, are passed on to st.selectbox, either directly or indirectly.
+  It's not clear to me if there's a better & concise way to do the type signature of kwargs here.
+
+  Note that if you use st.session_state to set the value of the key of the selectbox, that takes priority over the `default` argument.
+  However, if you set the value of said key to `None`, this function will still return `options[0]`."""
+  i = 0 if default is None else options.index(default)
+  x = st.selectbox(label, options, index=i, **kwargs)
+  return x if x is not None else options[i]
 
 # This is the 'big' of topics, the authoritative record of various facts and mappings about topics.
 Topics_Big_Payload = TypedDict("Topics_Big_Payload", {'color': str, 'internal name': str, 'show in prompter?': bool})
