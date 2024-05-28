@@ -14,6 +14,7 @@ mlflow #for some reason, you need to explicitly install this to get langchain-co
 langchain-community
 sentence-transformers # Needed for the HuggingFaceEmbeddings(model_name="sentence-transformers/all-MiniLM-L12-v2") call, apparently.
 faiss-cpu # needed for faiss. There's also a faiss-gpu but that seems like more of a gamble
+jellyfish # Needed for cross-document similarity comparisons
 
 # Dev-only requirements (tooling)
 uv >= 0.1.35 # I'm not sure the exact version that added uv run, but that's really all we need.
