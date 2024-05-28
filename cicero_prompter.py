@@ -57,10 +57,6 @@ def load_bios() -> dict[str, str]:
   return {row["candidate"]:row["bio"] for row in sql_call("SELECT candidate, bio FROM cicero.default.ref_bios")}
 
 @st.cache_data(show_spinner=False)
-def load_bio(candidate: str) -> str:
-  return str( sql_call("SELECT bio FROM cicero.default.ref_bios WHERE candidate = :candidate", locals())[0][0] )
-
-@st.cache_data(show_spinner=False)
 def load_headlines(get_all: bool = False, past_days: int = 7) -> list[str]:
    # The (arbitrary) requirement is that we return results from the last 7 days by default.
   sql_call("CREATE TABLE IF NOT EXISTS cicero.default.headline_log (datetime string, headline string)")
@@ -124,7 +120,7 @@ def list_lower(l: list[str]) -> list[str]:
 def only_those_strings_of_the_list_that_contain_the_given_substring_case_insensitively(l: list[str], s: str) -> list[str]:
   return [x for x in l if s.lower() in x.lower()]
 
-def execute_prompting(model: str, account: str, ask_type: str, topics: list[str], additional_topics: list[str], tones: list[str], text_len: Literal["short", "medium", "long", ""], headline: str|None, num_outputs: int, model_temperature: float = 0.8, use_bio: bool = True, max_tokens: int = 4096, topic_weight: float = 4, tone_weight: float = 1, client_weight: float = 6, ask_weight: float = 2, text_len_weight: float = 3) -> tuple[str, list[str], str]:
+def execute_prompting(model: str, account: str, ask_type: str, topics: list[str], additional_topics: list[str], tones: list[str], text_len: Literal["short", "medium", "long", ""], headline: str|None, num_outputs: int, model_temperature: float = 0.8, bio: str|None = None, max_tokens: int = 4096, topic_weight: float = 4, tone_weight: float = 1, client_weight: float = 6, ask_weight: float = 2, text_len_weight: float = 3) -> tuple[str, list[str], str]:
   score_threshold = 0.5 # Document Similarity Score Acceptance Threshold
   doc_pool_size = 10 # Document Pool Size
   num_examples = 10 # Number of Documents to Use as Examples
@@ -376,8 +372,8 @@ def execute_prompting(model: str, account: str, ask_type: str, topics: list[str]
     question_prompt += f" about {topics}"
   if tones:
     question_prompt += f" written with an emphasis on {tones}"
-  if use_bio:
-    question_prompt += f""" Here is important biographical information about the conservative candidate you are writing for: {load_bio(account)}"""
+  if bio:
+    question_prompt += f""" Here is important biographical information about the conservative candidate you are writing for: {bio}"""
   if headline:
     question_prompt += f""" Here is/are news headline(s) you should reference in your text messages: {headline}"""
 
@@ -541,9 +537,9 @@ def main() -> None:
       did_a_query = True
       cicero_rag_only.reset_chat()
       st.session_state['use_count']+=1 #this is just an optimization for the front-end display of the query count
-      use_bio=("Bio" in topics and account in bios)
+      bio = bios.get(account) if ("bio" in topics and account in bios) else None
       max_tokens = 4096
-      promptsent, st.session_state['outputs'], st.session_state['entire_prompt'] = execute_prompting(model, account, ask_type, topics, additional_topics, tones, length_select, headline, num_outputs, temperature, use_bio, max_tokens, topic_weight, tone_weight, client_weight, ask_weight, text_len_weight)
+      promptsent, st.session_state['outputs'], st.session_state['entire_prompt'] = execute_prompting(model, account, ask_type, topics, additional_topics, tones, length_select, headline, num_outputs, temperature, bio, max_tokens, topic_weight, tone_weight, client_weight, ask_weight, text_len_weight)
       if len(st.session_state['outputs']) != num_outputs:
         st.info("CICERO has detected that the number of outputs may be wrong.")
       if 'history' not in st.session_state:
