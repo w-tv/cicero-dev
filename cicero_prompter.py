@@ -133,6 +133,7 @@ def execute_prompting(model: str, account: str, ask_type: str, topics: list[str]
   ref_tag_name = "models.lovelytics.ref_tags" # Tags Table Name
   primary_key = "PROJECT_NAME" # Index Table Primary Key Name
   client = account # we never use this variable, but client is considered a synonym for account currently #TODO: actually we should refactor out the word "client" I guess. Either one of client or account should go. And begone from variable names.
+  topics += additional_topics
   topics_str = ", ".join(topics)
   tones_str = ", ".join(tones)
 
