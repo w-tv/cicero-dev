@@ -151,7 +151,7 @@ def sample_dissimilar_texts(population: list, k: int, max_similarity: float=0.8)
         score += 1 - (distance / (len(item["text"]) + len(selected["text"])))
       average_score = score / len(final_arr)
       scored_unselected.append((item, average_score))
-    scored_unselected = sorted(scored_unselected, key=lambda x: x[1], reverse=True)
+    scored_unselected = sorted(scored_unselected, key=lambda x: x[1], reverse=False)
     final_arr.append(scored_unselected.pop(0)[0])
     not_selected = scored_unselected
   return random.sample(final_arr, k=len(final_arr))
