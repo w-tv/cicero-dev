@@ -7,7 +7,7 @@ import pandas as pd
 import json
 from datetime import datetime, date
 #COULD: use https://pypi.org/project/streamlit-profiler/ for profiling
-from typing import Any, Literal, TypedDict, TypeVar, get_args
+from typing import Any, Literal, TypedDict, get_args
 from zoneinfo import ZoneInfo as z
 from cicero_shared import assert_always, exit_error, load_account_names, sql_call, sql_call_cacheless, topics_big, Row, typesafe_selectbox
 import cicero_rag_only
@@ -154,8 +154,7 @@ def execute_prompting(model: str, account: str, ask_type: str, topics: list[str]
   # Tp, C, L
   # Tp, C
 
-  T = TypeVar('T') # TODO: Changed in version 3.12: Syntactic support for generics is new in Python 3.12.
-  def powerset(l: list[T], start: int = 0) -> list[tuple[T, ...]]:
+  def powerset[T](l: list[T], start: int = 0) -> list[tuple[T, ...]]:
     """powerset([1,2,3]) → () (1,) (2,) (3,) (1,2) (1,3) (2,3) (1,2,3)
     Used to generate powersets of filters."""
     return [x for r in range(start, len(l)+1) for x in combinations(l, r)]
@@ -515,7 +514,7 @@ def main() -> None:
     length_select = typesafe_selectbox("Length", lengths_selectable, key='lengths', format_func=lambda x: f"{x.capitalize()} ({'<160' if x == 'short' else '161-399' if x == 'medium' else '400+'} characters)")
     additional_topics = [x.strip().lower() for x in st.text_input("Additional Topics (examples: Biden, survey, deadline)", key="additional_topics" ).split(",") if x.strip()] # The list comprehension is to filter out empty strings on split, because otherwise this fails to make a truly empty list in the default case, instead having a list with an empty string in, because split changes its behavior when you give it arguments. Anyway, this also filters out trailing comma edge-cases and such.
     tones = list_lower( st.multiselect("Tones", ['Agency', 'Apologetic', 'Candid', 'Exclusivity', 'Fiesty', 'Grateful', 'Not Asking For Money', 'Pleading', 'Quick Request', 'Secretive', 'Time Sensitive', 'Urgency'], key="tone") ) #Could: , 'Swear Jar' will probably be in here some day, but we don't have "we need more swear jar data to make this tone better"
-    num_outputs: int = typesafe_selectbox("\# Outputs", [1,3,5,10], key='num_outputs')
+    num_outputs: int = typesafe_selectbox(r"\# Outputs", [1,3,5,10], key='num_outputs')
     temperature: float = st.slider("Output Variance:", min_value=0.0, max_value=1.0, key="temperature") if st.session_state["developer_mode"] else 0.7
     buttonhole = st.empty()
     with buttonhole:

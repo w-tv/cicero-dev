@@ -4,7 +4,7 @@
 from databricks import sql # Spooky that this is not the same name as the pypi package databricks-sql-connector, but is the way to refer to the same thing.
 from databricks.sql.types import Row as Row
 import streamlit as st
-from typing import Any, NoReturn, TypedDict, TypeVar, Sequence
+from typing import Any, NoReturn, TypedDict, Sequence
 import urllib.parse
 
 def get_base_url() -> str:
@@ -56,9 +56,7 @@ def assert_always(x: Any, message_to_assert: str|None = None) -> None | NoReturn
     raise AssertionError(message_to_assert or x)
   return None
 
-#STREAMLIT-BUG-WORKAROUND: every time I use this instead of st.selectbox I think this is technically working around a bug in streamlit, although it's a typing bug and might be impossible for them to fix: https://github.com/streamlit/streamlit/issues/8717
-T = TypeVar("T") # TODO: in python 3.12 you can just use type parameter syntax instead of this TypeVar https://docs.python.org/3/whatsnew/3.12.html#whatsnew312-pep695
-def typesafe_selectbox(label: str, options: Sequence[T], default: T|None = None, **kwargs: Any) -> T:
+def typesafe_selectbox[T](label: str, options: Sequence[T], default: T|None = None, **kwargs: Any) -> T:
   """Call `st.selectbox` but don't pollute your type with `None` in the process;
   if the selectbox would return `None`, return the value passed in as `default`.
   If `default` is `None` (eg: not passed in), the value of `options[0]` is used.
@@ -76,6 +74,7 @@ def typesafe_selectbox(label: str, options: Sequence[T], default: T|None = None,
 
   Note that if you use st.session_state to set the value of the key of the selectbox, that takes priority over the `default` argument.
   However, if you set the value of said key to `None`, this function will still return `options[0]`."""
+  #STREAMLIT-BUG-WORKAROUND: every time I use this instead of st.selectbox I think this is technically working around a bug in streamlit, although it's a typing bug and might be impossible for them to fix: https://github.com/streamlit/streamlit/issues/8717
   i = 0 if default is None else options.index(default)
   x = st.selectbox(label, options, index=i, **kwargs)
   return x if x is not None else options[i]
