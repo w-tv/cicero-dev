@@ -23,6 +23,7 @@ from langchain_community.embeddings import HuggingFaceEmbeddings
 
 import re
 import random
+import jellyfish
 
 from databricks.vector_search.client import VectorSearchClient
 
@@ -119,6 +120,41 @@ def list_lower(l: list[str]) -> list[str]:
 
 def only_those_strings_of_the_list_that_contain_the_given_substring_case_insensitively(l: list[str], s: str) -> list[str]:
   return [x for x in l if s.lower() in x.lower()]
+
+def sample_dissimilar_texts(population: list, k: int, max_similarity: float=0.8):
+  final_arr = []
+  not_selected = []
+  randomized_arr = random.sample(population, k=len(population))
+  for num, item in enumerate(randomized_arr):
+    valid = True
+    for selected in final_arr:
+      distance = jellyfish.damerau_levenshtein_distance(item["text"], selected["text"])
+      similarity = 1 - (distance / (len(item["text"]) + len(selected["text"])))
+      if similarity > max_similarity:
+        valid = False
+        break
+    if valid:
+      final_arr.append(item)
+    else:
+      not_selected.append((item, 0))
+    if len(final_arr) == k:
+      not_selected.extend((alpha, 0) for alpha in randomized_arr[num+1:])
+      break
+  while len(final_arr) < k:
+    if not not_selected:
+      break
+    scored_unselected = []
+    for item, _ in not_selected:
+      score = 0
+      for selected in final_arr:
+        distance = jellyfish.damerau_levenshtein_distance(item["text"], selected["text"])
+        score += 1 - (distance / (len(item["text"]) + len(selected["text"])))
+      average_score = score / len(final_arr)
+      scored_unselected.append((item, average_score))
+    scored_unselected = sorted(scored_unselected, key=lambda x: x[1], reverse=True)
+    final_arr.append(scored_unselected.pop(0)[0])
+    not_selected = scored_unselected
+  return random.sample(final_arr, k=len(final_arr))
 
 def execute_prompting(model: str, account: str, ask_type: str, topics: list[str], additional_topics: list[str], tones: list[str], text_len: Literal["short", "medium", "long", ""], headline: str|None, num_outputs: int, model_temperature: float = 0.8, bio: str|None = None, max_tokens: int = 4096, topic_weight: float = 4, tone_weight: float = 1, client_weight: float = 6, ask_weight: float = 2, text_len_weight: float = 3) -> tuple[str, list[str], str]:
   score_threshold = 0.5 # Document Similarity Score Acceptance Threshold
@@ -408,11 +444,15 @@ def execute_prompting(model: str, account: str, ask_type: str, topics: list[str]
   else:
       single_output = ""
       for i in range(num_outputs):
-        texts_to_use = random.sample(reference_texts, k=num_exes)
+        # Use our custom sampling and text selection function to randomly select the texts we'll use as examples
+        texts_to_use = sample_dissimilar_texts(reference_texts, k=num_exes)
+        # Reinstantiate the multishot_items dictionary. This is just in case the sample function we provided returns less items than the chat_history is prepared for
+        multishot_items = {}
         for num, content in enumerate(texts_to_use):
             multishot_items[f"example_{num + 1}_p"] = content["prompt"]
             multishot_items[f"example_{num + 1}_t"] = content["text"]
-        combined_dict["chat_history"] = "".join(base_chat_history).format(**multishot_items)
+        # Create the chat history text up to the number of texts found from sampling
+        combined_dict["chat_history"] = "".join(base_chat_history[:len(multishot_items)]).format(**multishot_items)
         filled_in_prompt = (prompt.format(**combined_dict))
         inv_res = model_chain.invoke(combined_dict)
         single_output += f"{i + 1}. " + inv_res + "\n"
