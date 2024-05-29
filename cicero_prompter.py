@@ -435,10 +435,11 @@ def execute_prompting(model: str, account: str, ask_type: str, topics: list[str]
     texts_to_use = random.sample(reference_texts, k=num_exes)
     # We reinsert and separate the found documents into two separate dictionaries
     # This makes it easier to assemble the RAG prompt and pass them as string format variables to langchain
+    multishot_items = {}
     for num, content in enumerate(texts_to_use):
         multishot_items[f"example_{num + 1}_p"] = content["prompt"]
         multishot_items[f"example_{num + 1}_t"] = content["text"]
-    combined_dict["chat_history"] = "".join(base_chat_history).format(**multishot_items)
+    combined_dict["chat_history"] = "".join(base_chat_history[:len(multishot_items)]).format(**multishot_items)
     filled_in_prompt = (prompt.format(**combined_dict))
     single_output = model_chain.invoke(combined_dict)
   else:
