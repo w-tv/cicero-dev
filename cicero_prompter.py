@@ -140,7 +140,7 @@ def sample_dissimilar_texts(population: list, k: int, max_similarity: float=0.8)
     if len(final_arr) == k:
       not_selected.extend((alpha, 0) for alpha in randomized_arr[num+1:])
       break
-  while len(final_arr) < k:
+  while len(final_arr) < (k - 5):
     if not not_selected:
       break
     scored_unselected = []
