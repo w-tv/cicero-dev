@@ -121,8 +121,10 @@ def list_lower(l: list[str]) -> list[str]:
 def only_those_strings_of_the_list_that_contain_the_given_substring_case_insensitively(l: list[str], s: str) -> list[str]:
   return [x for x in l if s.lower() in x.lower()]
 
-def sample_dissimilar_texts(population: list, k: int, max_similarity: float=0.8):
-  final_arr = []
+ReferenceTextElement = TypedDict('ReferenceTextElement', {'prompt': str, 'text': str, 'score': float})
+
+def sample_dissimilar_texts(population: list[ReferenceTextElement], k: int, max_similarity: float=0.8) -> list[ReferenceTextElement]:
+  final_arr: list[ReferenceTextElement] = []
   not_selected = []
   randomized_arr = random.sample(population, k=len(population))
   for num, item in enumerate(randomized_arr):
@@ -136,9 +138,9 @@ def sample_dissimilar_texts(population: list, k: int, max_similarity: float=0.8)
     if valid:
       final_arr.append(item)
     else:
-      not_selected.append((item, 0))
+      not_selected.append((item, 0.0))
     if len(final_arr) == k:
-      not_selected.extend((alpha, 0) for alpha in randomized_arr[num+1:])
+      not_selected.extend((alpha, 0.0) for alpha in randomized_arr[num+1:])
       break
   while len(final_arr) < (k - 5):
     if not not_selected:
@@ -240,7 +242,6 @@ def execute_prompting(model: str, account: str, ask_type: str, topics: list[str]
   # This is to prevent duplicate documents/texts from showing up
   results_found = set()
   # reference_texts will be a list of dictionaries containing example user prompts and assistant responses (i.e. the text messages). Also, scores (a number, represented numerically).
-  ReferenceTextElement = TypedDict('ReferenceTextElement', {'prompt': str, 'text': str, 'score': float})
   reference_texts : list[ReferenceTextElement] = []
   # Setup Vector Search Client that we will use in the loop.
   vsc = VectorSearchClient( personal_access_token=st.secrets["DATABRICKS_TOKEN"], workspace_url=st.secrets['DATABRICKS_HOST'], disable_notice=True )
