@@ -160,7 +160,7 @@ def sample_dissimilar_texts(population: list[ReferenceTextElement], k: int, max_
 
 def execute_prompting(model: str, account: str, ask_type: str, topics: list[str], additional_topics: list[str], tones: list[str], text_len: Literal["short", "medium", "long", ""], headline: str|None, num_outputs: int, model_temperature: float = 0.8, bio: str|None = None, max_tokens: int = 4096, topic_weight: float = 4, tone_weight: float = 1, client_weight: float = 6, ask_weight: float = 2, text_len_weight: float = 3) -> tuple[str, list[str], str]:
   score_threshold = 0.5 # Document Similarity Score Acceptance Threshold
-  doc_pool_size = 10 # Document Pool Size
+  doc_pool_size = 30 # Document Pool Size
   num_examples = 10 # Number of Documents to Use as Examples
   assert_always(num_examples <= doc_pool_size, "You can't ask to provide more examples than there are documents in the pool! Try again with a different value.")
   output_table_name = "models.lovelytics.gold_text_outputs" # Text Output Table Name
