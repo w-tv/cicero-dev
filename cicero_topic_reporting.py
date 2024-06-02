@@ -24,7 +24,7 @@ def to_graphable_dict(values: Sequence[Sequence[Any]], x:str='x', y:str='y', col
   else:
     return [{x: value[0], y:value[1], color:value[2]} for value in values]
 
-internal_account_name_to_external_account_name = { #many-to-one relationship
+internal_account_name_to_external_account_name = { #many-to-one relationship #TODO: I'm pretty sure this has all moved to a table we should use instead, by now.
   '1776 Action - Twenty Manor (TMA Direct)' : '1776 Action - TMA',
   '1776 Action (TMA)' : '1776 Action - TMA',
   '1776 PAC - Convert Digital (TMA)' : '1776 PAC - TMA',
@@ -119,6 +119,7 @@ internal_account_name_to_external_account_name = { #many-to-one relationship
   'Defending America\'s Future - Convert Digital (TMA)' : 'Defending America\'s Future - TMA',
   'Defense of Freedom PAC' : 'Defense of Freedom PAC',
   'Demi Kouzounas for Senate' : 'Demi Kouzounas',
+  'Derek Schmidt KS-02' : 'Derek Schmidt',
   'DeWine Husted for Ohio - Right Digital (916)' : 'Mike DeWine - TMA',
   'DMS: Grassroots Action Fund' : 'Grassroots Action Fund',
   'DMS: NVAF' : 'NVAF',
