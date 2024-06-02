@@ -121,6 +121,15 @@ def list_lower(l: list[str]) -> list[str]:
 def only_those_strings_of_the_list_that_contain_the_given_substring_case_insensitively(l: list[str], s: str) -> list[str]:
   return [x for x in l if s.lower() in x.lower()]
 
+short_model_names: str = ["DBRX-Instruct", "Llama-3-70b-Instruct", "Mixtral-8x7b-Instruct"] #TODO: possibly make enum? I fell down a whole typing adventure D.R.Y. hole here before, so I'm avoiding that experiment for now.
+
+def short_model_name_to_long_model_name(short_model_name: str) -> str:
+  return {
+    "DBRX-Instruct": "databricks-dbrx-instruct",
+    "Llama-3-70b-Instruct":"databricks-meta-llama-3-70b-instruct",
+    "Mixtral-8x7b-Instruct": "databricks-mixtral-8x7b-instruct"
+  }[short_model_name]
+
 ReferenceTextElement = TypedDict('ReferenceTextElement', {'prompt': str, 'text': str, 'score': float})
 
 def sample_dissimilar_texts(population: list[ReferenceTextElement], k: int, max_similarity: float=0.8) -> list[ReferenceTextElement]:
@@ -531,7 +540,7 @@ def main() -> None:
         client_weight: float = st.slider("Client Weight", min_value=0.0, max_value=10.0, key="client_weight")
         ask_weight: float = st.slider("Ask Weight", min_value=0.0, max_value=10.0, key="ask_weight")
         text_len_weight: float = st.slider("Text Len Weight", min_value=0.0, max_value=10.0, key="text_len_weight")
-        st.session_state["the_real_dude_model_name"] = typesafe_selectbox("Model selection for Cicero (the actual, historical man (it's really him))", ['databricks-meta-llama-3-70b-instruct', "databricks-dbrx-instruct", "databricks-mixtral-8x7b-instruct"]) #TODO: this is deliberately not in the preset system, because it might get removed later.
+        st.session_state["the_real_dude_model_name"] = short_model_name_to_long_model_name(typesafe_selectbox("Model selection for Cicero (the actual, historical man (it's really him))", short_model_names)) #TODO: this is deliberately not in the preset system, because it might get removed later.
         st.session_state["the_real_dude_system_prompt"] = typesafe_selectbox("Model system prompt for Cicero (the actual, historical man (it's really him))", [default_sys_prompt, rewrite_sys_prompt, analyze_sys_prompt]) #TODO: this is deliberately not in the preset system, because it might get removed later.
       else:
         topic_weight = 4
@@ -539,15 +548,11 @@ def main() -> None:
         client_weight = 6
         ask_weight = 2
         text_len_weight = 3
-        st.session_state["the_real_dude_model_name"] = 'databricks-meta-llama-3-70b-instruct'
+        st.session_state["the_real_dude_model_name"] = 'databricks-dbrx-instruct'
         st.session_state["the_real_dude_system_prompt"] = default_sys_prompt
 
-    model_name = typesafe_selectbox("Model (required)", ["Llama-3-70b-Instruct", "DBRX-Instruct", "Mixtral-8x7b-Instruct"], key="model") if st.session_state["developer_mode"] else "Llama-3-70b-Instruct"
-    model = {
-      "Llama-3-70b-Instruct":"databricks-meta-llama-3-70b-instruct",
-      "DBRX-Instruct": "databricks-dbrx-instruct",
-      "Mixtral-8x7b-Instruct": "databricks-mixtral-8x7b-instruct"
-    }[model_name]
+    model_name = typesafe_selectbox("Model (required)", short_model_names, default="Llama-3-70b-Instruct", key="model") if st.session_state["developer_mode"] else "Llama-3-70b-Instruct"
+    model = short_model_name_to_long_model_name(model_name)
     account = st.selectbox("Account (required)", list(account_names), key="account") # No typesafe_selectbox here because we actually do want this to possibly be unselected.
     ask_type = typesafe_selectbox("Ask Type", ['Hard Ask', 'Medium Ask', 'Soft Ask', 'Soft Ask Petition', 'Soft Ask Poll', 'Soft Ask Survey'], key="ask_type").lower()
     topics = st.multiselect("Topics", sorted([t for t, d in topics_big.items() if d["show in prompter?"]]), key="topics" )
