@@ -9,7 +9,7 @@ nanoseconds_base : int = perf_counter_ns()
 import streamlit as st
 #from streamlit.components.v1 import html
 import os, psutil, platform
-import cicero_prompter, cicero_topic_reporting, cicero_response_lookup, cicero_rag_only
+import cicero_prompter, cicero_topic_reporting, cicero_response_lookup, cicero_rag_only, cicero_new_pod_key
 from cicero_shared import exit_error, get_base_url
 from google.auth.transport import requests
 from google.oauth2 import id_token
@@ -52,16 +52,18 @@ def main() -> None:
   st.session_state['developer_mode'] = st.session_state['email'] in ["achang@targetedvictory.com", "abrady@targetedvictory.com", "thall@targetedvictory.com", "afuhrer@targetedvictory.com", "wcarpenter@targetedvictory.com", "cmahon@targetedvictory.com", "rtauscher@targetedvictory.com", "cmajor@targetedvictory.com", "test@example.com"] and not st.session_state.get("developer_mode_disabled")
   def disable_developer_mode() -> None: st.session_state["developer_mode_disabled"] = True
 
-  if st.session_state['developer_mode']: #dev-mode out the entirety of topic reporting (some day it will be perfect and the users will be ready for us to un-dev-mode it) # also dev-mode out response-lookup, which will probably be permanently dev-moded
-    tab1, tab2, tab3, tab4 = st.tabs(["🗣️ Prompter", "🌈 Topic Reporting", "🔍 Response Lookup", "🎰 The RAG Man"])
-    with tab2: # We load this first because it takes less time, so a person trying to use topic reporting quickly can simply switch to that tab to do so.
-      cicero_topic_reporting.main()
+  if st.session_state['developer_mode']: #dev-mode out the entirety of topic reporting (some day it will be perfect and the users will be ready for us to un-dev-mode it) # also dev-mode out response-lookup, which will probably be permanently dev-moded, along with New Pod Key
+    tab1, tab2, tab3, tab4, tab5 = st.tabs(["🗣️ Prompter", "🌈 Topic Reporting", "🔍 Response Lookup", "🎰 The RAG Man", "🫛 New Pod Key"])
     with tab1:
       cicero_prompter.main()
+    with tab2:
+      cicero_topic_reporting.main()
     with tab3:
       cicero_response_lookup.main()
     with tab4:
       cicero_rag_only.main()
+    with tab5:
+      cicero_new_pod_key.main()
   else:
     cicero_prompter.main()
 
