@@ -22,14 +22,14 @@ def main() -> None:
   st.warning("This page is an internal developer tool for Cicero. Also the controls aren't very self-explanatory.")
 
   st.write("## File entry")
-  if file := st.file_uploader("Pick a new pod key excel file. If you do so, you can use it to modify the pod table, using controls in the \"meddle\" section further down the page. Remember: this section is completely collapsable in the user interface, if its huge size is visually distracting."):
+  if file := st.file_uploader("Pick a new pod key excel file. If you do so, you can use it to modify the pod table, using controls in the \"meddle\" section further down the page."):
     new_pods_table = read_excel(file, header=None)
     new_pods_table_dict = new_pods_table.to_dict("records")
     new_pods_tuples = [(pair[0].lower(),pair[1]) for pair in new_pods_table_dict]
     st.write(new_pods_tuples)
 
   st.write("## pod table")
-  st.info("This is the database table of user pods that Cicero currently uses.")
+  st.info("This is the database table of user pods that Cicero currently uses. Remember: this section is completely collapsable in the user interface, if its huge size is visually distracting.")
   sql_call("CREATE TABLE IF NOT EXISTS cicero.default.user_pods (user_email string, user_pod string)")
   pod_table_results = sql_call("SELECT * FROM cicero.default.user_pods")
   st.write(pod_table_results)
