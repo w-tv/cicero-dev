@@ -540,7 +540,7 @@ def main() -> None:
         client_weight: float = st.slider("Client Weight", min_value=0.0, max_value=10.0, key="client_weight")
         ask_weight: float = st.slider("Ask Weight", min_value=0.0, max_value=10.0, key="ask_weight")
         text_len_weight: float = st.slider("Text Len Weight", min_value=0.0, max_value=10.0, key="text_len_weight")
-        st.session_state["the_real_dude_model_name"] = short_model_name_to_long_model_name(typesafe_selectbox("Model selection for Cicero (the actual, historical man (it's really him))", short_model_names)) #TODO: this is deliberately not in the preset system, because it might get removed later.
+        st.session_state["the_real_dude_model_name"] = short_model_name_to_long_model_name(typesafe_selectbox("Model selection for Cicero (the actual, historical man (it's really him))", short_model_names, default="Llama-3-70b-Instruct")) #TODO: this is deliberately not in the preset system, because it might get removed later.
         st.session_state["the_real_dude_system_prompt"] = typesafe_selectbox("Model system prompt for Cicero (the actual, historical man (it's really him))", [default_sys_prompt, rewrite_sys_prompt, analyze_sys_prompt]) #TODO: this is deliberately not in the preset system, because it might get removed later.
       else:
         topic_weight = 4
@@ -548,7 +548,7 @@ def main() -> None:
         client_weight = 6
         ask_weight = 2
         text_len_weight = 3
-        st.session_state["the_real_dude_model_name"] = 'databricks-dbrx-instruct'
+        st.session_state["the_real_dude_model_name"] = "databricks-meta-llama-3-70b-instruct"
         st.session_state["the_real_dude_system_prompt"] = default_sys_prompt
 
     model_name = typesafe_selectbox("Model (required)", short_model_names, default="Llama-3-70b-Instruct", key="model") if st.session_state["developer_mode"] else "Llama-3-70b-Instruct"
