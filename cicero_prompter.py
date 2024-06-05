@@ -245,7 +245,7 @@ def execute_prompting(model: str, account: str, ask_type: str, topics: list[str]
   @st.cache_data(show_spinner=False)
   def read_output_table() -> list[Row]:
     return sql_call(f"SELECT * from {output_table_name}")
-
+  print("Finding the documents")
   text_rows = read_output_table() # Keep in mind that row name-indexing is case-sensitive!
   # results_found is a set of every primary key we've search so far
   # This is to prevent duplicate documents/texts from showing up
@@ -291,7 +291,7 @@ def execute_prompting(model: str, account: str, ask_type: str, topics: list[str]
         tone_regex = ""
     else:
         tone_regex = c["tones"]
-    results = [
+    combo_results = [
       (row[primary_key], row["Final_Text"]) for row in text_rows if # Only apply filters if they are present in the current filter combination.
         (row[primary_key] not in results_found                              )  and
         ("topics"   not in c    or    re.search(topic_regex, row["Topics"]) )  and
@@ -302,21 +302,22 @@ def execute_prompting(model: str, account: str, ask_type: str, topics: list[str]
         ("text_len" not in c    or    c["text_len"] == row["Text_Length"]   )
     ]
     # If no results were found, move onto the next filter combination. Otherwise, continue the process of considering these candidate results.
-    if not results:
+    if not combo_results:
       continue
-    results_found.update([x for x, _ in results]) # add the found primary key values to the results_found set
+    results_found.update([x for x, _ in combo_results]) # add the found primary key values to the results_found set
     search_results: list[ReferenceTextElement] = []
     lowest_score = score_threshold
-    batch_bounds = [x for x in range(0, len(results), doc_pool_size)] + [len(results)]
+    batch_bounds = list(range(0, len(combo_results), doc_pool_size)) + [len(combo_results)]
     start = batch_bounds[0]
     # Perform a similarity search using the target_prompt defined beforehand. Filter for only the results we found earlier in this current iteration.
-    try: # In case something goes wrong, we have FAISS as a backup.
+    print()
+    try: # In case something goes wrong, we have FAISS as a backup. #Ironically, the backup has its own issues. But I guess it's being triggered, because those issues seem to be coming up!
       assert not st.session_state.get("use_backup_similarity_search_library")
       for end in batch_bounds[1:]:
         dbx_search = text_index.similarity_search(
           num_results=doc_pool_size, # This must be at most about 2**13 (8192) I have no idea what the actual max is
           columns=["Final_Text"],
-          filters={primary_key: [x for x, _ in results[start:end]]}, # The filter statement can only provide at most 1024 items
+          filters={primary_key: [x for x, _ in combo_results[start:end]]}, # The filter statement can only provide at most 1024 items. Here, I guess, we're using the stride of the doc_pool_size.
           query_text=target_prompt
         )
         # Add results returned by the similarity search to the search_results list only if their similarity score is greater than or equal to the lowest similarity score we've stored. We only keep the top doc_pool_size number of documents for a single combination
@@ -329,29 +330,23 @@ def execute_prompting(model: str, account: str, ask_type: str, topics: list[str]
       reference_texts.extend(search_results)
     except:
       if st.session_state.get("developer_mode"):
-        st.write("developer mode message: error was encountered in the main similiarity search library (or perhaps you induced a fake error there for testing purposes) so we are using the backup option")
+        st.write("developer mode message: error was encountered in the main similarity search library (or perhaps you induced a fake error there for testing purposes) so we are using the backup option")
       search_results = []
-      lowest_score = score_threshold
+      lowest_score = 0.0 # This value is a hack. Our original score_threshold value (which we set this variable to the value of) was too high, so we never found any results, so the score_threshold was never updated. (Although, I think it can only ever update up, that's the whole point of updating it in our code later, I guess. So in reality that part of the process was irrelevant and the real problems was that the score_threshold was simply too high.) This is probably because instead of values between 0 and 1, like it's supposed to, the FAISS thing is giving us back all sorts of numbers, some of them negative. And I guess very few of those are >0.5 or whatever the score_threshold is. This caused the code to run approximately forever, eat up enormous amounts of RAM, and then (exceeding the RAM limit) die. I think this method will still exceed the RAM limit and die on Streamlit, even with this fix! (Although sometimes Streamlit seems to allow you to exceed the RAM limit, maybe if you only do it for a second, without crashing you, so we'll see.)
       start = batch_bounds[0]
-      # embeddings = DatabricksEmbeddings(target_uri="https://c996c2e15417489d87ab0db3f1cc6fc0.serving.cloud.databricks.com/8188181812650195/serving-endpoints/gte_small_embeddings/invocations", endpoint="gte_small_embeddings") #TODO: probably bad to do this each time. Maybe it's fine though. This is only a backup, anyway. #doesn't work
-      #maybe this is a model?
-      #vsc = VectorSearchClient( personal_access_token=st.secrets["DATABRICKS_TOKEN"], workspace_url=st.secrets['DATABRICKS_HOST'], disable_notice=True )
-      #text_index = vsc.get_index(endpoint_name="rag_llm_vector", index_name="models.lovelytics.gold_text_outputs_index")
+      # We get many pretty ghastly warnings here, apparently because this "sentence-transformers/all-MiniLM-L12-v2" embedding thing creates some negative-numbered results, which FAISS doesn't like. Or maybe this is a bug in FAISS?
       embeddings = HuggingFaceEmbeddings(model_name="sentence-transformers/all-MiniLM-L12-v2") #TODO: probably bad to do this each time. Maybe it's fine though. This is only a backup, anyway.
       # Using the from_texts instantiation so it automatically creates a Docstore for us. Need to provide at least one text/document, so we're providing a dummy value that will be immediately removed
       faiss_vs = FAISS.from_texts(["TEMP_REMOVE"], embeddings, ids=["TEMP_REMOVE"])
       faiss_vs.delete(ids=["TEMP_REMOVE"])
       for end in batch_bounds[1:]:
-        added_ids = faiss_vs.add_texts(texts=[y for _, y in results[start:end]])
+        added_ids = faiss_vs.add_texts(texts=[y for _, y in combo_results[start:end]])
         faiss_search = [(x[0].page_content, x[1]) for x in faiss_vs.similarity_search_with_relevance_scores(query=target_prompt, k=doc_pool_size, score_threshold=lowest_score)]
         if faiss_search:
           search_results.extend({"prompt": "Please write me a" + x.split(":\n\n", 1)[0][1:], "text": x.split(":\n\n", 1)[1], "score": y} for x, y in faiss_search)
           search_results = sorted(search_results, key=lambda x: x["score"], reverse=True)[:doc_pool_size]
           lowest_score = search_results[-1]["score"] if len(search_results) == doc_pool_size else lowest_score
-        # We delete the texts we were looking at for one reason
-        # The FAISS vector search client/collection is being instantiated and saved in memory. Unlike the Databricks vector search which is searching through
-        # and querying texts that are stored in a table in Databricks
-        # This means that documents added to the collection persist in memory, so I'm deleting records we've already looked at to preserve memory
+        # We delete the texts we were looking at for one reason: The FAISS vector search client/collection is being instantiated and saved in memory; unlike the Databricks vector search which is searching through and querying texts that are stored in a table in Databricks. This means that documents added to the collection persist in memory, so I'm deleting records we've already looked at to preserve memory
         faiss_vs.delete(ids=added_ids)
         start = end
       reference_texts.extend(search_results)
@@ -373,6 +368,7 @@ def execute_prompting(model: str, account: str, ask_type: str, topics: list[str]
       break
 
   ### Query Endpoints ###
+  print("Query Endpoints")
 
   ##### INSERT PROMPT HERE #####
   # Llama-3 Prompt Styling
@@ -460,8 +456,8 @@ def execute_prompting(model: str, account: str, ask_type: str, topics: list[str]
         # Reinstantiate the multishot_items dictionary. This is just in case the sample function we provided returns less items than the chat_history is prepared for
         multishot_items = {}
         for num, content in enumerate(texts_to_use):
-            multishot_items[f"example_{num + 1}_p"] = content["prompt"]
-            multishot_items[f"example_{num + 1}_t"] = content["text"]
+          multishot_items[f"example_{num + 1}_p"] = content["prompt"]
+          multishot_items[f"example_{num + 1}_t"] = content["text"]
         # Create the chat history text up to the number of texts found from sampling
         combined_dict["chat_history"] = "".join(base_chat_history[:len(multishot_items)]).format(**multishot_items)
         filled_in_prompt = (prompt.format(**combined_dict))
@@ -482,6 +478,7 @@ def execute_prompting(model: str, account: str, ask_type: str, topics: list[str]
     # TODO: eventually there could be other regex to check, there's got to be a better way than just slapping on more bool()s
     return x.startswith("Here ") or x.startswith("Sure") or x.startswith("OK") or bool(re.match(msg_pattern, x))
   outputs = [ x for o in single_output.split('\n') for x in [dequote(behead(dequote(o))).strip()] if x and x.isascii() and not is_natter(x) ]
+  print("Done with prompting.")
   return question, outputs, entire_prompt
 
 def main() -> None:
