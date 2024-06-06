@@ -10,7 +10,6 @@ ENV PYTHONUNBUFFERED=1
 
 WORKDIR /app
 COPY . /app
-COPY .streamlit/ /app
 
 # Creates a non-root user with an explicit UID and adds permission to access the /app folder
 # For more info, please refer to https://aka.ms/vscode-docker-python-configure-containers
@@ -24,4 +23,4 @@ USER app
 EXPOSE 8501
 # During debugging, this entry point will be overridden. For more information, please refer to https://aka.ms/vscode-docker-python-debug
 #CMD ["python", "cicero.py"]
-CMD ["streamlit", "run", "cicero.py", "--server.port=8501", "--server.address=0.0.0.0"]
+CMD ["streamlit", "run", "cicero.py", "--server.port=8501", "--server.address=0.0.0.0", "--browser.gatherUsageStats=false"]
