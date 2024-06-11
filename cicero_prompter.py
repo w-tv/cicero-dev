@@ -121,7 +121,7 @@ def list_lower(l: list[str]) -> list[str]:
 def only_those_strings_of_the_list_that_contain_the_given_substring_case_insensitively(l: list[str], s: str) -> list[str]:
   return [x for x in l if s.lower() in x.lower()]
 
-short_model_names: str = ["DBRX-Instruct", "Llama-3-70b-Instruct", "Mixtral-8x7b-Instruct"] #TODO: possibly make enum? I fell down a whole typing adventure D.R.Y. hole here before, so I'm avoiding that experiment for now.
+short_model_names: str = ["DBRX-Instruct", "Llama-3-70b-Instruct", "Mixtral-8x7b-Instruct"] #TODO: possibly make enum? I fell down a whole typing adventure D.R.Y. hole here before, so I'm avoiding that experiment for now. # TODO: possibly make this a Final-typed variable?
 
 def short_model_name_to_long_model_name(short_model_name: str) -> str:
   return {
@@ -132,7 +132,13 @@ def short_model_name_to_long_model_name(short_model_name: str) -> str:
 
 ReferenceTextElement = TypedDict('ReferenceTextElement', {'prompt': str, 'text': str, 'score': float})
 
+def consul_show(x: Any) -> None:
+  """Show some debug-like information in the sidebar. Often best used with f"{foo=}" in the calling code, which will become the name and also the value of the variable, such as foo=2 (naturally, this must be done at the calling site (I assume))."""
+  st.sidebar.caption(f"Developer (“Consul”) mode diagnostic: {x}")
+
 def sample_dissimilar_texts(population: list[ReferenceTextElement], k: int, max_similarity: float=0.8) -> list[ReferenceTextElement]:
+  consul_show(f"sample_dissimilar_texts's {max_similarity=}") #TODO(ish): This doesn't show up in the sidebar for some reason. Oh... see next line...
+  exit() #actually this line never runs either, so I guess the function is just never called... for some reason.
   final_arr: list[ReferenceTextElement] = []
   not_selected = []
   randomized_arr = random.sample(population, k=len(population))
@@ -171,6 +177,7 @@ def execute_prompting(model: str, account: str, ask_type: str, topics: list[str]
   score_threshold = 0.5 # Document Similarity Score Acceptance Threshold
   doc_pool_size = 30 # Document Pool Size
   num_examples = 10 # Number of Documents to Use as Examples
+  consul_show(f"{score_threshold=}, {doc_pool_size=}, {num_examples=}")
   assert_always(num_examples <= doc_pool_size, "You can't ask to provide more examples than there are documents in the pool! Try again with a different value.")
   output_table_name = "models.lovelytics.gold_text_outputs" # Text Output Table Name
   ref_tag_name = "models.lovelytics.ref_tags" # Tags Table Name
@@ -385,11 +392,11 @@ def execute_prompting(model: str, account: str, ask_type: str, topics: list[str]
   multishot_items = {}
   base_chat_history = []
   for i in range(num_exes):
-      k = f"example_{i + 1}_p"
-      multishot_items[k] = ""
-      ok = f"example_{i + 1}_t"
-      multishot_items[ok] = ""
-      base_chat_history.append(f"""<|start_header_id|>user<|end_header_id|>{{{k}}}<|eot_id|><|start_header_id|>assistant<|end_header_id|>{{{ok}}}<|eot_id|>""")
+    k = f"example_{i + 1}_p"
+    multishot_items[k] = ""
+    ok = f"example_{i + 1}_t"
+    multishot_items[ok] = ""
+    base_chat_history.append(f"""<|start_header_id|>user<|end_header_id|>{{{k}}}<|eot_id|><|start_header_id|>assistant<|end_header_id|>{{{ok}}}<|eot_id|>""")
   rag_prompt += "{chat_history}"
 
   # Add in the final component of the RAG prompt where we pass in the prompt/question we want to send to the model
@@ -449,20 +456,20 @@ def execute_prompting(model: str, account: str, ask_type: str, topics: list[str]
     filled_in_prompt = (prompt.format(**combined_dict))
     single_output = model_chain.invoke(combined_dict)
   else:
-      single_output = ""
-      for i in range(num_outputs):
-        # Use our custom sampling and text selection function to randomly select the texts we'll use as examples
-        texts_to_use = sample_dissimilar_texts(reference_texts, k=num_exes)
-        # Reinstantiate the multishot_items dictionary. This is just in case the sample function we provided returns less items than the chat_history is prepared for
-        multishot_items = {}
-        for num, content in enumerate(texts_to_use):
-          multishot_items[f"example_{num + 1}_p"] = content["prompt"]
-          multishot_items[f"example_{num + 1}_t"] = content["text"]
-        # Create the chat history text up to the number of texts found from sampling
-        combined_dict["chat_history"] = "".join(base_chat_history[:len(multishot_items)]).format(**multishot_items)
-        filled_in_prompt = (prompt.format(**combined_dict))
-        inv_res = model_chain.invoke(combined_dict)
-        single_output += f"{i + 1}. " + inv_res + "\n"
+    single_output = ""
+    for i in range(num_outputs):
+      # Use our custom sampling and text selection function to randomly select the texts we'll use as examples
+      texts_to_use = sample_dissimilar_texts(reference_texts, k=num_exes) #TODO: this line of code seemingly never runs 
+      # Reinstantiate the multishot_items dictionary. This is just in case the sample function we provided returns less items than the chat_history is prepared for
+      multishot_items = {}
+      for num, content in enumerate(texts_to_use):
+        multishot_items[f"example_{num + 1}_p"] = content["prompt"]
+        multishot_items[f"example_{num + 1}_t"] = content["text"]
+      # Create the chat history text up to the number of texts found from sampling
+      combined_dict["chat_history"] = "".join(base_chat_history[:len(multishot_items)]).format(**multishot_items)
+      filled_in_prompt = (prompt.format(**combined_dict))
+      inv_res = model_chain.invoke(combined_dict)
+      single_output += f"{i + 1}. " + inv_res + "\n"
   entire_prompt = str(combined_dict)
   question = str(combined_dict["question"]) #the str call here is purely to help the typechecker.
   # Output validation and conformance. For example, check if English by using ascii as proxy.
@@ -567,7 +574,11 @@ def main() -> None:
       else:
         st.form_submit_button("Submit", type="primary", on_click=disable_submit_button_til_complete)
     if st.session_state.get("developer_mode"):
-      st.session_state["use_backup_similarity_search_library"] = typesafe_selectbox("(developer mode option) use backup similarity search library", [False, True])
+      st.session_state["use_backup_similarity_search_library"] = typesafe_selectbox("(developer mode option) trigger a fake error in the appropriate place in this run to use backup similarity search library", [False, True])
+  if st.session_state.get("developer_mode"):
+    if st.button("Developer mode special button for testing: “***I'm feeling (un)lucky***”"):
+      st.session_state["submit_button_disabled"] = True
+      account = "AAF" #TODO: is there a better testing value? Could I have my own dummy account that just writes nice things about me personally, for example? Or nasty things about Ceasar?
 
   #Composition and sending a request:
   did_a_query = False
