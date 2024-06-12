@@ -138,7 +138,7 @@ def consul_show(x: Any) -> None:
 
 def sample_dissimilar_texts(population: list[ReferenceTextElement], k: int, max_similarity: float=0.8) -> list[ReferenceTextElement]:
   consul_show(f"sample_dissimilar_texts's {max_similarity=}") #TODO(ish): This doesn't show up in the sidebar for some reason. Oh... see next line...
-  exit() #actually this line never runs either, so I guess the function is just never called... for some reason.
+  #exit() #actually this line never runs either, so I guess the function is just never called... for some reason.
   final_arr: list[ReferenceTextElement] = []
   not_selected = []
   randomized_arr = random.sample(population, k=len(population))
