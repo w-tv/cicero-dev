@@ -7,7 +7,7 @@ import pandas as pd
 import json
 from datetime import datetime, date
 #COULD: use https://pypi.org/project/streamlit-profiler/ for profiling
-from typing import Any, Literal, TypedDict, get_args
+from typing import Any, Literal, TypedDict, TypeVar, get_args
 from zoneinfo import ZoneInfo as z
 from cicero_shared import assert_always, exit_error, load_account_names, sql_call, sql_call_cacheless, topics_big, Row, typesafe_selectbox
 import cicero_rag_only
@@ -206,8 +206,8 @@ def execute_prompting(model: str, account: str, ask_type: str, topics: list[str]
   # Tp, C, To
   # Tp, C, L
   # Tp, C
-
-  def powerset[T](l: list[T], start: int = 0) -> list[tuple[T, ...]]:
+  T = TypeVar('T')
+  def powerset(l: list[T], start: int = 0) -> list[tuple[T, ...]]:
     """powerset([1,2,3]) → () (1,) (2,) (3,) (1,2) (1,3) (2,3) (1,2,3)
     Used to generate powersets of filters."""
     return [x for r in range(start, len(l)+1) for x in combinations(l, r)]
