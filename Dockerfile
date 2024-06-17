@@ -23,4 +23,4 @@ USER app
 EXPOSE 8501
 # During debugging, this entry point will be overridden. For more information, please refer to https://aka.ms/vscode-docker-python-debug
 #CMD ["python", "cicero.py"]
-CMD ["streamlit", "run", "cicero.py", "--server.port=8501", "--server.address=0.0.0.0", "--browser.gatherUsageStats=false"]
+CMD ["streamlit", "run", "cicero.py", "--server.port=8501", "--server.address=0.0.0.0", "--browser.gatherUsageStats=false", "--server.headless=true"] #The --server.headless=true bit is probably redundant (I think in our deployment it defaults to true anyway, based on https://docs.streamlit.io/develop/api-reference/configuration/config.toml#server) but I'm doing it just in case this prevents 'Bad message format: Tried to use SessionInfo before it was initialized' errors we keep getting (probably unrelated).
