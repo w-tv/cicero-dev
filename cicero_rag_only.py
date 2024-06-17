@@ -34,6 +34,7 @@ def grow_chat(streamlit_key_suffix: str = "", alternate_content: str = "", displ
 def reset_chat() -> None:
   st.session_state["chat"] = None
   st.session_state["messages"] = None
+  st.session_state['cicero_ai'] = None
 
 # chat.history
 # return: [

@@ -136,9 +136,8 @@ def consul_show(x: Any) -> None:
   """Show some debug-like information in the sidebar. Often best used with f"{foo=}" in the calling code, which will become the name and also the value of the variable, such as foo=2 (naturally, this must be done at the calling site (I assume))."""
   st.sidebar.caption(f"Developer (“Consul”) mode diagnostic: {x}")
 
-def sample_dissimilar_texts(population: list[ReferenceTextElement], k: int, max_similarity: float=0.8) -> list[ReferenceTextElement]:
-  consul_show(f"sample_dissimilar_texts's {max_similarity=}") #TODO(ish): This doesn't show up in the sidebar for some reason. Oh... see next line...
-  #exit() #actually this line never runs either, so I guess the function is just never called... for some reason.
+def sample_dissimilar_texts(population: list[ReferenceTextElement], k: int, max_similarity: float=0.8) -> list[ReferenceTextElement]: #TODO: it seems that this function is only called when text is Long, which is probably not right? #TODO: it takes line 20 seconds for this code to run, it seems, and this code is called {# Outputs} times (again, only on Long) and furthermore I suspect this code can be replaced with about 5 lines, so maybe that refactor will also speed things up.
+  consul_show(f"sample_dissimilar_texts's {max_similarity=}")
   final_arr: list[ReferenceTextElement] = []
   not_selected = []
   randomized_arr = random.sample(population, k=len(population))
@@ -615,6 +614,7 @@ def main() -> None:
       with col1:
         st.write( output.replace("$", r"\$") ) #this prevents us from entering math mode when we ask about money.
       with col2:
+        # All the RAG-man/Real-dude logic here is a bit unnecessarily convoluted, because the main logic lives in the other file and we're basically just borrowing it here. Maybe some day we'll get rid of the other tab and the logic will simplify this a bit.
         if st.button("⚡", key="⚡"+str(key_collision_preventer), help="Edit with Cicero"):
           default_reply = "Here is a conservative fundraising text: [" + output + "] Analyze the quality of the text based off of these five fundraising elements: the Hook, Urgency, Agency, Stakes, and the Call to Action (CTA). Do not assign scores to the elements. It's possible one or more of these elements is missing from the text provided. If so, please point that out. Then, directly ask the user what assistance they need with the text. Additionally, mention that you can also help edit the text to be shorter or longer, and convert the text into an email."
           st.session_state['cicero_ai']=default_reply
