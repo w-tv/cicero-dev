@@ -3,8 +3,6 @@
 import streamlit as st
 from databricks_genai_inference import ChatSession
 from cicero_shared import sql_call_cacheless
-from zoneinfo import ZoneInfo as z
-from datetime import datetime
 
 def grow_chat(streamlit_key_suffix: str = "", alternate_content: str = "", display_only_this_at_first_blush: str|None = None) -> None:
   # the streamlit_key_suffix is only necessary because we use this code in two places #TODO: actually, it's not clear that we want to do that. And, the chat histories overlap, currently... So, maybe rethink this concept later. I don't even know why we have two of them. Maybe they were supposed to mutate in concept independently?
@@ -21,14 +19,14 @@ def grow_chat(streamlit_key_suffix: str = "", alternate_content: str = "", displ
   st.session_state.messages.append({"avatar": "assets/CiceroChat_800x800.jpg", "role": "assistant", "content": st.session_state.chat.last})
   # Write to the chatbot activity log:
   # (There's no model_uri field because I don't know how to access that from here.)
-  # (Note that this table uses a real timestamp object instead of a mere string datetime. You can `SET TIME ZONE "US/Eastern";` in sql to read the timestamps in some non-UTC timezone. (UTC being the default) (Specifically this gets them in US Eastern time.))
+  # (Note that this table uses a real timestamp datatype. You can `SET TIME ZONE "US/Eastern";` in sql to read the timestamps in US Eastern time, instead of the default UTC.
   sql_call_cacheless("CREATE TABLE IF NOT EXISTS cicero.default.activity_log_chatbot (timestamp timestamp, user_email string, user_pod string, model_name string, model_parameters string, system_prompt string, user_prompt string, response_given string)")
   sql_call_cacheless(
     "WITH tmp(user_pod) AS (SELECT user_pod FROM cicero.default.user_pods WHERE user_email ilike :user_email)\
     INSERT INTO cicero.default.activity_log_chatbot\
-            ( timestamp,  user_email, user_pod,  model_name,  model_parameters,  system_prompt,  user_prompt,  response_given)\
-      SELECT :timestamp, :user_email, user_pod, :model_name, :model_parameters, :system_prompt, :user_prompt, :response_given FROM tmp",
-    {"timestamp": datetime.now(z("US/Eastern")), "user_email": st.session_state["email"], "model_name": st.session_state.chat.model, "model_parameters": str(st.session_state.chat.parameters), "system_prompt": st.session_state.chat.system_message, "user_prompt": p, "response_given": st.session_state.chat.last}
+                     ( timestamp,  user_email, user_pod,  model_name,  model_parameters,  system_prompt,  user_prompt,  response_given)\
+      SELECT current_timestamp(), :user_email, user_pod, :model_name, :model_parameters, :system_prompt, :user_prompt, :response_given FROM tmp",
+    {"user_email": st.session_state["email"], "model_name": st.session_state.chat.model, "model_parameters": str(st.session_state.chat.parameters), "system_prompt": st.session_state.chat.system_message, "user_prompt": p, "response_given": st.session_state.chat.last}
   )
 
 def reset_chat() -> None:

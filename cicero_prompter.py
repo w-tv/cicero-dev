@@ -5,10 +5,8 @@
 import streamlit as st
 import pandas as pd
 import json
-from datetime import datetime, date
 #COULD: use https://pypi.org/project/streamlit-profiler/ for profiling
 from typing import Any, Final, Literal, TypedDict, TypeVar, get_args
-from zoneinfo import ZoneInfo as z
 from cicero_shared import assert_always, exit_error, load_account_names, sql_call, sql_call_cacheless, topics_big, Row, typesafe_selectbox
 import cicero_rag_only
 from enum import Enum
@@ -40,17 +38,17 @@ def ensure_existence_of_activity_log() -> None:
 @st.cache_data(show_spinner=False) #STREAMLIT-BUG-WORKAROUND: Necessity demands we do a manual cache of this function's result anyway in the one place we call it, but (for some reason) it seems like our deployed environment is messed up in some way I cannot locally replicate, which causes it to run this function once every five minutes. So, we cache it as well, to prevent waking up our server and costing us money.
 def count_from_activity_log_times_used_today(useremail: str) -> int: #this goes by whatever the datetime default timezone is because we don't expect the exact boundary to matter much.
   ensure_existence_of_activity_log()
-  return int( sql_call(f"SELECT COUNT(*) FROM cicero.default.activity_log WHERE useremail = :useremail AND DATE(datetime) == CURRENT_DATE", {'useremail': useremail})[0][0] )
+  return int( sql_call(f"SELECT COUNT(*) FROM cicero.default.activity_log WHERE useremail = :useremail AND DATE(datetime) == current_date()", {'useremail': useremail})[0][0] )
 
-def write_to_activity_log_table(datetime: datetime, useremail: str, promptsent: str, responsegiven: str, modelparams: str, modelname: str, modelurl: str) -> None:
+def write_to_activity_log_table(useremail: str, promptsent: str, responsegiven: str, modelparams: str, modelname: str, modelurl: str) -> None:
   """Write the arguments into the activity_log table. If you change the arguments this function takes, you must change the sql_call in the function and in ensure_existence_of_activity_log. It wasn't worth generating them programmatically. (You must also change the caller function of this function, of course.)"""
   keyword_arguments = locals() # This is a dict of the arguments passed to the function. It must be called at the top of the function, because if it is called later then it will list any other local variables as well. (The docstring isn't included; I guess it's the __doc__ attribute of the enclosing function, not a local variable. <https://docs.python.org/3.11/glossary.html#term-docstring>)
   ensure_existence_of_activity_log()
   sql_call_cacheless(
     "WITH tmp(pod) AS (SELECT user_pod FROM cicero.default.user_pods WHERE user_email ilike :useremail)\
     INSERT INTO cicero.default.activity_log\
-            ( datetime,  useremail,  promptsent,  responsegiven,  modelparams,  modelname,  modelurl,  pod)\
-      SELECT :datetime, :useremail, :promptsent, :responsegiven, :modelparams, :modelname, :modelurl,  pod FROM tmp",
+                       (datetime,  useremail,  promptsent,  responsegiven,  modelparams,  modelname,  modelurl,  pod)\
+      SELECT current_timestamp(), :useremail, :promptsent, :responsegiven, :modelparams, :modelname, :modelurl,  pod FROM tmp",
     keyword_arguments
   )
 
@@ -638,7 +636,7 @@ def main() -> None:
   # Activity logging takes a bit, so I've put it last to preserve immediate-feeling performance and responses for the user making a query.
   if did_a_query:
     # promptsent is only illustrative. But maybe that's enough. Maybe we should be using a different prompt?
-    write_to_activity_log_table( datetime=datetime.now(z("US/Eastern")), useremail=st.session_state['email'], promptsent=promptsent, responsegiven=json.dumps(st.session_state['outputs']), modelparams=str({"max_tokens": max_tokens, "temperature": temperature}), modelname=model_name, modelurl=model )
+    write_to_activity_log_table( useremail=st.session_state['email'], promptsent=promptsent, responsegiven=json.dumps(st.session_state['outputs']), modelparams=str({"max_tokens": max_tokens, "temperature": temperature}), modelname=model_name, modelurl=model )
 
   # st.components.v1.html('<!--<script>//you can include arbitrary html and javascript this way</script>-->') #or, use st.markdown, if you want arbitrary html but javascript isn't needed.
 
