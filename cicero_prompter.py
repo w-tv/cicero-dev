@@ -11,6 +11,7 @@ from typing import Any, Literal, TypedDict, TypeVar, get_args
 from zoneinfo import ZoneInfo as z
 from cicero_shared import assert_always, exit_error, load_account_names, sql_call, sql_call_cacheless, topics_big, Row, typesafe_selectbox
 import cicero_rag_only
+from enum import Enum
 
 from num2words import num2words
 from itertools import combinations
@@ -121,14 +122,22 @@ def list_lower(l: list[str]) -> list[str]:
 def only_those_strings_of_the_list_that_contain_the_given_substring_case_insensitively(l: list[str], s: str) -> list[str]:
   return [x for x in l if s.lower() in x.lower()]
 
-Short_Model_Name = Literal["DBRX-Instruct", "Llama-3-70b-Instruct", "Mixtral-8x7b-Instruct"] #See https://stackoverflow.com/questions/64522040/dynamically-create-literal-alias-from-list-of-valid-values for an explanation of what we're doing here. #COULD: one day use the `type` keyword here for defining this type.
-short_model_names: tuple[Short_Model_Name, ...] = get_args(Short_Model_Name) #TODO: possibly make enum? I fell down a whole typing adventure D.R.Y. hole here before, so I'm avoiding that experiment for now. # TODO: possibly make this a Final-typed variable?
+Short_Model_Name = Literal["DBRX-Instruct", "Llama-3-70b-Instruct", "Mixtral-8x7b-Instruct"] #See https://stackoverflow.com/questions/64522040/dynamically-create-literal-alias-from-list-of-valid-values for an explanation of what we're doing here. #COULD: one day use the `type` keyword here for defining this type. But it's not supported yet.
+Long_Model_Name = Literal["databricks-dbrx-instruct", "databricks-meta-llama-3-70b-instruct", "databricks-mixtral-8x7b-instruct"]
+short_model_names: tuple[Short_Model_Name, ...] = get_args(Short_Model_Name)
 #TODO: "valid values" dict? And then use that for "I'm feeling lucky"?
+
+Model_Names_Enum = Enum("model_names_enum", {"DBRX-Instruct": "databricks-dbrx-instruct", "Llama-3-70b-Instruct": "databricks-meta-llama-3-70b-instruct", "Mixtral-8x7b-Instruct": "databricks-mixtral-8x7b-instruct"})
+# reveal_type(Model_Names_Enum)
+# reveal_type(Model_Names_Enum._member_names_)
+#Anyway, then you would use Model_Names_Enum["foo"] to get an enum instance from a name and Model_Names_Enum("bar") to get an enum instance from a value
+
+
 
 def short_model_name_to_long_model_name(short_model_name: Short_Model_Name) -> str:
   return {
     "DBRX-Instruct": "databricks-dbrx-instruct",
-    "Llama-3-70b-Instruct":"databricks-meta-llama-3-70b-instruct",
+    "Llama-3-70b-Instruct": "databricks-meta-llama-3-70b-instruct",
     "Mixtral-8x7b-Instruct": "databricks-mixtral-8x7b-instruct"
   }[short_model_name]
 
