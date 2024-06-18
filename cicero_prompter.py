@@ -7,7 +7,7 @@ import pandas as pd
 import json
 from datetime import datetime, date
 #COULD: use https://pypi.org/project/streamlit-profiler/ for profiling
-from typing import Any, Literal, TypedDict, TypeVar, get_args
+from typing import Any, Final, Literal, TypedDict, TypeVar, get_args
 from zoneinfo import ZoneInfo as z
 from cicero_shared import assert_always, exit_error, load_account_names, sql_call, sql_call_cacheless, topics_big, Row, typesafe_selectbox
 import cicero_rag_only
@@ -126,8 +126,8 @@ Short_Model_Name = Literal["DBRX-Instruct", "Llama-3-70b-Instruct", "Mixtral-8x7
 short_model_names: tuple[Short_Model_Name, ...] = get_args(Short_Model_Name)
 Long_Model_Name = Literal["databricks-dbrx-instruct", "databricks-meta-llama-3-70b-instruct", "databricks-mixtral-8x7b-instruct"] #IMPORTANT: the cleanest way of implementing this REQUIRES that short_model_names and long_model_names correspond via index. This is an unfortunate burden, but it's better than the other ways I tried...
 long_model_names: tuple[Long_Model_Name, ...] = get_args(Long_Model_Name)
-
 #TODO: "valid values" dict? And then use that for "I'm feeling lucky"?
+Selectable_Length = Literal['short', 'medium', 'long']
 
 def short_model_name_to_long_model_name(short_model_name: Short_Model_Name) -> Long_Model_Name:
   return long_model_names[short_model_names.index(short_model_name)]
@@ -174,7 +174,7 @@ def sample_dissimilar_texts(population: list[ReferenceTextElement], k: int, max_
     not_selected = scored_unselected
   return random.sample(final_arr, k=len(final_arr))
 
-def execute_prompting(model: Long_Model_Name, account: str, ask_type: str, topics: list[str], additional_topics: list[str], tones: list[str], text_len: Literal["short", "medium", "long", ""], headline: str|None, num_outputs: int, model_temperature: float = 0.8, bio: str|None = None, max_tokens: int = 4096, topic_weight: float = 4, tone_weight: float = 1, client_weight: float = 6, ask_weight: float = 2, text_len_weight: float = 3) -> tuple[str, list[str], str]:
+def execute_prompting(model: Long_Model_Name, account: str, ask_type: str, topics: list[str], additional_topics: list[str], tones: list[str], text_len: Selectable_Length, headline: str|None, num_outputs: int, model_temperature: float = 0.8, bio: str|None = None, max_tokens: int = 4096, topic_weight: float = 4, tone_weight: float = 1, client_weight: float = 6, ask_weight: float = 2, text_len_weight: float = 3) -> tuple[str, list[str], str]:
   score_threshold = 0.5 # Document Similarity Score Acceptance Threshold
   doc_pool_size = 30 # Document Pool Size
   num_examples = 10 # Number of Documents to Use as Examples
@@ -409,24 +409,12 @@ def execute_prompting(model: Long_Model_Name, account: str, ask_type: str, topic
 
   # Create the question prompt and add it to the combined_dict dictionary
   question_prompt = f"Please write me {num2words(num_outputs)} {text_len} {ask_type} text messages for {account}" if text_len != "long" else f"Please write me a {text_len} {ask_type} text message for {account}"
-  # Add instructions on how long or short a text should be depending on the text length we want the model to generate
-  # Add specificity of specific ask type of the text message too
-  # Try to make the model understand that the outputs we specifically are asking for should be this length
   question_prompt += {
-    "": "",
     "short": " that each use about 250 characters",
     "medium": " that each use about 350 characters",
     "long": " that uses at least 400 characters"
   }[text_len]
-  if topics:
-    question_prompt += f" about {topics}"
-  if tones:
-    question_prompt += f" written with an emphasis on {tones}"
-  if bio:
-    question_prompt += f""" Here is important biographical information about the conservative candidate you are writing for: {bio}"""
-  if headline:
-    question_prompt += f""" Here is/are news headline(s) you should reference in your text messages: {headline}"""
-
+  question_prompt += bool(topics) * f" about {topics}" + bool(tones) * f" written with an emphasis on {tones}" + bool(bio) * f""" Here is important biographical information about the conservative candidate you are writing for: {bio}""" + bool(headline) * f""" Here is/are news headline(s) you should reference in your text messages: {headline}"""
   combined_dict["question"] = question_prompt
   ##### END PROMPT INSERTION #####
   # print(rag_prompt)
@@ -563,8 +551,7 @@ def main() -> None:
     ask_type = typesafe_selectbox("Ask Type", ['Hard Ask', 'Medium Ask', 'Soft Ask', 'Soft Ask Petition', 'Soft Ask Poll', 'Soft Ask Survey'], key="ask_type").lower()
     topics = st.multiselect("Topics", sorted([t for t, d in topics_big.items() if d["show in prompter?"]]), key="topics" )
     topics = external_topic_names_to_internal_topic_names_list_mapping(topics)
-    lengths_selectable: list[Literal['short', 'medium', 'long']] = ['short', 'medium', 'long']
-    length_select = typesafe_selectbox("Length", lengths_selectable, key='lengths', format_func=lambda x: f"{x.capitalize()} ({'<160' if x == 'short' else '161-399' if x == 'medium' else '400+'} characters)")
+    length_select = typesafe_selectbox("Length", get_args(Selectable_Length), key='lengths', format_func=lambda x: f"{x.capitalize()} ({'<160' if x == 'short' else '161-399' if x == 'medium' else '400+'} characters)")
     additional_topics = [x.strip().lower() for x in st.text_input("Additional Topics (examples: Biden, survey, deadline)", key="additional_topics" ).split(",") if x.strip()] # The list comprehension is to filter out empty strings on split, because otherwise this fails to make a truly empty list in the default case, instead having a list with an empty string in, because split changes its behavior when you give it arguments. Anyway, this also filters out trailing comma edge-cases and such.
     tones = list_lower( st.multiselect("Tones", ['Agency', 'Apologetic', 'Candid', 'Exclusivity', 'Fiesty', 'Grateful', 'Not Asking For Money', 'Pleading', 'Quick Request', 'Secretive', 'Time Sensitive', 'Urgency'], key="tone") ) #Could: , 'Swear Jar' will probably be in here some day, but we don't have "we need more swear jar data to make this tone better"
     num_outputs: int = typesafe_selectbox(r"\# Outputs", [1,3,5,10], key='num_outputs')
