@@ -127,13 +127,6 @@ Long_Model_Name = Literal["databricks-dbrx-instruct", "databricks-meta-llama-3-7
 short_model_names: tuple[Short_Model_Name, ...] = get_args(Short_Model_Name)
 #TODO: "valid values" dict? And then use that for "I'm feeling lucky"?
 
-Model_Names_Enum = Enum("model_names_enum", {"DBRX-Instruct": "databricks-dbrx-instruct", "Llama-3-70b-Instruct": "databricks-meta-llama-3-70b-instruct", "Mixtral-8x7b-Instruct": "databricks-mixtral-8x7b-instruct"})
-# reveal_type(Model_Names_Enum)
-# reveal_type(Model_Names_Enum._member_names_)
-#Anyway, then you would use Model_Names_Enum["foo"] to get an enum instance from a name and Model_Names_Enum("bar") to get an enum instance from a value
-
-
-
 def short_model_name_to_long_model_name(short_model_name: Short_Model_Name) -> str:
   return {
     "DBRX-Instruct": "databricks-dbrx-instruct",
