@@ -121,9 +121,11 @@ def list_lower(l: list[str]) -> list[str]:
 def only_those_strings_of_the_list_that_contain_the_given_substring_case_insensitively(l: list[str], s: str) -> list[str]:
   return [x for x in l if s.lower() in x.lower()]
 
-short_model_names: str = ["DBRX-Instruct", "Llama-3-70b-Instruct", "Mixtral-8x7b-Instruct"] #TODO: possibly make enum? I fell down a whole typing adventure D.R.Y. hole here before, so I'm avoiding that experiment for now. # TODO: possibly make this a Final-typed variable?
+Short_Model_Name = Literal["DBRX-Instruct", "Llama-3-70b-Instruct", "Mixtral-8x7b-Instruct"] #See https://stackoverflow.com/questions/64522040/dynamically-create-literal-alias-from-list-of-valid-values for an explanation of what we're doing here. #COULD: one day use the `type` keyword here for defining this type.
+short_model_names: tuple[Short_Model_Name, ...] = get_args(Short_Model_Name) #TODO: possibly make enum? I fell down a whole typing adventure D.R.Y. hole here before, so I'm avoiding that experiment for now. # TODO: possibly make this a Final-typed variable?
+#TODO: "valid values" dict? And then use that for "I'm feeling lucky"?
 
-def short_model_name_to_long_model_name(short_model_name: str) -> str:
+def short_model_name_to_long_model_name(short_model_name: Short_Model_Name) -> str:
   return {
     "DBRX-Instruct": "databricks-dbrx-instruct",
     "Llama-3-70b-Instruct":"databricks-meta-llama-3-70b-instruct",
@@ -161,7 +163,7 @@ def sample_dissimilar_texts(population: list[ReferenceTextElement], k: int, max_
       break
     scored_unselected = []
     for item, _ in not_selected:
-      score = 0
+      score = 0.0
       for selected in final_arr:
         distance = jellyfish.damerau_levenshtein_distance(item["text"], selected["text"])
         score += 1 - (distance / (len(item["text"]) + len(selected["text"])))

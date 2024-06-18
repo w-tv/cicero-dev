@@ -23,6 +23,7 @@ mypy-extensions >= 1.0.0
 typing-extensions
 pipreqs
 deptry >= 0.14.1
+ruff
 
 ## These are typically installed by mypy --install-types if you don't install them here.
 types-cachetools
