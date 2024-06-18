@@ -123,16 +123,14 @@ def only_those_strings_of_the_list_that_contain_the_given_substring_case_insensi
   return [x for x in l if s.lower() in x.lower()]
 
 Short_Model_Name = Literal["DBRX-Instruct", "Llama-3-70b-Instruct", "Mixtral-8x7b-Instruct"] #See https://stackoverflow.com/questions/64522040/dynamically-create-literal-alias-from-list-of-valid-values for an explanation of what we're doing here. #COULD: one day use the `type` keyword here for defining this type. But it's not supported yet.
-Long_Model_Name = Literal["databricks-dbrx-instruct", "databricks-meta-llama-3-70b-instruct", "databricks-mixtral-8x7b-instruct"]
 short_model_names: tuple[Short_Model_Name, ...] = get_args(Short_Model_Name)
+Long_Model_Name = Literal["databricks-dbrx-instruct", "databricks-meta-llama-3-70b-instruct", "databricks-mixtral-8x7b-instruct"] #IMPORTANT: the cleanest way of implementing this REQUIRES that short_model_names and long_model_names correspond via index. This is an unfortunate burden, but it's better than the other ways I tried...
+long_model_names: tuple[Long_Model_Name, ...] = get_args(Long_Model_Name)
+
 #TODO: "valid values" dict? And then use that for "I'm feeling lucky"?
 
-def short_model_name_to_long_model_name(short_model_name: Short_Model_Name) -> str:
-  return {
-    "DBRX-Instruct": "databricks-dbrx-instruct",
-    "Llama-3-70b-Instruct": "databricks-meta-llama-3-70b-instruct",
-    "Mixtral-8x7b-Instruct": "databricks-mixtral-8x7b-instruct"
-  }[short_model_name]
+def short_model_name_to_long_model_name(short_model_name: Short_Model_Name) -> Long_Model_Name:
+  return long_model_names[short_model_names.index(short_model_name)]
 
 ReferenceTextElement = TypedDict('ReferenceTextElement', {'prompt': str, 'text': str, 'score': float})
 
@@ -176,7 +174,7 @@ def sample_dissimilar_texts(population: list[ReferenceTextElement], k: int, max_
     not_selected = scored_unselected
   return random.sample(final_arr, k=len(final_arr))
 
-def execute_prompting(model: str, account: str, ask_type: str, topics: list[str], additional_topics: list[str], tones: list[str], text_len: Literal["short", "medium", "long", ""], headline: str|None, num_outputs: int, model_temperature: float = 0.8, bio: str|None = None, max_tokens: int = 4096, topic_weight: float = 4, tone_weight: float = 1, client_weight: float = 6, ask_weight: float = 2, text_len_weight: float = 3) -> tuple[str, list[str], str]:
+def execute_prompting(model: Long_Model_Name, account: str, ask_type: str, topics: list[str], additional_topics: list[str], tones: list[str], text_len: Literal["short", "medium", "long", ""], headline: str|None, num_outputs: int, model_temperature: float = 0.8, bio: str|None = None, max_tokens: int = 4096, topic_weight: float = 4, tone_weight: float = 1, client_weight: float = 6, ask_weight: float = 2, text_len_weight: float = 3) -> tuple[str, list[str], str]:
   score_threshold = 0.5 # Document Similarity Score Acceptance Threshold
   doc_pool_size = 30 # Document Pool Size
   num_examples = 10 # Number of Documents to Use as Examples
