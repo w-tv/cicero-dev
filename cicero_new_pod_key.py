@@ -36,7 +36,7 @@ def main() -> None:
       do_one(one_new_email, one_new_pod)
   with c[3]:
     st.caption("enticing button 2")
-    if st.button("update the activity log with that one new email and pod") and one_new_email and one_new_pod:
+    if st.button("update the activity log retroactively with that one new email and pod") and one_new_email and one_new_pod:
       sql_call("UPDATE cicero.default.activity_log SET pod = :pod WHERE useremail ilike :email", {"email": one_new_email, "pod": one_new_pod})
 
   st.write("### File entry")
