@@ -302,9 +302,7 @@ def execute_prompting(model: Long_Model_Name, account: str, ask_type: Ask_Type, 
         ("text_len" in c) * " AND text_length == :text_len",
       c
     )
-    st.write(combo_results)
     combo_results = [x for x in combo_results if x[0] not in results_found] #couldn't ever quite get this to work within the sql statement, so here it is.
-    st.write(combo_results)
     # If no results were found, move onto the next filter combination. Otherwise, continue the process of considering these candidate results.
     if not combo_results:
       continue
