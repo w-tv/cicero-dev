@@ -180,7 +180,6 @@ def execute_prompting(model: Long_Model_Name, account: str, ask_type: Ask_Type, 
   num_examples = 10 # Number of Documents to Use as Examples
   consul_show(f"{score_threshold=}, {doc_pool_size=}, {num_examples=}")
   assert_always(num_examples <= doc_pool_size, "You can't ask to provide more examples than there are documents in the pool! Try again with a different value.")
-  output_table_name = "models.lovelytics.gold_text_outputs" # Text Output Table Name
   ref_tag_name = "models.lovelytics.ref_tags" # Tags Table Name
   primary_key = "PROJECT_NAME" # Index Table Primary Key Name
   client = account # we never use this variable, but client is considered a synonym for account currently #TODO: actually we should refactor out the word "client" I guess. Either one of client or account should go. And begone from variable names.
@@ -226,7 +225,7 @@ def execute_prompting(model: Long_Model_Name, account: str, ask_type: Ask_Type, 
   # (?i) makes it case-insensitive
   # ^(?=.*\btopic\b)(?=.*\btopic\b).*$ regex for matching
   topic_sets = [("topics", x, topic_weight * len(x)) for x in powerset(sorted(topics), start=min(1, len(topics)))]
-  tone_sets = [("tones", "(?i)" + "(, .*){1,}".join(x), tone_weight * len(x)) for x in powerset(sorted(tones), start=min(1, len(tones)))]
+  tone_sets = [("tone_regex", "(?i)" + "(, .*){1,}".join(x), tone_weight * len(x)) for x in powerset(sorted(tones), start=min(1, len(tones)))]
   combos_set: set[Any] = set() # This isn't a great type annotation, but who knows what this is supposed to be.
   # Iterate through each pairing of topics and tones
   for tp in topic_sets:
@@ -250,17 +249,9 @@ def execute_prompting(model: Long_Model_Name, account: str, ask_type: Ask_Type, 
   # TODO: write example of a combo here
 
   ### Find as Many Relevant Documents as Possible ###
-
-  @st.cache_data(show_spinner=False)
-  def read_output_table() -> list[Row]:
-    return sql_call(f"SELECT * from {output_table_name}")
   print("Finding the documents")
-  text_rows = read_output_table() # Keep in mind that row name-indexing is case-sensitive!
-  # results_found is a set of every primary key we've search so far
-  # This is to prevent duplicate documents/texts from showing up
-  results_found = set()
-  # reference_texts will be a list of dictionaries containing example user prompts and assistant responses (i.e. the text messages). Also, scores (a number, represented numerically).
-  reference_texts : list[ReferenceTextElement] = []
+  results_found = set() # results_found is a set of every primary key we've search so far. This is to prevent duplicate documents/texts from showing up.
+  reference_texts : list[ReferenceTextElement] = [] # reference_texts will be a list of dictionaries containing example user prompts and assistant responses (i.e. the text messages). Also, scores (a number, represented numerically).
   # Setup Vector Search Client that we will use in the loop.
   vsc = VectorSearchClient( personal_access_token=st.secrets["DATABRICKS_TOKEN"], workspace_url=st.secrets['DATABRICKS_HOST'], disable_notice=True )
   text_index = vsc.get_index(endpoint_name="rag_llm_vector", index_name="models.lovelytics.gold_text_outputs_index")
@@ -268,48 +259,52 @@ def execute_prompting(model: Long_Model_Name, account: str, ask_type: Ask_Type, 
   topic_tags = set(x["Tag_Name"] for x in sql_call(f"SELECT Tag_Name FROM {ref_tag_name} WHERE Tag_Type = 'Topic'") )
   for c in combos:
     if "topics" not in c: #TODO: Perhaps one could replace all this regex with several sql CONTAINS statements some day?
-        topic_regex = ""
-        text_regex = ""
+      topic_regex = ""
+      text_regex = ""
     else:
-        tagged_topics = []
-        new_topics = []
-        for t in c["topics"]:
-            if t in topic_tags:
-                tagged_topics.append(t)
-            else:
-                new_topics.append(t)
-        # Join together the topics that have been tagged using the same pattern the tones were joined together with
-        # For any new topics (i.e. topics that haven't been tagged) join them together using a new pattern
-        # (?is)^(?=.*\bTOPIC_X\b)(?=.*\bTOPIC_Y\b).*$
-        # To breakdown the regex
-        #   (?is)   - Perform case insensitive search and have the . pattern match newlines as well
-        #   ^       - At the start of a string
-        #   (?=)    - Positive lookahead. Which basically means look forward for a match
-        #   .*      - Match any character 0 or more times
-        #   \b      - Word boundary
-        #   TOPIC_X - The word/phrase we're looking for. In this case it's a placeholder example for the actual topics we want and there could be any number of them
-        #   $       - The end of a string
-        # To sum up, the regex above says perform a case insensitive search across multiple lines from start to end of a string looking for the topics specified in the forward lookaheads in any order.
-        # The key benefit of this is that the words/phrases being looked for can come in any order due to how lookaheads function. So TOPIC_X can come before or after TOPIC_Y in the string and the regex will match either way
-        topic_regex = "(, .*){1,}".join(tagged_topics)
-        if len(new_topics) != 0:
-            text_regex = "(?is)^" + "".join(f"(?=.*\\b{x}\\b)" for x in new_topics) + ".*$"
+      tagged_topics = []
+      new_topics = []
+      for t in c["topics"]:
+        if t in topic_tags:
+          tagged_topics.append(t)
         else:
-            text_regex = ""
-    if "tones" not in c:
-        tone_regex = ""
-    else:
-        tone_regex = c["tones"]
-    combo_results = [
-      (row[primary_key], row["Final_Text"]) for row in text_rows if # Only apply filters if they are present in the current filter combination.
-        (row[primary_key] not in results_found                              )  and
-        ("topics"   not in c    or    re.search(topic_regex, row["Topics"]) )  and
-        ("tones"    not in c    or    re.search(tone_regex, row["Tones"])   )  and
-        (not text_regex         or re.search(text_regex, row["Final_Text"]) )  and
-        ("client"   not in c    or    c["client"] == row["Client_Name"]     )  and
-        ("ask"      not in c    or    c["ask"] == row["Ask_Type"]           )  and
-        ("text_len" not in c    or    c["text_len"] == row["Text_Length"]   )
-    ]
+          new_topics.append(t)
+      # Join together the topics that have been tagged using the same pattern the tones were joined together with
+      # For any new topics (i.e. topics that haven't been tagged) join them together using a new pattern
+      # (?is)^(?=.*\bTOPIC_X\b)(?=.*\bTOPIC_Y\b).*$
+      # To breakdown the regex
+      #   (?is)   - Perform case insensitive search and have the . pattern match newlines as well
+      #   ^       - At the start of a string
+      #   (?=)    - Positive lookahead. Which basically means look forward for a match
+      #   .*      - Match any character 0 or more times
+      #   \b      - Word boundary
+      #   TOPIC_X - The word/phrase we're looking for. In this case it's a placeholder example for the actual topics we want and there could be any number of them
+      #   $       - The end of a string
+      # To sum up, the regex above says perform a case insensitive search across multiple lines from start to end of a string looking for the topics specified in the forward lookaheads in any order.
+      # The key benefit of this is that the words/phrases being looked for can come in any order due to how lookaheads function. So TOPIC_X can come before or after TOPIC_Y in the string and the regex will match either way
+      topic_regex = "(, .*){1,}".join(tagged_topics)
+      if len(new_topics) != 0:
+        text_regex = "(?is)^" + "".join(f"(?=.*\\b{x}\\b)" for x in new_topics) + ".*$"
+      else:
+        text_regex = ""
+      c["topic_regex"] = topic_regex
+      c.pop("topics", None)
+      c["text_regex"] = text_regex
+    #c["results_found"]= list(results_found)
+    combo_results = sql_call_cacheless(
+      "SELECT project_name, final_text from models.lovelytics.gold_text_outputs where TRUE"+
+        # Only apply filters if they are present in the current filter combination...
+        ("topic_regex" in c) * " AND topics rlike :topic_regex" +
+        ("tone_regex" in c) * " AND tones rlike :tone_regex" +
+        ("text_regex" in c) * " AND final_text rlike :text_regex" +
+        ("client" in c) * " AND client_name == :client" +
+        ("ask" in c) * " AND ask_type == :ask" +
+        ("text_len" in c) * " AND text_length == :text_len",
+      c
+    )
+    st.write(combo_results)
+    combo_results = [x for x in combo_results if x[0] not in results_found] #couldn't ever quite get this to work within the sql statement, so here it is.
+    st.write(combo_results)
     # If no results were found, move onto the next filter combination. Otherwise, continue the process of considering these candidate results.
     if not combo_results:
       continue
