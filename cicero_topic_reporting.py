@@ -263,8 +263,9 @@ internal_account_name_to_external_account_name = { #many-to-one relationship #TO
   'Michael Waltz for Congress- Onmessageinc (916)' : 'Michael Waltz - TMA', #yes its supposed to be missing a space
   'Mike Collins for Congress - National Public Affairs (TMA Direct)' : 'Mike Collins - TMA',
   'Mike France for CT2 - National Public Affairs (TMA Direct)' : 'Mike France - TMA',
-  'Mike Johnson (Convergence Digital)' : 'Mike Johnson',
+  'Mike Johnson (Convergence Digital)' : 'Mike Johnson - TMA',
   'Mike Johnson (Convert Digital)' : 'Mike Johnson - TMA',
+  'Mike Johnson for Congress - Push Digital (TMA Direct)' : 'Mike Johnson - TMA',
   'Mike Pence' : 'Mike Pence',
   'Mike Waltz - National Media' : 'Mike Waltz',
   'Miyares for Virginia - IMGE (TMA)' : 'Jason Miyares - TMA',
@@ -338,6 +339,7 @@ internal_account_name_to_external_account_name = { #many-to-one relationship #TO
   'Rubio Victory Committee' : 'Marco Rubio',
   'RUN Ministries - Grassfire Action (TMA Direct)' : 'RUN Ministries - TMA',
   'Save America PAC - DonorBureau (TMA)' : 'Save America PAC - TMA',
+  'Save our Country' : 'Save our Country',
   'Scalise' : 'Steve Scalise',
   'Scharf, Will (MO-AG)' : 'Will Scharf',
   'Scheller, Lisa (PA-07)' : 'Lisa Scheller',
