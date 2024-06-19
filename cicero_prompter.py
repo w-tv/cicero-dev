@@ -67,21 +67,31 @@ def load_headlines(get_all: bool = False, past_days: int = 7) -> list[str]:
   )
   return [result[0] for result in results]
 
+Short_Model_Name = Literal["DBRX-Instruct", "Llama-3-70b-Instruct", "Mixtral-8x7b-Instruct"] #See https://stackoverflow.com/questions/64522040/dynamically-create-literal-alias-from-list-of-valid-values for an explanation of what we're doing here. #COULD: one day use the `type` keyword here for defining this type. But it's not supported yet.
+short_model_names: tuple[Short_Model_Name, ...] = get_args(Short_Model_Name)
+Long_Model_Name = Literal["databricks-dbrx-instruct", "databricks-meta-llama-3-70b-instruct", "databricks-mixtral-8x7b-instruct"] #IMPORTANT: the cleanest way of implementing this REQUIRES that short_model_names and long_model_names correspond via index. This is an unfortunate burden, but it's better than the other ways I tried...
+long_model_names: tuple[Long_Model_Name, ...] = get_args(Long_Model_Name)
+#TODO: "valid values" dict? And then use that for "I'm feeling lucky"?
+Selectable_Length = Literal['short', 'medium', 'long']
+Ask_Type = Literal['Hard Ask', 'Medium Ask', 'Soft Ask', 'Soft Ask Petition', 'Soft Ask Poll', 'Soft Ask Survey']
+Tone = Literal['Agency', 'Apologetic', 'Candid', 'Exclusivity', 'Fiesty', 'Grateful', 'Not Asking For Money', 'Pleading', 'Quick Request', 'Secretive', 'Time Sensitive', 'Urgency'] #Could: , 'Swear Jar' will probably be in here some day, but we don't have "we need more swear jar data to make this tone better"
+Num_Outputs = Literal[1,3,5,10]
+
 #Make default state, and other presets, so we can manage presets and resets.
 # Ah, finally, I've figured out how you're actually supposed to do it: https://docs.streamlit.io/library/advanced-features/button-behavior-and-examples#option-1-use-a-key-for-the-button-and-put-the-logic-before-the-widget
 #IMPORTANT: these field names are the same field names as what we eventually submit. HOWEVER, these are just the default values, and are only used for that, and are stored in this particular data structure, and do not overwrite the other variables of the same names that represent the returned values.
 class PresetsPayload(TypedDict):
   temperature: float
-  model_name: str
+  model_name: Short_Model_Name
   account: str | None
-  ask_type: str
-  tone: list[str]
+  ask_type: Ask_Type
+  tones: list[Tone]
   topics: list[str]
   additional_topics: str
   exact_match_query: str
   headline: str | None
   overdrive: bool
-  num_outputs: int
+  num_outputs: Num_Outputs
   topic_weight: float
   tone_weight: float
   client_weight: float
@@ -94,7 +104,7 @@ presets: dict[str, PresetsPayload] = {
     "model_name": "Llama-3-70b-Instruct",
     "account" : None,
     "ask_type": "Hard Ask",
-    "tone" : [],
+    "tones" : [],
     "topics" : [],
     "additional_topics" : "",
     "exact_match_query": "",
@@ -119,14 +129,6 @@ def list_lower(l: list[str]) -> list[str]:
 
 def only_those_strings_of_the_list_that_contain_the_given_substring_case_insensitively(l: list[str], s: str) -> list[str]:
   return [x for x in l if s.lower() in x.lower()]
-
-Short_Model_Name = Literal["DBRX-Instruct", "Llama-3-70b-Instruct", "Mixtral-8x7b-Instruct"] #See https://stackoverflow.com/questions/64522040/dynamically-create-literal-alias-from-list-of-valid-values for an explanation of what we're doing here. #COULD: one day use the `type` keyword here for defining this type. But it's not supported yet.
-short_model_names: tuple[Short_Model_Name, ...] = get_args(Short_Model_Name)
-Long_Model_Name = Literal["databricks-dbrx-instruct", "databricks-meta-llama-3-70b-instruct", "databricks-mixtral-8x7b-instruct"] #IMPORTANT: the cleanest way of implementing this REQUIRES that short_model_names and long_model_names correspond via index. This is an unfortunate burden, but it's better than the other ways I tried...
-long_model_names: tuple[Long_Model_Name, ...] = get_args(Long_Model_Name)
-#TODO: "valid values" dict? And then use that for "I'm feeling lucky"?
-Selectable_Length = Literal['short', 'medium', 'long']
-Ask_Type = Literal['Hard Ask', 'Medium Ask', 'Soft Ask', 'Soft Ask Petition', 'Soft Ask Poll', 'Soft Ask Survey']
 
 def short_model_name_to_long_model_name(short_model_name: Short_Model_Name) -> Long_Model_Name:
   return long_model_names[short_model_names.index(short_model_name)]
@@ -173,7 +175,7 @@ def sample_dissimilar_texts(population: list[ReferenceTextElement], k: int, max_
     not_selected = scored_unselected
   return random.sample(final_arr, k=len(final_arr))
 
-def execute_prompting(model: Long_Model_Name, account: str, ask_type: Ask_Type, topics: list[str], additional_topics: list[str], tones: list[str], text_len: Selectable_Length, headline: str|None, num_outputs: int, model_temperature: float = 0.8, bio: str|None = None, max_tokens: int = 4096, topic_weight: float = 4, tone_weight: float = 1, client_weight: float = 6, ask_weight: float = 2, text_len_weight: float = 3) -> tuple[str, list[str], str]:
+def execute_prompting(model: Long_Model_Name, account: str, ask_type: Ask_Type, topics: list[str], additional_topics: list[str], tones: list[Tone], text_len: Selectable_Length, headline: str|None, num_outputs: Num_Outputs, model_temperature: float = 0.8, bio: str|None = None, max_tokens: int = 4096, topic_weight: float = 4, tone_weight: float = 1, client_weight: float = 6, ask_weight: float = 2, text_len_weight: float = 3) -> tuple[str, list[str], str]:
   score_threshold = 0.5 # Document Similarity Score Acceptance Threshold
   doc_pool_size = 30 # Document Pool Size
   num_examples = 10 # Number of Documents to Use as Examples
@@ -222,9 +224,10 @@ def execute_prompting(model: Long_Model_Name, account: str, ask_type: Ask_Type, 
   # So a(, .*){1,}b would mean: in the search space look for a, then at least one or more characters, and then b
   # This would match the string a, b and a, c, d, e, f, g, b
   # And would not match the string acdb
+  # (?i) makes it case-insensitive
   # ^(?=.*\btopic\b)(?=.*\btopic\b).*$ regex for matching
   topic_sets = [("topics", x, topic_weight * len(x)) for x in powerset(sorted(topics), start=min(1, len(topics)))]
-  tone_sets = [("tones", "(, .*){1,}".join(x), tone_weight * len(x)) for x in powerset(sorted(tones), start=min(1, len(tones)))]
+  tone_sets = [("tones", "(?i)" + "(, .*){1,}".join(x), tone_weight * len(x)) for x in powerset(sorted(tones), start=min(1, len(tones)))]
   combos_set: set[Any] = set() # This isn't a great type annotation, but who knows what this is supposed to be.
   # Iterate through each pairing of topics and tones
   for tp in topic_sets:
@@ -552,8 +555,8 @@ def main() -> None:
     topics = external_topic_names_to_internal_topic_names_list_mapping(topics)
     length_select = typesafe_selectbox("Length", get_args(Selectable_Length), key='lengths', format_func=lambda x: f"{x.capitalize()} ({'<160' if x == 'short' else '161-399' if x == 'medium' else '400+'} characters)")
     additional_topics = [x.strip().lower() for x in st.text_input("Additional Topics (examples: Biden, survey, deadline)", key="additional_topics" ).split(",") if x.strip()] # The list comprehension is to filter out empty strings on split, because otherwise this fails to make a truly empty list in the default case, instead having a list with an empty string in, because split changes its behavior when you give it arguments. Anyway, this also filters out trailing comma edge-cases and such.
-    tones = list_lower( st.multiselect("Tones", ['Agency', 'Apologetic', 'Candid', 'Exclusivity', 'Fiesty', 'Grateful', 'Not Asking For Money', 'Pleading', 'Quick Request', 'Secretive', 'Time Sensitive', 'Urgency'], key="tone") ) #Could: , 'Swear Jar' will probably be in here some day, but we don't have "we need more swear jar data to make this tone better"
-    num_outputs: int = typesafe_selectbox(r"\# Outputs", [1,3,5,10], key='num_outputs')
+    tones = st.multiselect("Tones", get_args(Tone), key="tones")
+    num_outputs = typesafe_selectbox(r"\# Outputs", get_args(Num_Outputs), key='num_outputs')
     temperature: float = st.slider("Output Variance:", min_value=0.0, max_value=1.0, key="temperature") if st.session_state["developer_mode"] else 0.7
     buttonhole = st.empty()
     with buttonhole:
