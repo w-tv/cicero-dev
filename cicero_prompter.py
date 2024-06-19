@@ -5,7 +5,6 @@
 import streamlit as st
 import pandas as pd
 import json
-#COULD: use https://pypi.org/project/streamlit-profiler/ for profiling
 from typing import Any, Final, Literal, TypedDict, TypeVar, get_args
 from cicero_shared import assert_always, exit_error, load_account_names, sql_call, sql_call_cacheless, topics_big, Row, typesafe_selectbox
 import cicero_rag_only
@@ -642,6 +641,6 @@ def main() -> None:
     # promptsent is only illustrative. But maybe that's enough. Maybe we should be using a different prompt?
     write_to_activity_log_table( useremail=st.session_state['email'], promptsent=promptsent, responsegiven=json.dumps(st.session_state['outputs']), modelparams=str({"max_tokens": max_tokens, "temperature": temperature}), modelname=model_name, modelurl=model )
 
-  # st.components.v1.html('<!--<script>//you can include arbitrary html and javascript this way</script>-->') #or, use st.markdown, if you want arbitrary html but javascript isn't needed.
+  # import streamlit.components.v1 as components; components.html('<!--<script>//you can include arbitrary html and javascript this way</script>-->') #or, use st.markdown, if you want arbitrary html but javascript isn't needed.
 
 if __name__ == "__main__": main()

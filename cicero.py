@@ -7,13 +7,13 @@ Check the cicero_*.py files for various functionalities of Cicero.
 from time import perf_counter_ns
 nanoseconds_base : int = perf_counter_ns()
 import streamlit as st
-#from streamlit.components.v1 import html
 import os, psutil, platform
 import cicero_prompter, cicero_topic_reporting, cicero_response_lookup, cicero_rag_only, cicero_new_pod_key
 from cicero_shared import exit_error, get_base_url
 from google.auth.transport import requests
 from google.oauth2 import id_token
 from streamlit.web.server.websocket_headers import _get_websocket_headers
+from streamlit_profiler import Profiler
 
 st.set_page_config(layout="wide", page_title="Cicero", page_icon=r"assets/CiceroLogo_Favicon.png") # Use wide mode in Cicero, mostly so that results display more of their text by default. Also, set title and favicon. #NOTE: "`set_page_config()` can only be called once per app page, and must be called as the first Streamlit command in your script."
 
@@ -78,4 +78,6 @@ def main() -> None:
         Base url: {get_base_url()}
       """, unsafe_allow_html=True)
       st.button("disable developer mode", on_click=disable_developer_mode, help="Click this button to disable developer mode, allowing you to see and interact with the app as a basic user would. You can refresh the page in your browser to re-enable developer mode.") #this is a callback for streamlit ui update-flow reasons.
-if __name__ == "__main__": main()
+if __name__ == "__main__":
+  with Profiler():
+    main()
