@@ -44,7 +44,7 @@ def main() -> None:
 
   title_and_loading_columns = st.columns(2)
   with title_and_loading_columns[0]:
-    st.image(image="assets/CiceroLogo_Frontend_Cropped.png", caption="", width=400, use_column_width=False)
+    st.image(image="assets/CiceroLogo_Frontend_Cropped_400x107.png", use_column_width=False)
   with title_and_loading_columns[1]:
     loading_message = st.empty()
     loading_message.write("Loading CICERO.  This may take up to a minute...")
