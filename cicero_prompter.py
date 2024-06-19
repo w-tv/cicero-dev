@@ -175,10 +175,8 @@ def sample_dissimilar_texts(population: list[ReferenceTextElement], k: int, max_
     not_selected = scored_unselected
   return random.sample(final_arr, k=len(final_arr))
 
-def execute_prompting(model: Long_Model_Name, account: str, ask_type: Ask_Type, topics: list[str], additional_topics: list[str], tones: list[Tone], text_len: Selectable_Length, headline: str|None, num_outputs: Num_Outputs, model_temperature: float = 0.8, bio: str|None = None, max_tokens: int = 4096, topic_weight: float = 4, tone_weight: float = 1, client_weight: float = 6, ask_weight: float = 2, text_len_weight: float = 3) -> tuple[str, list[str], str]:
+def execute_prompting(model: Long_Model_Name, account: str, ask_type: Ask_Type, topics: list[str], additional_topics: list[str], tones: list[Tone], text_len: Selectable_Length, headline: str|None, num_outputs: Num_Outputs, model_temperature: float = 0.8, bio: str|None = None, max_tokens: int = 4096, topic_weight: float = 4, tone_weight: float = 1, client_weight: float = 6, ask_weight: float = 2, text_len_weight: float = 3, doc_pool_size: int = 30, num_examples: int = 10) -> tuple[str, list[str], str]:
   score_threshold = 0.5 # Document Similarity Score Acceptance Threshold
-  doc_pool_size = 30 # Document Pool Size
-  num_examples = 10 # Number of Documents to Use as Examples
   consul_show(f"{score_threshold=}, {doc_pool_size=}, {num_examples=}")
   assert_always(num_examples <= doc_pool_size, "You can't ask to provide more examples than there are documents in the pool! Try again with a different value.")
   ref_tag_name = "models.lovelytics.ref_tags" # Tags Table Name
@@ -532,6 +530,8 @@ def main() -> None:
         text_len_weight: float = st.slider("Text Len Weight", min_value=0.0, max_value=10.0, key="text_len_weight")
         st.session_state["the_real_dude_model_name"] = short_model_name_to_long_model_name(typesafe_selectbox("Model selection for Cicero (the actual, historical man (it's really him))", short_model_names, default="Llama-3-70b-Instruct")) #TODO: this is deliberately not in the preset system, because it might get removed later.
         st.session_state["the_real_dude_system_prompt"] = typesafe_selectbox("Model system prompt for Cicero (the actual, historical man (it's really him))", [default_sys_prompt, rewrite_sys_prompt, analyze_sys_prompt]) #TODO: this is deliberately not in the preset system, because it might get removed later.
+        doc_pool_size: int = st.slider("Doc Pool Size", min_value=5, max_value=100, value=30) #TODO: this is deliberately not in the preset system, because it might get removed later.
+        num_examples: int = st.slider("Number of Examples", min_value=5, max_value=100, value=10) #TODO: this is deliberately not in the preset system, because it might get removed later.
       else:
         topic_weight = 4
         tone_weight = 1
@@ -540,6 +540,8 @@ def main() -> None:
         text_len_weight = 3
         st.session_state["the_real_dude_model_name"] = "databricks-meta-llama-3-70b-instruct"
         st.session_state["the_real_dude_system_prompt"] = default_sys_prompt
+        doc_pool_size = 30
+        num_examples = 10
 
     model_name = typesafe_selectbox("Model (required)", short_model_names, default="Llama-3-70b-Instruct", key="model") if st.session_state["developer_mode"] else "Llama-3-70b-Instruct"
     model = short_model_name_to_long_model_name(model_name)
@@ -578,7 +580,7 @@ def main() -> None:
       st.session_state['use_count']+=1 #this is just an optimization for the front-end display of the query count
       bio = bios.get(account) if ("bio" in topics and account in bios) else None
       max_tokens = 4096
-      promptsent, st.session_state['outputs'], st.session_state['entire_prompt'] = execute_prompting(model, account, ask_type, topics, additional_topics, tones, length_select, headline, num_outputs, temperature, bio, max_tokens, topic_weight, tone_weight, client_weight, ask_weight, text_len_weight)
+      promptsent, st.session_state['outputs'], st.session_state['entire_prompt'] = execute_prompting(model, account, ask_type, topics, additional_topics, tones, length_select, headline, num_outputs, temperature, bio, max_tokens, topic_weight, tone_weight, client_weight, ask_weight, text_len_weight, doc_pool_size, num_examples)
       if len(st.session_state['outputs']) != num_outputs:
         st.info("CICERO has detected that the number of outputs may be wrong.")
       if 'history' not in st.session_state:
