@@ -126,6 +126,7 @@ Long_Model_Name = Literal["databricks-dbrx-instruct", "databricks-meta-llama-3-7
 long_model_names: tuple[Long_Model_Name, ...] = get_args(Long_Model_Name)
 #TODO: "valid values" dict? And then use that for "I'm feeling lucky"?
 Selectable_Length = Literal['short', 'medium', 'long']
+Ask_Type = Literal['Hard Ask', 'Medium Ask', 'Soft Ask', 'Soft Ask Petition', 'Soft Ask Poll', 'Soft Ask Survey']
 
 def short_model_name_to_long_model_name(short_model_name: Short_Model_Name) -> Long_Model_Name:
   return long_model_names[short_model_names.index(short_model_name)]
@@ -172,7 +173,7 @@ def sample_dissimilar_texts(population: list[ReferenceTextElement], k: int, max_
     not_selected = scored_unselected
   return random.sample(final_arr, k=len(final_arr))
 
-def execute_prompting(model: Long_Model_Name, account: str, ask_type: str, topics: list[str], additional_topics: list[str], tones: list[str], text_len: Selectable_Length, headline: str|None, num_outputs: int, model_temperature: float = 0.8, bio: str|None = None, max_tokens: int = 4096, topic_weight: float = 4, tone_weight: float = 1, client_weight: float = 6, ask_weight: float = 2, text_len_weight: float = 3) -> tuple[str, list[str], str]:
+def execute_prompting(model: Long_Model_Name, account: str, ask_type: Ask_Type, topics: list[str], additional_topics: list[str], tones: list[str], text_len: Selectable_Length, headline: str|None, num_outputs: int, model_temperature: float = 0.8, bio: str|None = None, max_tokens: int = 4096, topic_weight: float = 4, tone_weight: float = 1, client_weight: float = 6, ask_weight: float = 2, text_len_weight: float = 3) -> tuple[str, list[str], str]:
   score_threshold = 0.5 # Document Similarity Score Acceptance Threshold
   doc_pool_size = 30 # Document Pool Size
   num_examples = 10 # Number of Documents to Use as Examples
@@ -545,8 +546,8 @@ def main() -> None:
 
     model_name = typesafe_selectbox("Model (required)", short_model_names, default="Llama-3-70b-Instruct", key="model") if st.session_state["developer_mode"] else "Llama-3-70b-Instruct"
     model = short_model_name_to_long_model_name(model_name)
-    account = st.selectbox("Account (required)", list(account_names), key="account") # No typesafe_selectbox here because we actually do want this to possibly be unselected.
-    ask_type = typesafe_selectbox("Ask Type", ['Hard Ask', 'Medium Ask', 'Soft Ask', 'Soft Ask Petition', 'Soft Ask Poll', 'Soft Ask Survey'], key="ask_type").lower()
+    account = st.selectbox("Account (required)", account_names, key="account") # No typesafe_selectbox here because we actually do want this to possibly be unselected.
+    ask_type = typesafe_selectbox("Ask Type", get_args(Ask_Type), key="ask_type").lower()
     topics = st.multiselect("Topics", sorted([t for t, d in topics_big.items() if d["show in prompter?"]]), key="topics" )
     topics = external_topic_names_to_internal_topic_names_list_mapping(topics)
     length_select = typesafe_selectbox("Length", get_args(Selectable_Length), key='lengths', format_func=lambda x: f"{x.capitalize()} ({'<160' if x == 'short' else '161-399' if x == 'medium' else '400+'} characters)")
