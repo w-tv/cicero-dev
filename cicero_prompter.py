@@ -471,12 +471,13 @@ def execute_prompting(model: Long_Model_Name, account: str, ask_type: Ask_Type, 
     """Strip off annoying LLM numbering often found at the beginning of a response. Returns anything else untouched."""
     return re.sub(r"^\s*(?:Message )*\d*\s*[.:]*\s*", "", s)
   def is_natter(x: str) -> bool:
-    """Detect if a string is likely random natter often produced by LLMs, based on how it starts."""
+    """Detect if a string is likely the random natter often produced by LLMs, based on how it starts."""
     msg_pattern = r"\*?\*?Message \d\.?\*?\*?$"
-    # TODO: eventually there could be other regex to check, there's got to be a better way than just slapping on more bool()s
     return x.startswith("Here ") or x.startswith("Sure") or x.startswith("OK") or bool(re.match(msg_pattern, x))
   outputs = [ x for o in single_output.split('\n') for x in [dequote(behead(dequote(o))).strip()] if x and x.isascii() and not is_natter(x) ]
   print("Done with prompting.")
+  if num_outputs != len(outputs):
+    print(f"!!! CICERO has detected that the number of outputs may be wrong. Desired {num_outputs=}. Observed {len(outputs)=}. Problematic output: {single_output=}. Parsed into {outputs=}")
   return question, outputs, entire_prompt
 
 def main() -> None:
