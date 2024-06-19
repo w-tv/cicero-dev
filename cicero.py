@@ -15,6 +15,8 @@ from google.oauth2 import id_token
 from streamlit.web.server.websocket_headers import _get_websocket_headers
 from streamlit_profiler import Profiler
 
+p = Profiler()
+
 st.set_page_config(layout="wide", page_title="Cicero", page_icon=r"assets/CiceroLogo_Favicon.png") # Use wide mode in Cicero, mostly so that results display more of their text by default. Also, set title and favicon. #NOTE: "`set_page_config()` can only be called once per app page, and must be called as the first Streamlit command in your script."
 
 def main() -> None:
@@ -52,6 +54,9 @@ def main() -> None:
   st.session_state['developer_mode'] = st.session_state['email'] in ["achang@targetedvictory.com", "abrady@targetedvictory.com", "thall@targetedvictory.com", "afuhrer@targetedvictory.com", "wcarpenter@targetedvictory.com", "cmahon@targetedvictory.com", "rtauscher@targetedvictory.com", "cmajor@targetedvictory.com", "test@example.com"] and not st.session_state.get("developer_mode_disabled")
   def disable_developer_mode() -> None: st.session_state["developer_mode_disabled"] = True
 
+  if st.session_state['developer_mode']:
+    p.start()
+
   if st.session_state['developer_mode']: #dev-mode out the entirety of topic reporting (some day it will be perfect and the users will be ready for us to un-dev-mode it) # also dev-mode out response-lookup, which will probably be permanently dev-moded, along with New Pod Key
     tab1, tab2, tab3, tab4, tab5 = st.tabs(["🗣️ Prompter", "🌈 Topic Reporting", "🔍 Response Lookup", "🎰 The RAG Man", "🫛 New Pod Key"])
     with tab1:
@@ -78,6 +83,7 @@ def main() -> None:
         Base url: {get_base_url()}
       """, unsafe_allow_html=True)
       st.button("disable developer mode", on_click=disable_developer_mode, help="Click this button to disable developer mode, allowing you to see and interact with the app as a basic user would. You can refresh the page in your browser to re-enable developer mode.") #this is a callback for streamlit ui update-flow reasons.
+  if st.session_state['developer_mode']:
+    p.stop()
 if __name__ == "__main__":
-  with Profiler():
-    main()
+  main()
