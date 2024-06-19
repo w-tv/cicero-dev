@@ -136,7 +136,8 @@ ReferenceTextElement = TypedDict('ReferenceTextElement', {'prompt': str, 'text':
 
 def consul_show(x: Any) -> None:
   """Show some debug-like information in the sidebar. Often best used with f"{foo=}" in the calling code, which will become the name and also the value of the variable, such as foo=2 (naturally, this must be done at the calling site (I assume))."""
-  st.sidebar.caption(f"Developer (“Consul”) mode diagnostic: {x}")
+  if st.session_state.get("developer_mode"):
+    st.sidebar.caption(f"Developer (“Consul”) mode diagnostic: {x}")
 
 def sample_dissimilar_texts(population: list[ReferenceTextElement], k: int, max_similarity: float=0.8) -> list[ReferenceTextElement]: #TODO: it seems that this function is only called when text is Long, which is probably not right? #TODO: it takes line 20 seconds for this code to run, it seems, and this code is called {# Outputs} times (again, only on Long) and furthermore I suspect this code can be replaced with about 5 lines, so maybe that refactor will also speed things up.
   consul_show(f"sample_dissimilar_texts's {max_similarity=}")
