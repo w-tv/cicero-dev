@@ -38,6 +38,13 @@ def main() -> None:
       st.caption("enticing button 2")
       if st.button("update the activity log retroactively with that one new email and pod") and one_new_email and one_new_pod:
         sql_call("UPDATE cicero.default.activity_log SET pod = :pod WHERE useremail ilike :email", {"email": one_new_email, "pod": one_new_pod})
+    st.write("#### Time-limited activity log updating")
+    st.caption("Want to update the pod value, and also the activity log but only *since* a certain date? No problem; fill out the date box here with the first date the change should affect (eg 2024-06-01) and then click the button below. The value of pod and email from the boxes above will be used. The date specified is included (using `>=`), as is every date up to and including the present, and also, if you think about it, the future.")
+    date_str = st.text_input("date since (inclusive)").strip()
+    if st.button("update the pod table and also the activity log retroactively IN A TIME-LIMITED MANNER with that one new email and pod") and one_new_email and one_new_pod:
+      do_one(one_new_email, one_new_pod)
+      #even though datetime is now a proper timestamp and not a string, this seems to work.
+      sql_call("UPDATE cicero.default.activity_log SET pod = :pod WHERE useremail ilike :email AND datetime >= :date_str", {"email": one_new_email, "pod": one_new_pod, "date_str": date_str})
 
     st.write("### File entry")
     if file := st.file_uploader("Here, you can pick a new pod key excel file. If you do so, you can use it to modify the pod table, using the controls also in this section."):
@@ -61,7 +68,7 @@ def main() -> None:
     st.write(pod_table_results)
 
     st.write("## Activity log (main, not chatbot)")
-    st.info("Here, you can see what pods users actually have in the activity log, in case you need to correct any mistakes of previous pod-assignment. Remember: this section is completely collapsable in the user interface, if its huge size is visually distracting.")
+    st.info("Here, you can see what pods users actually have in the activity log, in case you need to correct any mistakes of previous pod-assignment. Remember: this section is completely collapsable in the user interface, if its huge size is visually distracting.\n\nPlease note also that if a user has had multiple pod values over the course of time, you should expect to see multiple values for them in here (one for each different pod). These are in no particular order, so you might want to ctrl+f (although, beware the other table, the pod table above) which will also contain them!).")
     st.write(f"""activity log entries where the pod is NULL, suggesting you need to run the retroactive application (above) if there are any: ***{sql_call("SELECT count(*) FROM cicero.default.activity_log WHERE pod IS NULL")[0][0]}***""")
     st.write(f"""activity log entries where the pod is "Pod unknown", suggesting you need to run the retroactive application (above) if there are any: ***{sql_call("SELECT count( distinct useremail) FROM cicero.default.activity_log WHERE pod = 'Pod unknown'")[0][0]}***""")
     activity_log_results = sql_call("SELECT DISTINCT useremail, pod FROM cicero.default.activity_log")
