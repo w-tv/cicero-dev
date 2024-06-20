@@ -21,7 +21,7 @@ def main() -> None:
   st.warning("This page is an internal developer tool for Cicero. Also the controls aren't very self-explanatory.\n\nYou may also enjoy the song “Brand New Key” by Melanie Safka (RIP) https://www.youtube.com/watch?v=-mXlW9LytYo, although this will not help you use the tool in any way.")
   if st.session_state.get("new_pod_key_enabled"):
     st.write("## Meddle")
-    st.write("This section contains controls for updating the pod table (listed below) and the activity log (listed even belower).\n\nThe pod table is consulted every time a user does a prompt and cicero thereby writes to the activity log.\n\nSo, the pod table controls what will appear in the pod column in activity log entries going forward for users.\n\nIf you've done something wrong previously, you might also want to update the activity log retroactively, to correct any erroneous pod listing you made have caused to exist in there.")
+    st.write("This section contains controls for updating the pod table (listed below) and the activity log (listed even belower).\n\nThe pod table is consulted every time a user does a prompt and cicero thereby writes to the activity log.\n\nSo, the pod table controls what will appear in the pod column in activity log entries going forward for users.\n\nIf you've done something wrong previously, you might also want to update the activity log retroactively, to correct any erroneous pod listing you may have caused to exist in there.")
 
     st.write("### Manual entry")
     st.write("Here, you can manually update pod table values or activity log values, one user-pod association at a time. This is, by far, the most common way for us to make updates.")
