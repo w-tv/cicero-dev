@@ -1,8 +1,8 @@
 #!/usr/bin/env -S streamlit run
 
 import streamlit as st
-from databricks_genai_inference import ChatSession
-from cicero_shared import sql_call_cacheless
+from databricks_genai_inference import ChatSession, FoundationModelAPIException
+from cicero_shared import sql_call_cacheless, consul_show
 
 def grow_chat(streamlit_key_suffix: str = "", alternate_content: str = "", display_only_this_at_first_blush: str|None = None) -> None:
   # the streamlit_key_suffix is only necessary because we use this code in two places #TODO: actually, it's not clear that we want to do that. And, the chat histories overlap, currently... So, maybe rethink this concept later. I don't even know why we have two of them. Maybe they were supposed to mutate in concept independently?
@@ -14,7 +14,20 @@ def grow_chat(streamlit_key_suffix: str = "", alternate_content: str = "", displ
   if not st.session_state.get("messages"):
       st.session_state.messages = []
   p: str = alternate_content or st.session_state["user_input_for_chatbot_this_frame"+streamlit_key_suffix]
-  st.session_state.chat.reply(p)
+  while True: #databricks_genai_inference-BUG-WORKAROUND: it prompts with the entire chat history every time, without truncating history to fit the token limit even though this makes it ultimately useless as a chat session manager. Since I now have to manually manage the chat session as well! So, we just try removing messages until it works
+    try:
+      st.session_state.chat.reply(p)
+      break
+    except FoundationModelAPIException as e:
+      if e.message.startswith('{"error_code":"BAD_REQUEST","message":"Bad request: prompt token count'): # Find out if it's exactly the right error we know how to handle.
+        if len(st.session_state.chat.chat_history) <= 2: # This means there is only the system prompt and the current user prompt left, which means the user prompt is simply too long.
+          st.experimental_dialog("User prompt to chatbot too long, sorry. Try using a shorter one.")
+          break
+        else:
+          consul_show(f"Truncating chat history from {len(st.session_state.chat.chat_history)} messages...")
+          st.session_state.chat.chat_history = [st.session_state.chat.chat_history[0]]+st.session_state.chat.chat_history[3:-1]#remove one message-response from the start of history, preserving the system message at the beginning. Also remove the failed prompt we've generated at the end. This clause will repeat until the prompt is small enough that the prompting goes through.
+      else: # I guess it's some other error, so crash 🤷
+        raise e
   st.session_state.messages.append({"role": "user", "content": display_only_this_at_first_blush or p})
   st.session_state.messages.append({"avatar": "assets/CiceroChat_800x800.jpg", "role": "assistant", "content": st.session_state.chat.last})
   # Write to the chatbot activity log:
@@ -22,6 +35,7 @@ def grow_chat(streamlit_key_suffix: str = "", alternate_content: str = "", displ
   # (Note that this table uses a real timestamp datatype. You can `SET TIME ZONE "US/Eastern";` in sql to read the timestamps in US Eastern time, instead of the default UTC.
   sql_call_cacheless("CREATE TABLE IF NOT EXISTS cicero.default.activity_log_chatbot (timestamp timestamp, user_email string, user_pod string, model_name string, model_parameters string, system_prompt string, user_prompt string, response_given string)")
   sql_call_cacheless(
+    # The first line here basically just does a left join; I just happened to write it in a different way.
     "WITH tmp(user_pod) AS (SELECT user_pod FROM cicero.default.user_pods WHERE user_email ilike :user_email)\
     INSERT INTO cicero.default.activity_log_chatbot\
                      ( timestamp,  user_email, user_pod,  model_name,  model_parameters,  system_prompt,  user_prompt,  response_given)\
@@ -53,7 +67,11 @@ def main(streamlit_key_suffix: str = "") -> None:
     for message in st.session_state.messages:
       with st.chat_message(message["role"], avatar=message.get("avatar")):
         st.markdown(message["content"].replace("$", r"\$").replace("[", r"\[")) #COULD: remove the \[ escaping, which is only useful for, what, markdown links? Which nobody uses.
-
+  # if "testing_rag_man" not in st.session_state:
+    # st.session_state["testing_rag_man"] = 10
+  # while st.session_state["testing_rag_man"]:
+    # st.session_state["testing_rag_man"] -= 1
+    # grow_chat(alternate_content="x x"*1000 + "how many messages have we sent?") # The hope is this extremely long message lets us hit the error condition earlier.
   st.chat_input( "How can I help?", on_submit=grow_chat, key="user_input_for_chatbot_this_frame"+streamlit_key_suffix, args=(streamlit_key_suffix,) )
 
 if __name__ == "__main__": main()
