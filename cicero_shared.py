@@ -29,7 +29,7 @@ def exit_error(exit_code: int) -> NoReturn:
   st.write("*Ego vero consisto. Accede, veterane, et, si hoc saltim potes recte facere, incide cervicem.*")
   exit(exit_code)
 
-@st.experimental_dialog("Database error") #type: ignore[attr-defined] # STREAMLIT-BUG-WORKAROUND: https://github.com/streamlit/streamlit/issues/8712
+@st.experimental_dialog("Database error")
 def die_with_database_error_popup(e_args: tuple[Any, ...]) -> NoReturn:
   print("Database error", e_args)
   st.write("There was a database error, and the application could not continue. Sorry.")
