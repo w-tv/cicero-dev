@@ -17,31 +17,36 @@ def grow_chat(streamlit_key_suffix: str = "", alternate_content: str = "", displ
   while True: #databricks_genai_inference-BUG-WORKAROUND: it prompts with the entire chat history every time, without truncating history to fit the token limit even though this makes it ultimately useless as a chat session manager. Since I now have to manually manage the chat session as well! So, we just try removing messages until it works
     try:
       st.session_state.chat.reply(p)
+      st.session_state.messages.append({"role": "user", "content": display_only_this_at_first_blush or p})
+      st.session_state.messages.append({"avatar": "assets/CiceroChat_800x800.jpg", "role": "assistant", "content": st.session_state.chat.last})
+      # Write to the chatbot activity log:
+      # (There's no model_uri field because I don't know how to access that from here.)
+      # (Note that this table uses a real timestamp datatype. You can `SET TIME ZONE "US/Eastern";` in sql to read the timestamps in US Eastern time, instead of the default UTC.
+      sql_call_cacheless("CREATE TABLE IF NOT EXISTS cicero.default.activity_log_chatbot (timestamp timestamp, user_email string, user_pod string, model_name string, model_parameters string, system_prompt string, user_prompt string, response_given string)")
+      sql_call_cacheless(
+        # The first line here basically just does a left join; I just happened to write it in a different way.
+        "WITH tmp(user_pod) AS (SELECT user_pod FROM cicero.default.user_pods WHERE user_email ilike :user_email)\
+        INSERT INTO cicero.default.activity_log_chatbot\
+                         ( timestamp,  user_email, user_pod,  model_name,  model_parameters,  system_prompt,  user_prompt,  response_given)\
+          SELECT current_timestamp(), :user_email, user_pod, :model_name, :model_parameters, :system_prompt, :user_prompt, :response_given FROM tmp",
+        {"user_email": st.session_state["email"], "model_name": st.session_state.chat.model, "model_parameters": str(st.session_state.chat.parameters), "system_prompt": st.session_state.chat.system_message, "user_prompt": p, "response_given": st.session_state.chat.last}
+      )
       break
     except FoundationModelAPIException as e:
       if e.message.startswith('{"error_code":"BAD_REQUEST","message":"Bad request: prompt token count'): # Find out if it's exactly the right error we know how to handle.
         if len(st.session_state.chat.chat_history) <= 2: # This means there is only the system prompt and the current user prompt left, which means the user prompt is simply too long.
-          st.experimental_dialog("User prompt to chatbot too long, sorry. Try using a shorter one.")
+          @st.experimental_dialog("Prompt too long.")
+          def _():
+            st.write("User prompt to chatbot too long, sorry. Try using a shorter one.")
+            st.caption("Press enter or click the ❌︎ in the upper-right corner to close this message.")
+          _()
+          st.session_state.chat.chat_history.pop() #remove failed prompt
           break
         else:
           consul_show(f"Truncating chat history from {len(st.session_state.chat.chat_history)} messages...")
           st.session_state.chat.chat_history = [st.session_state.chat.chat_history[0]]+st.session_state.chat.chat_history[3:-1]#remove one message-response from the start of history, preserving the system message at the beginning. Also remove the failed prompt we've generated at the end. This clause will repeat until the prompt is small enough that the prompting goes through.
       else: # I guess it's some other error, so crash 🤷
         raise e
-  st.session_state.messages.append({"role": "user", "content": display_only_this_at_first_blush or p})
-  st.session_state.messages.append({"avatar": "assets/CiceroChat_800x800.jpg", "role": "assistant", "content": st.session_state.chat.last})
-  # Write to the chatbot activity log:
-  # (There's no model_uri field because I don't know how to access that from here.)
-  # (Note that this table uses a real timestamp datatype. You can `SET TIME ZONE "US/Eastern";` in sql to read the timestamps in US Eastern time, instead of the default UTC.
-  sql_call_cacheless("CREATE TABLE IF NOT EXISTS cicero.default.activity_log_chatbot (timestamp timestamp, user_email string, user_pod string, model_name string, model_parameters string, system_prompt string, user_prompt string, response_given string)")
-  sql_call_cacheless(
-    # The first line here basically just does a left join; I just happened to write it in a different way.
-    "WITH tmp(user_pod) AS (SELECT user_pod FROM cicero.default.user_pods WHERE user_email ilike :user_email)\
-    INSERT INTO cicero.default.activity_log_chatbot\
-                     ( timestamp,  user_email, user_pod,  model_name,  model_parameters,  system_prompt,  user_prompt,  response_given)\
-      SELECT current_timestamp(), :user_email, user_pod, :model_name, :model_parameters, :system_prompt, :user_prompt, :response_given FROM tmp",
-    {"user_email": st.session_state["email"], "model_name": st.session_state.chat.model, "model_parameters": str(st.session_state.chat.parameters), "system_prompt": st.session_state.chat.system_message, "user_prompt": p, "response_given": st.session_state.chat.last}
-  )
 
 def reset_chat() -> None:
   st.session_state["chat"] = None
