@@ -67,11 +67,6 @@ def main(streamlit_key_suffix: str = "") -> None:
     for message in st.session_state.messages:
       with st.chat_message(message["role"], avatar=message.get("avatar")):
         st.markdown(message["content"].replace("$", r"\$").replace("[", r"\[")) #COULD: remove the \[ escaping, which is only useful for, what, markdown links? Which nobody uses.
-  # if "testing_rag_man" not in st.session_state:
-    # st.session_state["testing_rag_man"] = 10
-  # while st.session_state["testing_rag_man"]:
-    # st.session_state["testing_rag_man"] -= 1
-    # grow_chat(alternate_content="x x"*1000 + "how many messages have we sent?") # The hope is this extremely long message lets us hit the error condition earlier.
   st.chat_input( "How can I help?", on_submit=grow_chat, key="user_input_for_chatbot_this_frame"+streamlit_key_suffix, args=(streamlit_key_suffix,) )
 
 if __name__ == "__main__": main()
