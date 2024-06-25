@@ -54,7 +54,6 @@ def grow_chat(streamlit_key_suffix: str = "", independent_rewrite: bool = False,
 def reset_chat() -> None:
   st.session_state["chat"] = None
   st.session_state["messages"] = None
-  st.session_state['cicero_ai'] = None
 
 def display_chat(streamlit_key_suffix: str = "", independent_rewrite: bool = False) -> None:
   """*A computer can never be held accountable. Therefore a computer must never make a management decision.*[꙳](https://twitter.com/bumblebike/status/832394003492564993)"""
@@ -63,7 +62,7 @@ def display_chat(streamlit_key_suffix: str = "", independent_rewrite: bool = Fal
     for message in st.session_state.messages:
       with st.chat_message(message["role"], avatar=message.get("avatar")):
         st.markdown(message["content"].replace("$", r"\$").replace("[", r"\[")) #COULD: remove the \[ escaping, which is only useful for, what, markdown links? Which nobody uses.
-  st.chat_input( "How can I help?", on_submit=grow_chat, key="user_input_for_chatbot_this_frame"+streamlit_key_suffix, args=(streamlit_key_suffix, independent_rewrite) )
+  st.chat_input( "How can I help?", on_submit=grow_chat, key="user_input_for_chatbot_this_frame"+streamlit_key_suffix, args=(streamlit_key_suffix, independent_rewrite) ) #Note that because it's a callback, the profiler will not catch grow_chat here. However, most of the time spent in here is spent writing to the chatbot activity log.
 
 def main() -> None:
   if st.button("Reset (erase) chat"):
