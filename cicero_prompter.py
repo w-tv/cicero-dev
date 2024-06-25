@@ -597,24 +597,15 @@ def main() -> None:
       with col1:
         st.write( output.replace("$", r"\$") ) #this prevents us from entering math mode when we ask about money.
       with col2:
-        # All the RAG-man/Real-dude logic here is a bit unnecessarily convoluted, because the main logic lives in the other file and we're basically just borrowing it here. Maybe some day we'll get rid of the other tab and the logic will simplify this a bit.
+        # All the Real-Dude logic here is a bit unnecessarily convoluted, because the main logic lives in the other file and we're basically just borrowing it here. Maybe some day we'll get rid of the other tab and the logic will simplify this a bit.
         if st.button("⚡", key="⚡"+str(key_collision_preventer), help="Edit with Cicero"):
-          default_reply = "Here is a conservative fundraising text: [" + output + "] Analyze the quality of the text based off of these five fundraising elements: the Hook, Urgency, Agency, Stakes, and the Call to Action (CTA). Do not assign scores to the elements. It's possible one or more of these elements is missing from the text provided. If so, please point that out. Then, directly ask the user what assistance they need with the text. Additionally, mention that you can also help edit the text to be shorter or longer, and convert the text into an email."
-          st.session_state['cicero_ai']=default_reply
-          st.session_state['display_only_this_at_first_blush'] = "« "+output+" »"
+          x = "Here is a conservative fundraising text: [" + output + "] Analyze the quality of the text based off of these five fundraising elements: the Hook, Urgency, Agency, Stakes, and the Call to Action (CTA). Do not assign scores to the elements. It's possible one or more of these elements is missing from the text provided. If so, please point that out. Then, directly ask the user what assistance they need with the text. Additionally, mention that you can also help edit the text to be shorter or longer, and convert the text into an email."
+          cicero_rag_only.reset_chat()
+          cicero_rag_only.grow_chat(streamlit_key_suffix="_prompter", alternate_content=x, display_only_this_at_first_blush="« "+output+" »")
         key_collision_preventer += 1
     st.caption(st.session_state.get('character_counts_caption'))
-    if st.session_state.get('cicero_ai'):
-      if isinstance(st.session_state['cicero_ai'], int): # Arbitrary truthy value that isn't a string (so thus can't be from the responses above, which are text)
-        cicero_rag_only.main(streamlit_key_suffix="_prompter")
-      else:
-        #clear previous chat history
-        st.session_state.chat = None
-        st.session_state.messages = None
-        cicero_rag_only.grow_chat(streamlit_key_suffix="_prompter", alternate_content=st.session_state['cicero_ai'], display_only_this_at_first_blush=st.session_state['display_only_this_at_first_blush'])
-        cicero_rag_only.main(streamlit_key_suffix="_prompter")
-        st.session_state['cicero_ai'] = 2 # This sets the arbitrary value discussed above.
-
+    if st.session_state.get('messages'):
+      cicero_rag_only.display_chat(streamlit_key_suffix="_prompter")
   st.error('**REMINDER!** Please tag all projects with "**optimization**" in the LABELS field in Salesforce.')
 
   with st.sidebar: #The history display includes a result of the logic of the script, that has to be updated in the middle of the script where the button press is (when the button is in fact pressed), so the code to display it has to be after all the logic of the script or else it will lag behind the actual state of the history by one time step.
