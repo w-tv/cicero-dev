@@ -21,11 +21,10 @@ def grow_chat(streamlit_key_suffix: str = "", independent_rewrite: bool = False,
       st.session_state.chat.reply(p)
       st.session_state.messages.append({"role": "user", "content": display_only_this_at_first_blush or p})
       st.session_state.messages.append({"avatar": "assets/CiceroChat_800x800.jpg", "role": "assistant", "content": st.session_state.chat.last})
-      # Write to the chatbot activity log:
+      # Write to the chatbot activity log: (or, rather, tee up that work for later.)
       # (There's no model_uri field because I don't know how to access that from here.)
       # (Note that this table uses a real timestamp datatype. You can `SET TIME ZONE "US/Eastern";` in sql to read the timestamps in US Eastern time, instead of the default UTC.
-      sql_call_cacheless("CREATE TABLE IF NOT EXISTS cicero.default.activity_log_chatbot (timestamp timestamp, user_email string, user_pod string, model_name string, model_parameters string, system_prompt string, user_prompt string, response_given string)")
-      sql_call_cacheless(
+      st.session_state["chatbot_activity_log_payload"] = (
         # The first line here basically just does a left join; I just happened to write it in a different way.
         "WITH tmp(user_pod) AS (SELECT user_pod FROM cicero.default.user_pods WHERE user_email ilike :user_email)\
         INSERT INTO cicero.default.activity_log_chatbot\
@@ -62,7 +61,7 @@ def display_chat(streamlit_key_suffix: str = "", independent_rewrite: bool = Fal
     for message in st.session_state.messages:
       with st.chat_message(message["role"], avatar=message.get("avatar")):
         st.markdown(message["content"].replace("$", r"\$").replace("[", r"\[")) #COULD: remove the \[ escaping, which is only useful for, what, markdown links? Which nobody uses.
-  st.chat_input( "How can I help?", on_submit=grow_chat, key="user_input_for_chatbot_this_frame"+streamlit_key_suffix, args=(streamlit_key_suffix, independent_rewrite) ) #Note that because it's a callback, the profiler will not catch grow_chat here. However, most of the time spent in here is spent writing to the chatbot activity log.
+  st.chat_input( "How can I help?", on_submit=grow_chat, key="user_input_for_chatbot_this_frame"+streamlit_key_suffix, args=(streamlit_key_suffix, independent_rewrite) ) #Note that because it's a callback, the profiler will not catch grow_chat here. However, it takes about a second.
 
 def main() -> None:
   if st.button("Reset (erase) chat"):
