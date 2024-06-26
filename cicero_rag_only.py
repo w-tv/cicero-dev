@@ -61,11 +61,13 @@ def display_chat(streamlit_key_suffix: str = "", independent_rewrite: bool = Fal
     for message in st.session_state.messages:
       with st.chat_message(message["role"], avatar=message.get("avatar")):
         st.markdown(message["content"].replace("$", r"\$").replace("[", r"\[")) #COULD: remove the \[ escaping, which is only useful for, what, markdown links? Which nobody uses.
-  st.chat_input( "How can I help?", on_submit=grow_chat, key="user_input_for_chatbot_this_frame"+streamlit_key_suffix, args=(streamlit_key_suffix, independent_rewrite) ) #Note that because it's a callback, the profiler will not catch grow_chat here. However, it takes about a second.
+  st.chat_input(on_submit=grow_chat, key="user_input_for_chatbot_this_frame"+streamlit_key_suffix, args=(streamlit_key_suffix, independent_rewrite) ) #Note that because it's a callback, the profiler will not catch grow_chat here. However, it takes about a second.
 
 def main() -> None:
+  st.markdown('This is where you can chat with Cicero directly! You can do things like:\n- Rewrite a Text\n- Write a text based off a seed phrase/quote\n- MORE!')
   if st.button("Reset (erase) chat"):
     reset_chat()
+  st.write('Paste the text you want rewritten into the field below.')
   display_chat(independent_rewrite=True)
 
 if __name__ == "__main__": main()
