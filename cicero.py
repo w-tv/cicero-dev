@@ -53,7 +53,7 @@ def main() -> None:
   def disable_developer_mode() -> None: st.session_state["developer_mode_disabled"] = True
 
   if st.session_state['developer_mode']: #dev-mode out the entirety of topic reporting (some day it will be perfect and the users will be ready for us to un-dev-mode it) # also dev-mode out response-lookup, which will probably be permanently dev-moded, along with New Pod Key
-    tab1, tab2, tab3, tab4, tab5 = st.tabs(["🗣️ Prompter", "🌈 Topic Reporting", "🔍 Response Lookup", "🎰 The RAG Man", "🫛 New Pod Key"])
+    tab1, tab2, tab3, tab4, tab5 = st.tabs(["🗣️ Prompter", "📈 Topic Reporting", "🔍 Response Lookup", "💬 Chat with Cicero", "🆕 New Pod Key"])
     with tab1:
       cicero_prompter.main()
     with tab2:
