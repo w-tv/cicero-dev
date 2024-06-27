@@ -64,10 +64,23 @@ def display_chat(streamlit_key_suffix: str = "", independent_rewrite: bool = Fal
   st.chat_input(on_submit=grow_chat, key="user_input_for_chatbot_this_frame"+streamlit_key_suffix, args=(streamlit_key_suffix, independent_rewrite) ) #Note that because it's a callback, the profiler will not catch grow_chat here. However, it takes about a second.
 
 def main() -> None:
-  st.markdown('This is where you can chat with Cicero directly! You can do things like:\n- Rewrite a Text\n- Write a text based off a seed phrase/quote\n- MORE!')
+  options = st.radio(label='Design Options (Not our only options)', options=['Option 1', 'Option 2', 'Option 3'])
+  st.markdown(
+  """<style>
+      div[class*="stRadio"] > label > div[data-testid="stMarkdownContainer"] > p {font-size: 24px;}
+    </style>""", unsafe_allow_html=True)
+  if options=='Option 1':
+    st.markdown('This is where you can chat with Cicero directly! You can do things like:\n- Rewrite a Text\n- Write a text based off a seed phrase/quote\n- MORE!')
+  
+  if options=='Option 2':
+    chat_type = st.radio(label='This is where you can chat with Cicero directly! You can do things like:', options=['Rewrite a Text/Email', 'Write a message based off a seed phrase/quote', 'MORE!'], horizontal=True)
+    if chat_type == 'Rewrite a Text/Email':
+      st.write("Paste the text or email you want rewritten into the box below.")
+    if chat_type == 'Write a message based off a seed phrase/quote':
+      st.write("Paste the phrase or quote into the box below.")
+  
   if st.button("Reset (erase) chat"):
     reset_chat()
-  st.write('Paste the text you want rewritten into the field below.')
   display_chat(independent_rewrite=True)
 
 if __name__ == "__main__": main()
