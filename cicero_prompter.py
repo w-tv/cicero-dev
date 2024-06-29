@@ -39,17 +39,9 @@ def count_from_activity_log_times_used_today(user_email: str) -> int:
   ensure_existence_of_activity_log()
   return int( sql_call(f"SELECT COUNT(*) FROM cicero.default.activity_log WHERE user_email = :user_email AND DATE(timestamp) == current_date() AND prompter_or_chatbot = 'prompter'", keyword_arguments)[0][0] )
 
-def write_to_activity_log_table(user_email: str, prompter_or_chatbot: str, prompt_sent: str, response_given: str, model_name: str, model_url: str, model_parameters: str, system_prompt: str, base_url: str) -> None:
-  """Write the arguments into the activity_log table. If you change the arguments this function takes, you must change the sql_call in the function and in ensure_existence_of_activity_log. It wasn't worth generating them programmatically. (You must also change the caller function of this function, of course.)"""
-  keyword_arguments = locals() # This is a dict of the arguments passed to the function. It must be called at the top of the function, because if it is called later then it will list any other local variables as well. (The docstring isn't included; I guess it's the __doc__ attribute of the enclosing function, not a local variable. <https://docs.python.org/3.11/glossary.html#term-docstring>)
-  ensure_existence_of_activity_log()
-  sql_call_cacheless(
-    "WITH tmp(pod) AS (SELECT user_pod FROM cicero.default.user_pods WHERE user_email ilike :useremail)\
-    INSERT INTO cicero.default.activity_log\
-                    (timestamp,    user_email, user_pod,  prompter_or_chatbot,  prompt_sent,  response_given,  model_name,  model_url,  model_parameters,  system_prompt,  base_url)\
-      SELECT current_timestamp(), :user_email, user_pod, :prompter_or_chatbot, :prompt_sent, :response_given, :model_name, :model_url, :model_parameters, :system_prompt, :base_url FROM tmp",
-    keyword_arguments
-  )
+def activity_log_payload_builder(user_email: str, prompter_or_chatbot: str, prompt_sent: str, response_given: str, model_name: str, model_url: str, model_parameters: str, system_prompt: str, base_url: str) -> dict[str, str]:
+  """The activity log payload has very specific dict fields it takes. This is a convenience function that builds such a dict."""
+  return locals()
 
 @st.cache_data(show_spinner=False)
 def load_bios() -> dict[str, str]:
@@ -170,7 +162,7 @@ def sample_dissimilar_texts(population: list[ReferenceTextElement], k: int, max_
     not_selected = scored_unselected
   return random.sample(final_arr, k=len(final_arr))
 
-def execute_prompting(model: Long_Model_Name, account: str, ask_type: Ask_Type, topics: list[str], additional_topics: list[str], tones: list[Tone], text_len: Selectable_Length, headline: str|None, num_outputs: Num_Outputs, model_temperature: float = 0.8, bio: str|None = None, max_tokens: int = 4096, topic_weight: float = 4, tone_weight: float = 1, client_weight: float = 6, ask_weight: float = 2, text_len_weight: float = 3, doc_pool_size: int = 30, num_examples: int = 10) -> tuple[str, list[str], str]:
+def execute_prompting(model: Long_Model_Name, account: str, ask_type: Ask_Type, topics: list[str], additional_topics: list[str], tones: list[Tone], text_len: Selectable_Length, headline: str|None, num_outputs: Num_Outputs, model_temperature: float = 0.8, bio: str|None = None, max_tokens: int = 4096, topic_weight: float = 4, tone_weight: float = 1, client_weight: float = 6, ask_weight: float = 2, text_len_weight: float = 3, doc_pool_size: int = 30, num_examples: int = 10) -> tuple[str, list[str], str, str]:
   score_threshold = 0.5 # Document Similarity Score Acceptance Threshold
   consul_show(f"{score_threshold=}, {doc_pool_size=}, {num_examples=}")
   assert_always(num_examples <= doc_pool_size, "You can't ask to provide more examples than there are documents in the pool! Try again with a different value.")
@@ -373,7 +365,8 @@ def execute_prompting(model: Long_Model_Name, account: str, ask_type: Ask_Type, 
   rag_prompt = "<|begin_of_text|><|start_header_id|>system<|end_header_id|>\n\n{system_prompt}<|eot_id|>"
 
   combined_dict: dict[str, str|float] = {}  # combined_dict stores all of the string format variables used in the prompt and their values
-  combined_dict["system_prompt"] = """You are an expert copywriter who specializes in writing text messages for conservative political candidates in the United States of America. Make sure all texts are in English. Try to grab the reader's attention in the first line. Do not start your message like an email. Make sure to have an explicit call to action. Do not make up facts or statistics. Do not use emojis or hashtags in your messages. Do not copy previously written text messages in content or structure. Make sure each written text message is unique. Write the exact number of text messages asked for."""
+  prompter_system_prompt = """You are an expert copywriter who specializes in writing text messages for conservative political candidates in the United States of America. Make sure all texts are in English. Try to grab the reader's attention in the first line. Do not start your message like an email. Make sure to have an explicit call to action. Do not make up facts or statistics. Do not use emojis or hashtags in your messages. Do not copy previously written text messages in content or structure. Make sure each written text message is unique. Write the exact number of text messages asked for."""
+  combined_dict["system_prompt"] = prompter_system_prompt
 
   # Then for every example document, we add the corresponding assistant and user lines
   # Triple brackets are used so the actual key name in the ms_prompts and ms_texts dictionaries can be inserted dynamically while also keeping the curly braces in the final string
@@ -465,7 +458,7 @@ def execute_prompting(model: Long_Model_Name, account: str, ask_type: Ask_Type, 
   print("Done with prompting.")
   if num_outputs != len(outputs):
     print(f"!!! CICERO has detected that the number of outputs may be wrong. Desired {num_outputs=}. Observed {len(outputs)=}. Problematic output: {single_output=}. Parsed into {outputs=}")
-  return question, outputs, entire_prompt
+  return question, outputs, entire_prompt, prompter_system_prompt
 
 def main() -> None:
 
@@ -523,7 +516,7 @@ def main() -> None:
         client_weight: float = st.slider("Client Weight", min_value=0.0, max_value=10.0, key="client_weight")
         ask_weight: float = st.slider("Ask Weight", min_value=0.0, max_value=10.0, key="ask_weight")
         text_len_weight: float = st.slider("Text Len Weight", min_value=0.0, max_value=10.0, key="text_len_weight")
-        st.session_state["the_real_dude_model_name"] = short_model_name_to_long_model_name(typesafe_selectbox("Model selection for Cicero (the actual, historical man (it's really him))", short_model_names, default="Llama-3-70b-Instruct")) #TODO: this is deliberately not in the preset system, because it might get removed later.
+        st.session_state["the_real_dude_model_name"] = typesafe_selectbox("Model selection for Cicero (the actual, historical man (it's really him))", short_model_names, default="Llama-3-70b-Instruct") #TODO: this is deliberately not in the preset system, because it might get removed later.
         st.session_state["the_real_dude_system_prompt"] = typesafe_selectbox("Model system prompt for Cicero (the actual, historical man (it's really him))", [default_sys_prompt, rewrite_sys_prompt, analyze_sys_prompt]) #TODO: this is deliberately not in the preset system, because it might get removed later.
         doc_pool_size: int = st.slider("Doc Pool Size", min_value=5, max_value=100, value=30) #TODO: this is deliberately not in the preset system, because it might get removed later.
         num_examples: int = st.slider("Number of Examples", min_value=5, max_value=100, value=10) #TODO: this is deliberately not in the preset system, because it might get removed later.
@@ -537,7 +530,7 @@ def main() -> None:
         st.session_state["the_real_dude_system_prompt"] = default_sys_prompt
         doc_pool_size = 30
         num_examples = 10
-
+    st.session_state["the_real_dude_model"] = short_model_name_to_long_model_name(st.session_state["the_real_dude_model_name"])
     model_name = typesafe_selectbox("Model (required)", short_model_names, default="Llama-3-70b-Instruct", key="model") if st.session_state["developer_mode"] else "Llama-3-70b-Instruct"
     model = short_model_name_to_long_model_name(model_name)
     account = st.selectbox("Account (required)", account_names, key="account") # No typesafe_selectbox here because we actually do want this to possibly be unselected.
@@ -575,7 +568,7 @@ def main() -> None:
       st.session_state['use_count']+=1 #this is just an optimization for the front-end display of the query count
       bio = bios.get(account) if ("bio" in topics and account in bios) else None
       max_tokens = 4096
-      promptsent, st.session_state['outputs'], st.session_state['entire_prompt'] = execute_prompting(model, account, ask_type, topics, additional_topics, tones, length_select, headline, num_outputs, temperature, bio, max_tokens, topic_weight, tone_weight, client_weight, ask_weight, text_len_weight, doc_pool_size, num_examples)
+      prompt_sent, st.session_state['outputs'], st.session_state['entire_prompt'], prompter_system_prompt = execute_prompting(model, account, ask_type, topics, additional_topics, tones, length_select, headline, num_outputs, temperature, bio, max_tokens, topic_weight, tone_weight, client_weight, ask_weight, text_len_weight, doc_pool_size, num_examples)
       if len(st.session_state['outputs']) != num_outputs:
         st.info("CICERO has detected that the number of outputs may be wrong.")
       if 'history' not in st.session_state:
@@ -621,8 +614,8 @@ def main() -> None:
   buttonhole.form_submit_button("Submit ", type="primary", on_click=disable_submit_button_til_complete) # After everything, re-enable the submit button. Note that the space at the end of Submit here doesn't show up in the UI; it's just a convenient way to make the key of this replacement button not identical to the original button (which would cause an error). I didn't even bother to file an issue about this because who cares.
   # Activity logging takes a bit, so I've put it last to preserve immediate-feeling performance and responses for the user making a query.
   if did_a_query:
-    # promptsent is only illustrative. But maybe that's enough. Maybe we should be using a different prompt?
-    write_to_activity_log_table( user_email=st.session_state['email'], promptsent=promptsent, responsegiven=json.dumps(st.session_state['outputs']), modelparams=str({"max_tokens": max_tokens, "temperature": temperature}), modelname=model_name, modelurl=model, base_url=get_base_url())
+    # prompt_sent is only illustrative. But maybe that's enough. Maybe we should be using a different prompt?
+    st.session_state["activity_log_payload"] = activity_log_payload_builder( user_email=st.session_state['email'], prompter_or_chatbot="prompter", prompt_sent=prompt_sent, response_given=json.dumps(st.session_state['outputs']), model_name=model_name, model_url=model, model_parameters=str({"max_tokens": max_tokens, "temperature": temperature}), system_prompt=prompter_system_prompt, base_url=get_base_url())
 
   # import streamlit.components.v1 as components; components.html('<!--<script>//you can include arbitrary html and javascript this way</script>-->') #or, use st.markdown, if you want arbitrary html but javascript isn't needed.
 

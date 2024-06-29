@@ -91,5 +91,11 @@ if __name__ == "__main__":
     #TODO: it seems I can chat more before this is done loading. Do we lose some messages in the log that way?
     if st.session_state.get("activity_log_payload"):
       ensure_existence_of_activity_log()
-      sql_call_cacheless(*st.session_state["activity_log_payload"])
+      sql_call_cacheless(
+        # The WTIH clause here basically just does a left join; I just happened to write it in this way.
+        "WITH tmp(pod) AS (SELECT user_pod FROM cicero.default.user_pods WHERE user_email ilike :useremail) INSERT INTO cicero.default.activity_log\
+        (timestamp,           user_email, user_pod,  prompter_or_chatbot,  prompt_sent,  response_given,  model_name,  model_url,  model_parameters,  system_prompt,  base_url) SELECT\
+        current_timestamp(), :user_email, user_pod, :prompter_or_chatbot, :prompt_sent, :response_given, :model_name, :model_url, :model_parameters, :system_prompt, :base_url FROM tmp",
+        st.session_state["activity_log_payload"]
+      )
       st.session_state["activity_log_payload"] = None

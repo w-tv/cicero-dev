@@ -2,15 +2,16 @@
 
 import streamlit as st
 from databricks_genai_inference import ChatSession, FoundationModelAPIException
-from cicero_shared import sql_call_cacheless, consul_show
+from cicero_shared import sql_call_cacheless, consul_show, get_base_url
 
 def grow_chat(streamlit_key_suffix: str = "", independent_rewrite: bool = False, alternate_content: str = "", display_only_this_at_first_blush: str|None = None) -> None:
   # the streamlit_key_suffix is only necessary because we use this code in two places #TODO: actually, it's not clear that we want to do that. And, the chat histories overlap, currently... So, maybe rethink this concept later. I don't even know why we have two of them. Maybe they were supposed to mutate in concept independently?
-  model_name = st.session_state["the_real_dude_model_name"]
+  short_model_name = st.session_state["the_real_dude_model_name"]
+  long_model_name = st.session_state["the_real_dude_model"]
   sys_prompt = st.session_state["the_real_dude_system_prompt"]
   if not st.session_state.get("chat"):
     # Keep in mind that unless DATABRICKS_HOST and DATABRICKS_TOKEN are in the environment (streamlit does this with secret value by default), then the following line of code will fail with an extremely cryptic error asking you to run this program with a `setup` command line argument (which won't do anything)
-    st.session_state.chat = ChatSession(model=model_name, system_message=sys_prompt, max_tokens=4096)
+    st.session_state.chat = ChatSession(model=long_model_name, system_message=sys_prompt, max_tokens=4096)
   if not st.session_state.get("messages"): # We keep our own list of messsages, I think because I found it hard to format the chat_history output when I tried once. 
     st.session_state.messages = []
   p: str = alternate_content or st.session_state["user_input_for_chatbot_this_frame"+streamlit_key_suffix]
@@ -22,16 +23,7 @@ def grow_chat(streamlit_key_suffix: str = "", independent_rewrite: bool = False,
       st.session_state.messages.append({"role": "user", "content": display_only_this_at_first_blush or p})
       st.session_state.messages.append({"avatar": "assets/CiceroChat_800x800.jpg", "role": "assistant", "content": st.session_state.chat.last})
       # Write to the chatbot activity log: (or, rather, tee up that work for later.)
-      # (There's no model_uri field because I don't know how to access that from here.)
-      # (Note that this table uses a real timestamp datatype. You can `SET TIME ZONE "US/Eastern";` in sql to read the timestamps in US Eastern time, instead of the default UTC.
-      st.session_state["chatbot_activity_log_payload"] = (
-        # The first line here basically just does a left join; I just happened to write it in a different way.
-        "WITH tmp(user_pod) AS (SELECT user_pod FROM cicero.default.user_pods WHERE user_email ilike :user_email)\
-        INSERT INTO cicero.default.activity_log_chatbot\
-                         (timestamp,  user_email,  user_pod, prompter_or_chatbot,  prompt_sent,  response_given,  model_name,  model_url,  model_params,  system_prompt, base_url)\
-          SELECT current_timestamp(), :user_email, user_pod, 'chatbot',           :prompt_sent, :response_given, :model_name, :model_url, :model_params, :system_prompt, base_url FROM tmp",
-        {"user_email": st.session_state["email"], "model_name": st.session_state.chat.model, "model_parameters": str(st.session_state.chat.parameters), "system_prompt": st.session_state.chat.system_message, "prompt_sent": p, "response_given": st.session_state.chat.last}
-      )
+      st.session_state["chatbot_activity_log_payload"] = {"user_email": st.session_state["email"], "prompter_or_chatbot": 'chatbot', "prompt_sent": p, "response_given": st.session_state.chat.last, "model_name": short_model_name, "model_url": st.session_state.chat.model, "model_parameters": str(st.session_state.chat.parameters), "system_prompt": st.session_state.chat.system_message, "base_url": get_base_url()}
       break
     except FoundationModelAPIException as e:
       if e.message.startswith('{"error_code":"BAD_REQUEST","message":"Bad request: prompt token count'): # Find out if it's exactly the right error we know how to handle.

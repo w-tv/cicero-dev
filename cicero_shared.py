@@ -37,7 +37,10 @@ def die_with_database_error_popup(e_args: tuple[Any, ...]) -> NoReturn:
   exit_error(4)
 
 def ensure_existence_of_activity_log() -> None:
-  sql_call("CREATE TABLE IF NOT EXISTS cicero.default.activity_log (timestamp timestamp, user_email string, user_pod string, prompter_or_chatbot string, prompt_sent string, response_given string, model_params string, model_name string, model_url string, system_prompt string, base_url string)")
+  """Run this code before accessing the activity log. If the activity log doesn't exist, this function call will create it.
+  Note that if the table exists, this sql call will not check if it has the right columns (names or types), unfortunately."
+  Note that this table uses a real timestamp datatype. You can `SET TIME ZONE "US/Eastern";` in sql to get them to output as strings in US Eastern time, instead of the default UTC."""
+  sql_call("CREATE TABLE IF NOT EXISTS cicero.default.activity_log (timestamp timestamp, user_email string, user_pod string, prompter_or_chatbot string, prompt_sent string, response_given string, model_name string, model_url string, model_parameters string, system_prompt string, base_url string)")
 
 @st.cache_data(show_spinner=False)
 def sql_call(query: str, sql_params_dict:dict[str, Any]|None=None) -> list[Row]:
