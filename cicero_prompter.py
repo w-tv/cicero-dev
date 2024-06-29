@@ -39,10 +39,6 @@ def count_from_activity_log_times_used_today(user_email: str) -> int:
   ensure_existence_of_activity_log()
   return int( sql_call(f"SELECT COUNT(*) FROM cicero.default.activity_log WHERE user_email = :user_email AND DATE(timestamp) == current_date() AND prompter_or_chatbot = 'prompter'", keyword_arguments)[0][0] )
 
-def activity_log_payload_builder(user_email: str, prompter_or_chatbot: str, prompt_sent: str, response_given: str, model_name: str, model_url: str, model_parameters: str, system_prompt: str, base_url: str) -> dict[str, str]:
-  """The activity log payload has very specific dict fields it takes. This is a convenience function that builds such a dict."""
-  return locals()
-
 @st.cache_data(show_spinner=False)
 def load_bios() -> dict[str, str]:
   return {row["candidate"]:row["bio"] for row in sql_call("SELECT candidate, bio FROM cicero.default.ref_bios")}
@@ -615,7 +611,8 @@ def main() -> None:
   # Activity logging takes a bit, so I've put it last to preserve immediate-feeling performance and responses for the user making a query.
   if did_a_query:
     # prompt_sent is only illustrative. But maybe that's enough. Maybe we should be using a different prompt?
-    st.session_state["activity_log_payload"] = activity_log_payload_builder( user_email=st.session_state['email'], prompter_or_chatbot="prompter", prompt_sent=prompt_sent, response_given=json.dumps(st.session_state['outputs']), model_name=model_name, model_url=model, model_parameters=str({"max_tokens": max_tokens, "temperature": temperature}), system_prompt=prompter_system_prompt, base_url=get_base_url())
+    st.session_state["activity_log_payload"] = {"user_email": st.session_state['email'], "prompter_or_chatbot": "prompter", "prompt_sent": prompt_sent, "response_given": json.dumps(st.session_state['outputs']), "model_name": model_name, "model_url": model, "model_parameters": str({"max_tokens": max_tokens, "temperature": temperature}), "system_prompt": prompter_system_prompt, "base_url": get_base_url()}
+
 
   # import streamlit.components.v1 as components; components.html('<!--<script>//you can include arbitrary html and javascript this way</script>-->') #or, use st.markdown, if you want arbitrary html but javascript isn't needed.
 
