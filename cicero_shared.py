@@ -36,6 +36,9 @@ def die_with_database_error_popup(e_args: tuple[Any, ...]) -> NoReturn:
   st.code(e_args)
   exit_error(4)
 
+def ensure_existence_of_activity_log() -> None:
+  sql_call("CREATE TABLE IF NOT EXISTS cicero.default.activity_log (timestamp timestamp, user_email string, user_pod string, prompter_or_chatbot string, prompt_sent string, response_given string, model_params string, model_name string, model_url string, system_prompt string, base_url string)")
+
 @st.cache_data(show_spinner=False)
 def sql_call(query: str, sql_params_dict:dict[str, Any]|None=None) -> list[Row]:
   """This is a wrapper function for sql_call_cacheless that *is* cached. See that other function for more information about the actual functionality."""

@@ -9,7 +9,7 @@ nanoseconds_base : int = perf_counter_ns()
 import streamlit as st
 import os, psutil, platform
 import cicero_prompter, cicero_topic_reporting, cicero_response_lookup, cicero_rag_only, cicero_new_pod_key
-from cicero_shared import exit_error, get_base_url, sql_call_cacheless
+from cicero_shared import ensure_existence_of_activity_log, exit_error, get_base_url, sql_call_cacheless
 from google.auth.transport import requests
 from google.oauth2 import id_token
 from streamlit.web.server.websocket_headers import _get_websocket_headers
@@ -89,7 +89,7 @@ if __name__ == "__main__":
     main()
     # This is here for end-user performance and convenience reasons, even though on every other axis this is a bad place for it.
     #TODO: it seems I can chat more before this is done loading. Do we lose some messages in the log that way?
-    if st.session_state.get("chatbot_activity_log_payload"):
-      sql_call_cacheless("CREATE TABLE IF NOT EXISTS cicero.default.activity_log_chatbot (timestamp timestamp, user_email string, user_pod string, model_name string, model_parameters string, system_prompt string, user_prompt string, response_given string)")
-      sql_call_cacheless(*st.session_state["chatbot_activity_log_payload"])
-      st.session_state["chatbot_activity_log_payload"] = None
+    if st.session_state.get("activity_log_payload"):
+      ensure_existence_of_activity_log()
+      sql_call_cacheless(*st.session_state["activity_log_payload"])
+      st.session_state["activity_log_payload"] = None

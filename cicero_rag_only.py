@@ -28,9 +28,9 @@ def grow_chat(streamlit_key_suffix: str = "", independent_rewrite: bool = False,
         # The first line here basically just does a left join; I just happened to write it in a different way.
         "WITH tmp(user_pod) AS (SELECT user_pod FROM cicero.default.user_pods WHERE user_email ilike :user_email)\
         INSERT INTO cicero.default.activity_log_chatbot\
-                         ( timestamp,  user_email, user_pod,  model_name,  model_parameters,  system_prompt,  user_prompt,  response_given)\
-          SELECT current_timestamp(), :user_email, user_pod, :model_name, :model_parameters, :system_prompt, :user_prompt, :response_given FROM tmp",
-        {"user_email": st.session_state["email"], "model_name": st.session_state.chat.model, "model_parameters": str(st.session_state.chat.parameters), "system_prompt": st.session_state.chat.system_message, "user_prompt": p, "response_given": st.session_state.chat.last}
+                         (timestamp,  user_email,  user_pod, prompter_or_chatbot,  prompt_sent,  response_given,  model_name,  model_url,  model_params,  system_prompt, base_url)\
+          SELECT current_timestamp(), :user_email, user_pod, 'chatbot',           :prompt_sent, :response_given, :model_name, :model_url, :model_params, :system_prompt, base_url FROM tmp",
+        {"user_email": st.session_state["email"], "model_name": st.session_state.chat.model, "model_parameters": str(st.session_state.chat.parameters), "system_prompt": st.session_state.chat.system_message, "prompt_sent": p, "response_given": st.session_state.chat.last}
       )
       break
     except FoundationModelAPIException as e:
