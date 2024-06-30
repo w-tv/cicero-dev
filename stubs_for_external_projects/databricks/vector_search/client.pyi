@@ -1,7 +1,7 @@
 from typing import Any, TypedDict
 
 # Stub classes here just for type-checking reasons... they are only moderately precise.
-class VsiPayload(TypedDict):
+class _VsiPayload(TypedDict):
   row_count: int
   data_array: list[tuple[str, float]]
 class VectorSearchIndex:
