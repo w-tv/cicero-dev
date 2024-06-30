@@ -5,10 +5,9 @@
 import streamlit as st
 import pandas as pd
 import json
-from typing import Any, Final, Literal, TypedDict, TypeVar, get_args
-from cicero_shared import assert_always, consul_show, ensure_existence_of_activity_log, exit_error, get_base_url, load_account_names, sql_call, sql_call_cacheless, topics_big, Row, typesafe_selectbox
+from typing import Any, Literal, TypedDict, TypeVar, get_args
+from cicero_shared import assert_always, consul_show, ensure_existence_of_activity_log, exit_error, get_base_url, load_account_names, sql_call, sql_call_cacheless, topics_big, typesafe_selectbox
 import cicero_rag_only
-from enum import Enum
 
 from num2words import num2words
 from itertools import combinations
@@ -37,7 +36,7 @@ def count_from_activity_log_times_used_today(user_email: str) -> int:
   This goes by whatever the default timezone is because we don't expect the exact boundary to matter much."""
   keyword_arguments = locals()
   ensure_existence_of_activity_log()
-  return int( sql_call(f"SELECT COUNT(*) FROM cicero.default.activity_log WHERE user_email = :user_email AND DATE(timestamp) == current_date() AND prompter_or_chatbot = 'prompter'", keyword_arguments)[0][0] )
+  return int( sql_call("SELECT COUNT(*) FROM cicero.default.activity_log WHERE user_email = :user_email AND DATE(timestamp) == current_date() AND prompter_or_chatbot = 'prompter'", keyword_arguments)[0][0] )
 
 @st.cache_data(show_spinner=False)
 def load_bios() -> dict[str, str]:
@@ -164,7 +163,6 @@ def execute_prompting(model: Long_Model_Name, account: str, ask_type: Ask_Type, 
   assert_always(num_examples <= doc_pool_size, "You can't ask to provide more examples than there are documents in the pool! Try again with a different value.")
   ref_tag_name = "models.lovelytics.ref_tags" # Tags Table Name
   primary_key = "PROJECT_NAME" # Index Table Primary Key Name
-  client = account # we never use this variable, but client is considered a synonym for account currently #TODO: actually we should refactor out the word "client" I guess. Either one of client or account should go. And begone from variable names.
   topics += additional_topics
   topics_str = ", ".join(topics)
   tones_str = ", ".join(tones)
@@ -176,7 +174,7 @@ def execute_prompting(model: Long_Model_Name, account: str, ask_type: Ask_Type, 
 
   ### Tag importance from most important to least
   # Topics (Tp)
-  # Account/Client Name (C)
+  # Account/Client Name (C) # /Client is considered a synonym for account currently #TODO: actually we should refactor out the word "client" I guess. Either one of client or account should go. And begone from variable names.
   # Ask Type (A)
   # Tone (To)
   # Ask Length (L)
@@ -420,7 +418,6 @@ def execute_prompting(model: Long_Model_Name, account: str, ask_type: Ask_Type, 
         multishot_items[f"example_{num + 1}_p"] = content["prompt"]
         multishot_items[f"example_{num + 1}_t"] = content["text"]
     combined_dict["chat_history"] = "".join(base_chat_history[:len(multishot_items)]).format(**multishot_items)
-    filled_in_prompt = (prompt.format(**combined_dict))
     single_output = model_chain.invoke(combined_dict)
   else:
     single_output = ""
@@ -434,7 +431,6 @@ def execute_prompting(model: Long_Model_Name, account: str, ask_type: Ask_Type, 
         multishot_items[f"example_{num + 1}_t"] = content["text"]
       # Create the chat history text up to the number of texts found from sampling
       combined_dict["chat_history"] = "".join(base_chat_history[:len(multishot_items)]).format(**multishot_items)
-      filled_in_prompt = (prompt.format(**combined_dict))
       inv_res = model_chain.invoke(combined_dict)
       single_output += f"{i + 1}. " + inv_res + "\n"
   entire_prompt = str(combined_dict)

@@ -2,7 +2,7 @@
 
 import streamlit as st
 from databricks_genai_inference import ChatSession, FoundationModelAPIException
-from cicero_shared import sql_call_cacheless, consul_show, get_base_url
+from cicero_shared import consul_show, get_base_url
 
 def grow_chat(streamlit_key_suffix: str = "", independent_rewrite: bool = False, alternate_content: str = "", display_only_this_at_first_blush: str|None = None) -> None:
   # the streamlit_key_suffix is only necessary because we use this code in two places #TODO: actually, it's not clear that we want to do that. And, the chat histories overlap, currently... So, maybe rethink this concept later. I don't even know why we have two of them. Maybe they were supposed to mutate in concept independently?
@@ -23,7 +23,7 @@ def grow_chat(streamlit_key_suffix: str = "", independent_rewrite: bool = False,
       st.session_state.messages.append({"role": "user", "content": display_only_this_at_first_blush or p})
       st.session_state.messages.append({"avatar": "assets/CiceroChat_800x800.jpg", "role": "assistant", "content": st.session_state.chat.last})
       # Write to the chatbot activity log: (or, rather, tee up that work for later.)
-      st.session_state["chatbot_activity_log_payload"] = {"user_email": st.session_state["email"], "prompter_or_chatbot": 'chatbot', "prompt_sent": p, "response_given": st.session_state.chat.last, "model_name": short_model_name, "model_url": st.session_state.chat.model, "model_parameters": str(st.session_state.chat.parameters), "system_prompt": st.session_state.chat.system_message, "base_url": get_base_url()}
+      st.session_state["activity_log_payload"] = {"user_email": st.session_state["email"], "prompter_or_chatbot": 'chatbot', "prompt_sent": p, "response_given": st.session_state.chat.last, "model_name": short_model_name, "model_url": st.session_state.chat.model, "model_parameters": str(st.session_state.chat.parameters), "system_prompt": st.session_state.chat.system_message, "base_url": get_base_url()}
       break
     except FoundationModelAPIException as e:
       if e.message.startswith('{"error_code":"BAD_REQUEST","message":"Bad request: prompt token count'): # Find out if it's exactly the right error we know how to handle.

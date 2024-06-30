@@ -14,6 +14,7 @@ from google.auth.transport import requests
 from google.oauth2 import id_token
 from streamlit.web.server.websocket_headers import _get_websocket_headers
 from streamlit_profiler import Profiler
+from datetime import datetime
 
 st.set_page_config(layout="wide", page_title="Cicero", page_icon=r"assets/CiceroLogo_Favicon.png") # Use wide mode in Cicero, mostly so that results display more of their text by default. Also, set title and favicon. #NOTE: "`set_page_config()` can only be called once per app page, and must be called as the first Streamlit command in your script."
 
@@ -90,12 +91,15 @@ if __name__ == "__main__":
     # This is here for end-user performance and convenience reasons, even though on every other axis this is a bad place for it.
     #TODO: it seems I can chat more before this is done loading. Do we lose some messages in the log that way?
     if st.session_state.get("activity_log_payload"):
+      print("Writing to log.")
       ensure_existence_of_activity_log()
       sql_call_cacheless(
         # The WTIH clause here basically just does a left join; I just happened to write it in this way.
-        "WITH tmp(pod) AS (SELECT user_pod FROM cicero.default.user_pods WHERE user_email ilike :useremail) INSERT INTO cicero.default.activity_log\
+        "WITH tmp(user_pod) AS (SELECT user_pod FROM cicero.default.user_pods WHERE user_email ilike :user_email) INSERT INTO cicero.default.activity_log\
         (timestamp,           user_email, user_pod,  prompter_or_chatbot,  prompt_sent,  response_given,  model_name,  model_url,  model_parameters,  system_prompt,  base_url) SELECT\
         current_timestamp(), :user_email, user_pod, :prompter_or_chatbot, :prompt_sent, :response_given, :model_name, :model_url, :model_parameters, :system_prompt, :base_url FROM tmp",
         st.session_state["activity_log_payload"]
       )
       st.session_state["activity_log_payload"] = None
+      print("Done writing to log.")
+  print("End of a run.", str(datetime.now()).split('.')[0])
