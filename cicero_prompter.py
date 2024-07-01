@@ -518,7 +518,7 @@ def main() -> None:
         client_weight = 6
         ask_weight = 2
         text_len_weight = 3
-        st.session_state["the_real_dude_model_name"] = "databricks-meta-llama-3-70b-instruct"
+        st.session_state["the_real_dude_model_name"] = "Llama-3-70b-Instruct"
         st.session_state["the_real_dude_system_prompt"] = default_sys_prompt
         doc_pool_size = 30
         num_examples = 10
