@@ -497,9 +497,7 @@ def main() -> None:
   st.text("") # Just for vertical spacing.
 
   default_sys_prompt: str = "You are a helpful, expert copywriter who specializes in writing fundraising text messages and emails for conservative candidates and causes. Be direct with your responses, and avoid extraneous messages like 'Hello!' and 'I hope this helps!'. These text messages and emails tend to be more punchy and engaging than normal marketing material. Do not mention that you are a helpful, expert copywriter."
-  rewrite_sys_prompt: str = "You are a helpful, expert copywriter who specializes in writing text messages and emails for conservative candidates. Do not mention that you are a helpful, expert copywriter. Be polite and direct with your responses. If a user asks you to rewrite a message, include how the rewritten messages is better than before. Make sure to incorporate the four elements of fundraising: Hook, Urgency, Stakes, and Agency. The hook is the central focus of your content, the main subject that grabs the audience's attention. It is more beneficial to have a specific hook rather than a general one, as it allows for a more targeted and engaging narrative. Urgency explains why a donor needs to act NOW and act on your specific ask; it relays the significance of your email and sets you apart from others. Your call to action should be time sensitive with a defined goal. Stakes refers to the specific consequences of action or inaction.  "
-  analyze_sys_prompt: str = ""
-
+  
   with st.form('query_builder'):
     with st.sidebar:
       if st.session_state["developer_mode"]:
@@ -509,7 +507,7 @@ def main() -> None:
         ask_weight: float = st.slider("Ask Weight", min_value=0.0, max_value=10.0, key="ask_weight")
         text_len_weight: float = st.slider("Text Len Weight", min_value=0.0, max_value=10.0, key="text_len_weight")
         st.session_state["the_real_dude_model_name"] = typesafe_selectbox("Model selection for Cicero (the actual, historical man (it's really him))", short_model_names, default="Llama-3-70b-Instruct") #TODO: this is deliberately not in the preset system, because it might get removed later.
-        st.session_state["the_real_dude_system_prompt"] = typesafe_selectbox("Model system prompt for Cicero (the actual, historical man (it's really him))", [default_sys_prompt, rewrite_sys_prompt, analyze_sys_prompt]) #TODO: this is deliberately not in the preset system, because it might get removed later.
+        st.session_state["the_real_dude_system_prompt"] = typesafe_selectbox("Model system prompt for Cicero (the actual, historical man (it's really him))", [default_sys_prompt]) #TODO: this is deliberately not in the preset system, because it might get removed later.
         doc_pool_size: int = st.slider("Doc Pool Size", min_value=5, max_value=100, value=30) #TODO: this is deliberately not in the preset system, because it might get removed later.
         num_examples: int = st.slider("Number of Examples", min_value=5, max_value=100, value=10) #TODO: this is deliberately not in the preset system, because it might get removed later.
       else:

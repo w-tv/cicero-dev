@@ -4,7 +4,7 @@ import streamlit as st
 from databricks_genai_inference import ChatSession, FoundationModelAPIException
 from cicero_shared import consul_show, get_base_url
 
-def grow_chat(streamlit_key_suffix: str = "", independent_rewrite: bool = False, seed_phrase: bool = False, alternate_content: str = "", display_only_this_at_first_blush: str|None = None) -> None:
+def grow_chat(streamlit_key_suffix: str = "", alternate_content: str = "", display_only_this_at_first_blush: str|None = None) -> None:
   # the streamlit_key_suffix is only necessary because we use this code in two places #TODO: actually, it's not clear that we want to do that. And, the chat histories overlap, currently... So, maybe rethink this concept later. I don't even know why we have two of them. Maybe they were supposed to mutate in concept independently?
   short_model_name = st.session_state["the_real_dude_model_name"]
   long_model_name = st.session_state["the_real_dude_model"]
@@ -15,10 +15,6 @@ def grow_chat(streamlit_key_suffix: str = "", independent_rewrite: bool = False,
   if not st.session_state.get("messages"): # We keep our own list of messsages, I think because I found it hard to format the chat_history output when I tried once. 
     st.session_state.messages = []
   p: str = alternate_content or st.session_state["user_input_for_chatbot_this_frame"+streamlit_key_suffix]
-  if independent_rewrite and not st.session_state.messages:
-    p = "Here is a conservative fundraising text or email: [" + p + "] Analyze the quality of the text or email based off of these five fundraising elements: the Hook, Urgency, Agency, Stakes, and the Call to Action (CTA). Do not assign scores to the elements. It's possible one or more of these elements is missing from the text provided. If so, please point that out. Then, rewrite the text based off of your analysis. Keep the overall message the same, but feel free to change the sentence structure or tone."
-  if seed_phrase and not st.session_state.messages:
-    p = "Here is a seed phrase or quote that should serve as an inspiration for three text messages: [" + p + "] If it is a quote, it will appear between apostrophes. Use the quote exactly as it appears, and if they include the person's name, reference the person in the texts. Remember to write three different text messages."
   while True: #databricks_genai_inference-BUG-WORKAROUND: it prompts with the entire chat history every time, without truncating history to fit the token limit even though this makes it ultimately useless as a chat session manager. Since I now have to manually manage the chat session as well! So, we just try removing messages until it works
     try:
       st.session_state.chat.reply(p)
@@ -48,50 +44,19 @@ def reset_chat() -> None:
   st.session_state["chat"] = None
   st.session_state["messages"] = None
 
-def display_chat(streamlit_key_suffix: str = "", independent_rewrite: bool = False, seed_phrase: bool = False) -> None:
+def display_chat(streamlit_key_suffix: str = "") -> None:
   """*A computer can never be held accountable. Therefore a computer must never make a management decision.*[꙳](https://twitter.com/bumblebike/status/832394003492564993)"""
   # Display chat messages from history on app reload; this is how we get the messages to display, and then the chat box.
   if st.session_state.get("messages"):
     for message in st.session_state.messages:
       with st.chat_message(message["role"], avatar=message.get("avatar")):
         st.markdown(message["content"].replace("$", r"\$").replace("[", r"\[")) #COULD: remove the \[ escaping, which is only useful for, what, markdown links? Which nobody uses.
-  st.chat_input(on_submit=grow_chat, key="user_input_for_chatbot_this_frame"+streamlit_key_suffix, args=(streamlit_key_suffix, independent_rewrite, seed_phrase) ) #Note that because it's a callback, the profiler will not catch grow_chat here. However, it takes about a second.
+  st.chat_input(on_submit=grow_chat, key="user_input_for_chatbot_this_frame"+streamlit_key_suffix, args=(streamlit_key_suffix) ) #Note that because it's a callback, the profiler will not catch grow_chat here. However, it takes about a second.
 
 def main() -> None:
-  options = st.radio(label='Design Options (Not our only options)', options=['Option 1', 'Option 2', 'Option 3'])
-  st.markdown(
-  """<style>
-      div[class*="stRadio"] > label > div[data-testid="stMarkdownContainer"] > p {font-size: 24px;}
-    </style>""", unsafe_allow_html=True)
-  if options=='Option 1':
-    st.markdown('This is where you can chat with Cicero directly! You can do things like:\n- Rewrite a Text\n- Write a text based off a seed phrase/quote\n- MORE!')
-    inde_rewr=False
-    seed_phr=False
-    chat_type=False
-
-  if options=='Option 2':
-    chat_type = st.radio(label='This is where you can chat with Cicero directly! You can do things like:', options=['Rewrite a Text/Email', 'Write a message based off a seed phrase/quote', 'MORE!'], horizontal=True)
-    if chat_type == 'Rewrite a Text/Email':
-      st.write("Paste the text or email you want rewritten into the box below.")
-    if chat_type == 'Write a message based off a seed phrase/quote':
-      st.write("Paste the phrase or quote into the box below. If it is a quote, paste it with apostrophes (') around it, and if you would like the quoted person referenced, after the quote write \"- Person's Name\".")
-  
-  if options=='Option 3':
-    chat_type = st.selectbox(label='This is where you can chat with Cicero directly! You can do things like:', options=['Rewrite a Text/Email', 'Write a message based off a seed phrase/quote', 'MORE!'])
-    if chat_type == 'Rewrite a Text/Email':
-      st.write("Paste the text or email you want rewritten into the box below.")
-    if chat_type == 'Write a message based off a seed phrase/quote':
-      st.write("Paste the phrase or quote into the box below. If it is a quote, paste it with apostrophes (') around it, and if you would like the quoted person referenced, after the quote write \"- Person's Name\".")
-  
+  st.markdown('This is where you can chat with Cicero directly! You can do things like:\n- Rewrite a Text\n- Write a text based off a seed phrase/quote\n- MORE!')
   if st.button("Reset (erase) chat"):
     reset_chat()
-  if chat_type == 'Rewrite a Text/Email':
-    inde_rewr = True
-    seed_phr = False
-  if chat_type == 'Write a message based off a seed phrase/quote':
-    seed_phr = True
-    inde_rewr = False
-  seed_phr=True
-  display_chat(independent_rewrite=inde_rewr, seed_phrase=seed_phr)
+  display_chat()
 
 if __name__ == "__main__": main()
