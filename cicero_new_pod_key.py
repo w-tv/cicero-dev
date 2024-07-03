@@ -13,7 +13,7 @@ from pandas import read_excel
 
 def do_one(email: str, pod: str) -> None:
   keyword_arguments = locals() # This is a dict of the arguments passed to the function. It must be called at the top of the function, because if it is called later then it will list any other local variables as well.
-  # DATABRICKS-SQL-CONNECTOR?-BUG-WORKAROUND I got some kind of crazy syntax error trying to do these in the same string. (Even though an analogous command works fine in the databricks query editor.)
+  # Note that the databricks sql connector apparently doesn't support putting these two into the same call with a semicolon between them.
   sql_call("DELETE FROM cicero.default.user_pods WHERE user_email ilike :email", keyword_arguments)
   sql_call("INSERT INTO cicero.default.user_pods (user_email, user_pod) VALUES (:email, :pod)", keyword_arguments)
 
