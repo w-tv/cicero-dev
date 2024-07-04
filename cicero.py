@@ -8,7 +8,7 @@ from time import perf_counter_ns
 nanoseconds_base : int = perf_counter_ns()
 import streamlit as st
 import os, psutil, platform
-import cicero_prompter, cicero_topic_reporting, cicero_response_lookup, cicero_chat, cicero_new_pod_key
+import cicero_prompter, cicero_topic_reporting, cicero_response_lookup, cicero_chat, cicero_new_pod_key, cicero_activity_looker
 from cicero_shared import ensure_existence_of_activity_log, exit_error, get_base_url, sql_call_cacheless
 from google.auth.transport import requests
 from google.oauth2 import id_token
@@ -54,7 +54,7 @@ def main() -> None:
   def disable_developer_mode() -> None: st.session_state["developer_mode_disabled"] = True
 
   if st.session_state['developer_mode']: #dev-mode out the entirety of topic reporting (some day it will be perfect and the users will be ready for us to un-dev-mode it) # also dev-mode out response-lookup, which will probably be permanently dev-moded, along with New Pod Key
-    tab1, tab2, tab3, tab4, tab5 = st.tabs(["🗣️ Prompter", "📈 Topic Reporting", "🔍 Response Lookup", "💬 Chat with Cicero", "🆕 New Pod Key"])
+    tab1, tab2, tab3, tab4, tab5, tab6 = st.tabs(["🗣️ Prompter", "📈 Topic Reporting", "🔍 Response Lookup", "💬 Chat with Cicero", "🆕 New Pod Key", "👁️ Activity Looker"])
     with tab1:
       cicero_prompter.main()
     with tab2:
@@ -65,6 +65,8 @@ def main() -> None:
       cicero_chat.main()
     with tab5:
       cicero_new_pod_key.main()
+    with tab6:
+      cicero_activity_looker.main()
   else:
     cicero_prompter.main()
     st.markdown("""<style>
@@ -88,8 +90,7 @@ def main() -> None:
 if __name__ == "__main__":
   with Profiler():
     main()
-    # This is here for end-user performance and convenience reasons, even though on every other axis this is a bad place for it.
-    #TODO: it seems I can chat more before this is done loading. Do we lose some messages in the log that way?
+    # These are here for end-user performance/convenience reasons, even though on every other axis this is a bad place for it:
     if st.session_state.get("activity_log_payload"):
       print("Writing to log.")
       ensure_existence_of_activity_log()
