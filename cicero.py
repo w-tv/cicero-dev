@@ -95,6 +95,7 @@ if __name__ == "__main__":
       ensure_existence_of_activity_log()
       sql_call_cacheless(
         # The WTIH clause here basically just does a left join; I just happened to write it in this way.
+        # Note that this will implicitly null the user_feedback. Which simplifies the deployment of that as a new feature, at least...!
         "WITH tmp(user_pod) AS (SELECT user_pod FROM cicero.default.user_pods WHERE user_email ilike :user_email) INSERT INTO cicero.default.activity_log\
         (timestamp,           user_email, user_pod,  prompter_or_chatbot,  prompt_sent,  response_given,  model_name,  model_url,  model_parameters,  system_prompt,  base_url) SELECT\
         current_timestamp(), :user_email, user_pod, :prompter_or_chatbot, :prompt_sent, :response_given, :model_name, :model_url, :model_parameters, :system_prompt, :base_url FROM tmp",
@@ -102,4 +103,16 @@ if __name__ == "__main__":
       )
       st.session_state["activity_log_payload"] = None
       print("Done writing to log.")
+    
+    if st.session_state.get("outstanding_activity_log_payload_fulfilled"):
+      print("Writing to 👍/👎 log.")
+      ensure_existence_of_activity_log()
+      sql_call_cacheless(
+        # Note: we are GAMBLING that the user_pod and timestamp will never be necessary in practice to have in here, because getting them would be inconvenient.
+        "UPDATE cicero.default.activity_log SET user_feedback = :user_feedback WHERE user_email = :user_email AND prompter_or_chatbot = :prompter_or_chatbot AND prompt_sent = :prompt_sent AND response_given = :response_given AND model_name = :model_name AND model_url = :model_url AND model_parameters = :model_parameters AND system_prompt = :system_prompt AND base_url = :base_url;",
+        st.session_state["outstanding_activity_log_payload_fulfilled"]
+      )
+      st.session_state["outstanding_activity_log_payload_fulfilled"] = None
+      print("Done writing to log.")
+    
   print("End of a run.", str(datetime.now()).split('.')[0])

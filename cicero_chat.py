@@ -28,6 +28,7 @@ def grow_chat(streamlit_key_suffix: str = "", alternate_content: str = "") -> No
       st.session_state.messages.append({"role": "user", "content": display_p})
       st.session_state.messages.append({"avatar": "assets/CiceroChat_800x800.jpg", "role": "assistant", "content": st.session_state.chat.last})
       st.session_state["activity_log_payload"] = {"user_email": st.session_state["email"], "prompter_or_chatbot": 'chatbot', "prompt_sent": p, "response_given": st.session_state.chat.last, "model_name": short_model_name, "model_url": st.session_state.chat.model, "model_parameters": str(st.session_state.chat.parameters), "system_prompt": st.session_state.chat.system_message, "base_url": get_base_url()}
+      st.session_state["outstanding_activity_log_payload"] = st.session_state["activity_log_payload"]
       break
     except FoundationModelAPIException as e:
       if e.message.startswith('{"error_code":"BAD_REQUEST","message":"Bad request: prompt token count'): # Find out if it's exactly the right error we know how to handle.
@@ -47,12 +48,22 @@ def reset_chat() -> None:
 
 def display_chat(streamlit_key_suffix: str = "") -> None:
   """Display chat messages from history on app reload; this is how we get the messages to display, and then the chat box.
+  The streamlit_key_suffix is only necessary because we use this code in two places. But that does make it necessary, for every widget in this function.
   *A computer can never be held accountable. Therefore a computer must never make a management decision.*[꙳](https://twitter.com/bumblebike/status/832394003492564993)"""
   if st.session_state.get("messages"):
     for message in st.session_state.messages:
       with st.chat_message(message["role"], avatar=message.get("avatar")):
         st.markdown(message["content"].replace("$", r"\$").replace("[", r"\["))
-  st.chat_input(on_submit=grow_chat, key="user_input_for_chatbot_this_frame"+streamlit_key_suffix, args=(streamlit_key_suffix,) ) #Note that because it's a callback, the profiler will not catch grow_chat here. However, it takes about a second. (Update: maybe it's about 4 seconds, now? Still in the happy path.
+  if st.session_state.get("outstanding_activity_log_payload"):
+    c1, c2, c3 = st.columns([.04,.04,.92])
+    user_feedback = "good" if c1.button("👍︎", key="👍"+streamlit_key_suffix) else "bad" if c2.button("👎︎", key="👎"+streamlit_key_suffix) else None
+    c3.write("***Was this output what you were looking for?***")
+    if user_feedback:
+      st.chat_input(on_submit=grow_chat, key="user_input_for_chatbot_this_frame"+streamlit_key_suffix, args=(streamlit_key_suffix,) ) #Note that because it's a callback, the profiler will not catch grow_chat here. However, it takes about a second. (Update: maybe it's about 4 seconds, now? That's in the happy path, as well.)
+      st.session_state["outstanding_activity_log_payload_fulfilled"] = st.session_state["outstanding_activity_log_payload"] | {"user_feedback": user_feedback}
+      st.session_state["outstanding_activity_log_payload"] = None
+  else:
+    st.chat_input(on_submit=grow_chat, key="user_input_for_chatbot_this_frame"+streamlit_key_suffix, args=(streamlit_key_suffix,) ) #Note that because it's a callback, the profiler will not catch grow_chat here. However, it takes about a second. (Update: maybe it's about 4 seconds, now? That's in the happy path, as well.)
 
 def main() -> None:
   st.markdown('This is where you can chat with Cicero directly! You can do things like: rewrite a text, write a text based off a seed phrase/quote, fall in love, and SO MUCH MORE!')
