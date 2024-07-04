@@ -7,7 +7,7 @@ import pandas as pd
 import json
 from typing import Any, Literal, TypedDict, TypeVar, get_args
 from cicero_shared import assert_always, consul_show, ensure_existence_of_activity_log, exit_error, get_base_url, load_account_names, sql_call, sql_call_cacheless, topics_big, typesafe_selectbox
-import cicero_rag_only
+import cicero_chat
 
 from num2words import num2words
 from itertools import combinations
@@ -553,7 +553,7 @@ def main() -> None:
       st.warning("***No Model is selected, so I can't send the request! (If you have no ability to select a Model and get this error, please contact the Optimization team.***")
     else:
       did_a_query = True
-      cicero_rag_only.reset_chat()
+      cicero_chat.reset_chat()
       st.session_state['use_count']+=1 #this is just an optimization for the front-end display of the query count
       bio = bios.get(account) if ("bio" in topics and account in bios) else None
       max_tokens = 4096
@@ -580,12 +580,12 @@ def main() -> None:
         st.write( output.replace("$", r"\$") ) #this prevents us from entering math mode when we ask about money.
       with col2:
         if st.button("⚡", key="⚡"+str(key_collision_preventer), help="Edit with Cicero"):
-          cicero_rag_only.reset_chat()
-          cicero_rag_only.grow_chat(streamlit_key_suffix="_prompter", alternate_content=output)
+          cicero_chat.reset_chat()
+          cicero_chat.grow_chat(streamlit_key_suffix="_prompter", alternate_content=output)
         key_collision_preventer += 1
     st.caption(st.session_state.get('character_counts_caption'))
     if st.session_state.get('messages'):
-      cicero_rag_only.display_chat(streamlit_key_suffix="_prompter")
+      cicero_chat.display_chat(streamlit_key_suffix="_prompter")
   st.error('**REMINDER!** Please tag all projects with "**optimization**" in the LABELS field in Salesforce.')
 
   with st.sidebar: #The history display includes a result of the logic of the script, that has to be updated in the middle of the script where the button press is (when the button is in fact pressed), so the code to display it has to be after all the logic of the script or else it will lag behind the actual state of the history by one time step.

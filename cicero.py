@@ -8,7 +8,7 @@ from time import perf_counter_ns
 nanoseconds_base : int = perf_counter_ns()
 import streamlit as st
 import os, psutil, platform
-import cicero_prompter, cicero_topic_reporting, cicero_response_lookup, cicero_rag_only, cicero_new_pod_key
+import cicero_prompter, cicero_topic_reporting, cicero_response_lookup, cicero_chat, cicero_new_pod_key
 from cicero_shared import ensure_existence_of_activity_log, exit_error, get_base_url, sql_call_cacheless
 from google.auth.transport import requests
 from google.oauth2 import id_token
@@ -62,7 +62,7 @@ def main() -> None:
     with tab3:
       cicero_response_lookup.main()
     with tab4:
-      cicero_rag_only.main()
+      cicero_chat.main()
     with tab5:
       cicero_new_pod_key.main()
   else:
