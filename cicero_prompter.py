@@ -401,10 +401,9 @@ def execute_prompting(model: Long_Model_Name, account: str, ask_type: Ask_Type, 
     template=rag_prompt
   )
 
-  # Note: The Llama-3 model has a limit of 8192 tokens for its input and output combined. e.g. if our input is 8000 tokens, then we can only have 192 tokens for the output. However, we don't handle that eventuality; the code I'm porting just gives basically an error message, which will already happen.
+  # Note: The Llama-3 model has a limit of 8192 tokens for its input and output combined. e.g. if our input is 8000 tokens, then we can only have 192 tokens for the output. However, we don't handle that eventuality; an error message will just happen I guess.
 
-  # Keep in mind that unless DATABRICKS_HOST and DATABRICKS_TOKEN are in the environment (streamlit does this with secret value by default), then the following line of code will fail with an extremely cryptic error asking you to run this program with a `setup` command line argument (which won't do anything)
-  chat_model = ChatDatabricks(endpoint=model, max_tokens=max_tokens, temperature=model_temperature)
+  chat_model = ChatDatabricks(endpoint=model, max_tokens=max_tokens, temperature=model_temperature) # Keep in mind that unless DATABRICKS_HOST and DATABRICKS_TOKEN are in the environment (streamlit does this with secret value by default), then the following line of code will fail with an extremely cryptic error asking you to run this program with a `setup` command line argument (which won't do anything)
 
   # Assemble the LLM chain, which makes it easier to invoke the model and parse its outputs. This uses langchain's own pipe syntax to organize multiple components into a "pipe".
   model_chain = ( prompt | chat_model | StrOutputParser() )
@@ -580,11 +579,9 @@ def main() -> None:
       with col1:
         st.write( output.replace("$", r"\$") ) #this prevents us from entering math mode when we ask about money.
       with col2:
-        # All the Real-Dude logic here is a bit unnecessarily convoluted, because the main logic lives in the other file and we're basically just borrowing it here. Maybe some day we'll get rid of the other tab and the logic will simplify this a bit.
         if st.button("⚡", key="⚡"+str(key_collision_preventer), help="Edit with Cicero"):
-          x = "Here is a conservative fundraising text: [" + output + "] Analyze the quality of the text based off of these five fundraising elements: the Hook, Urgency, Agency, Stakes, and the Call to Action (CTA). Do not assign scores to the elements. It's possible one or more of these elements is missing from the text provided. If so, please point that out. Then, directly ask the user what assistance they need with the text. Additionally, mention that you can also help edit the text to be shorter or longer, and convert the text into an email."
           cicero_rag_only.reset_chat()
-          cicero_rag_only.grow_chat(streamlit_key_suffix="_prompter", alternate_content=x, display_only_this_at_first_blush="« "+output+" »")
+          cicero_rag_only.grow_chat(streamlit_key_suffix="_prompter", alternate_content=output)
         key_collision_preventer += 1
     st.caption(st.session_state.get('character_counts_caption'))
     if st.session_state.get('messages'):
