@@ -49,6 +49,7 @@ def reset_chat() -> None:
 def display_chat(streamlit_key_suffix: str = "") -> None:
   """Display chat messages from history on app reload; this is how we get the messages to display, and then the chat box.
   The streamlit_key_suffix is only necessary because we use this code in two places. But that does make it necessary, for every widget in this function.
+  Known issue: if you click fast enough, you can get significant UI ghosting on this page.
   *A computer can never be held accountable. Therefore a computer must never make a management decision.*[꙳](https://twitter.com/bumblebike/status/832394003492564993)"""
   if st.session_state.get("messages"):
     for message in st.session_state.messages:
