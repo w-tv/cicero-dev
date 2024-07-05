@@ -23,3 +23,5 @@ https://en.wikipedia.org/wiki/File:Cicero-bust-1.png Own work of Derrick Andes /
 https://upload.wikimedia.org/wikipedia/commons/4/41/Cicero.PNG (I can't tell the exact source of this image, in part because the information is in German) / Public domain
 
 https://commons.wikimedia.org/wiki/File:Cicero-head.png extracted from Cicero.PNG, presumably by an unnamed wikipedian / Public doamin
+
+when you beat the cicero was just programmed wrong allegations.jpg Meme (the filled-in-blank text) by Wyatt S Carpenter, source meme by someone unknown. The photograph is of Snoop Dogg, and is credited by https://www.cnn.com/2013/11/19/justice/high-profile-acquittals-after/ to Terri THUENTE/Pool/AFP/Getty Images
