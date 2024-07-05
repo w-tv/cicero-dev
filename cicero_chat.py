@@ -45,6 +45,7 @@ def grow_chat(streamlit_key_suffix: str = "", alternate_content: str = "") -> No
 def reset_chat() -> None:
   st.session_state["chat"] = None
   st.session_state["messages"] = None
+  #TODO: should this also clear st.session_state.get("outstanding_activity_log_payload")? Right now it still forces the user to up/down it.
 
 def display_chat(streamlit_key_suffix: str = "") -> None:
   """Display chat messages from history on app reload; this is how we get the messages to display, and then the chat box.
@@ -60,16 +61,13 @@ def display_chat(streamlit_key_suffix: str = "") -> None:
     user_feedback = "good" if c1.button("👍︎", key="👍"+streamlit_key_suffix) else "bad" if c2.button("👎︎", key="👎"+streamlit_key_suffix) else None
     c3.write("***Was this output what you were looking for?***")
     if user_feedback:
-      st.chat_input(on_submit=grow_chat, key="user_input_for_chatbot_this_frame"+streamlit_key_suffix, args=(streamlit_key_suffix,) ) #Note that because it's a callback, the profiler will not catch grow_chat here. However, it takes about a second. (Update: maybe it's about 4 seconds, now? That's in the happy path, as well.)
+      st.container().chat_input(on_submit=grow_chat, key="user_input_for_chatbot_this_frame"+streamlit_key_suffix, args=(streamlit_key_suffix,) ) #Note that because it's a callback, the profiler will not catch grow_chat here. However, it takes about a second. (Update: maybe it's about 4 seconds, now? That's in the happy path, as well.) #Without the container, this UI element floats BELOW the pyinstrument profiler now, which is inconvenient. But also we might want it to float down later, if we start using streaming text... #The container is not related to the ghosting, by the way. The ghosting happens either way.
       st.session_state["outstanding_activity_log_payload_fulfilled"] = st.session_state["outstanding_activity_log_payload"] | {"user_feedback": user_feedback}
       st.session_state["outstanding_activity_log_payload"] = None
   else:
-    st.chat_input(on_submit=grow_chat, key="user_input_for_chatbot_this_frame"+streamlit_key_suffix, args=(streamlit_key_suffix,) ) #Note that because it's a callback, the profiler will not catch grow_chat here. However, it takes about a second. (Update: maybe it's about 4 seconds, now? That's in the happy path, as well.)
+    st.container().chat_input(on_submit=grow_chat, key="user_input_for_chatbot_this_frame"+streamlit_key_suffix, args=(streamlit_key_suffix,) ) #Note that because it's a callback, the profiler will not catch grow_chat here. However, it takes about a second. (Update: maybe it's about 4 seconds, now? That's in the happy path, as well.)
 
-def main() -> None:
-  st.markdown('This is where you can chat with Cicero directly! You can do things like: rewrite a text, write a text based off a seed phrase/quote, fall in love, and SO MUCH MORE!')
-  if st.button("Reset (erase) chat"):
-    reset_chat()
-  display_chat()
-
-if __name__ == "__main__": main()
+st.markdown('This is where you can chat with Cicero directly! You can do things like: rewrite a text, write a text based off a seed phrase/quote, fall in love, and SO MUCH MORE!')
+if st.button("Reset (erase) chat"):
+  reset_chat()
+display_chat()

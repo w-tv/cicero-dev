@@ -8,7 +8,6 @@ from time import perf_counter_ns
 nanoseconds_base : int = perf_counter_ns()
 import streamlit as st
 import os, psutil, platform
-import cicero_prompter, cicero_topic_reporting, cicero_response_lookup, cicero_chat, cicero_new_pod_key, cicero_activity_looker
 from cicero_shared import ensure_existence_of_activity_log, exit_error, get_base_url, sql_call_cacheless
 from google.auth.transport import requests
 from google.oauth2 import id_token
@@ -16,17 +15,15 @@ from streamlit.web.server.websocket_headers import _get_websocket_headers
 from streamlit_profiler import Profiler
 from datetime import datetime
 
-st.set_page_config(layout="wide", page_title="Cicero", page_icon=r"assets/CiceroLogo_Favicon.png") # Use wide mode in Cicero, mostly so that results display more of their text by default. Also, set title and favicon. #NOTE: "`set_page_config()` can only be called once per app page, and must be called as the first Streamlit command in your script."
+with Profiler():
+  st.set_page_config(layout="wide", page_title="Cicero", page_icon=r"assets/CiceroLogo_Favicon.png") # Use wide mode in Cicero, mostly so that results display more of their text by default. Also, set title and favicon. #NOTE: "`set_page_config()` can only be called once per app page, and must be called as the first Streamlit command in your script."
+  for x in st.session_state: #If we don't do this ritual, streamlit drops all the non-active-pages widget states on the floor (bad). https://docs.streamlit.io/develop/concepts/multipage-apps/widgets#option-3-interrupt-the-widget-clean-up-process
+    if not x.startswith("FormSubmitter:") and not x.startswith("⚡") and not x.startswith("👍") and not x.startswith("👎") and not x.startswith("user_input_for_chatbot_this_frame"): #Prevent this error: streamlit.errors.StreamlitAPIException: Values for the widget with key "FormSubmitter:query_builder-Submit" cannot be set using `st.session_state`. # Also prevent this error: StreamlitAPIException: Values for the widget with key "⚡1" cannot be set using st.session_state. And similarly for 👍. In general the buttons that can't have state set, I set their keys to emoji+suffix. Just because.
+      st.session_state[x] = st.session_state[x]
 
-def main() -> None:
   st.session_state["email"] = str(st.experimental_user["email"]) #this str call also accounts for if the user email is None.
-  st.markdown("""
-  <style>
-    [data-testid="stDecoration"] {
-      display: none;
-    }
+  st.markdown("""<style> [data-testid="stDecoration"] { display: none; } </style>""", unsafe_allow_html=True) #this code removes the red bar at the top but keeps the hamburger menu
 
-  </style>""", unsafe_allow_html=True) #this code removes the red bar at the top but keeps the hamburger menu
   # Google sign-in logic, using IAP. From https://cloud.google.com/iap/docs/signed-headers-howto, with modifications. Will set the email to a new value iff it succeeds.
   if h := _get_websocket_headers():
     if iap_jwt := h.get("X-Goog-Iap-Jwt-Assertion"):
@@ -51,35 +48,26 @@ def main() -> None:
     loading_message.write("Loading CICERO.  This may take up to a minute...")
 
   st.session_state['developer_mode'] = st.session_state['email'] in ["achang@targetedvictory.com", "abrady@targetedvictory.com", "thall@targetedvictory.com", "afuhrer@targetedvictory.com", "wcarpenter@targetedvictory.com", "cmahon@targetedvictory.com", "rtauscher@targetedvictory.com", "cmajor@targetedvictory.com", "test@example.com"] and not st.session_state.get("developer_mode_disabled")
-  def disable_developer_mode() -> None: st.session_state["developer_mode_disabled"] = True
+  def disable_developer_mode() -> None:
+    st.session_state["developer_mode_disabled"] = True
 
-  if st.session_state['developer_mode']: #dev-mode out the entirety of topic reporting (some day it will be perfect and the users will be ready for us to un-dev-mode it) # also dev-mode out response-lookup, which will probably be permanently dev-moded, along with New Pod Key
-    tab1, tab2, tab3, tab4, tab5, tab6 = st.tabs(["🗣️ Prompter", "📈 Topic Reporting", "🔍 Response Lookup", "💬 Chat with Cicero", "🆕 New Pod Key", "👁️ Activity Looker"])
-    with tab1:
-      cicero_prompter.main()
-    with tab2:
-      cicero_topic_reporting.main()
-    with tab3:
-      cicero_response_lookup.main()
-    with tab4:
-      cicero_chat.main()
-    with tab5:
-      cicero_new_pod_key.main()
-    with tab6:
-      cicero_activity_looker.main()
-  else:
-    cicero_prompter.main()
-    st.markdown("""<style>
-    [allow="accelerometer; ambient-light-sensor; autoplay; battery; camera; clipboard-write; document-domain; encrypted-media; fullscreen; geolocation; gyroscope; layout-animations; legacy-image-formats; magnetometer; microphone; midi; oversized-images; payment; picture-in-picture; publickey-credentials-get; sync-xhr; usb; vr ; wake-lock; xr-spatial-tracking"] { /*this is an arbitrary way to target the profiler element*/
-      display: none;
-    }
-
-  </style>""", unsafe_allow_html=True)
-
+  # Since we use st.navigation explicitly, the default page detection is disabled, even though we use a pages folder (although we don't name that folder pages/, in order to suppress an error). This is good, because we want to hide some of the pages from non-dev-mode users.
+  pages = [ #pages visible to everyone
+    st.Page("cicero_prompter.py", title="🗣️ Prompter"), # There is an icon parameter to st.Page, so we could write eg icon="🗣️", but including the emoji in the title makes it slightly larger and thus nicer-looking.
+  ]
+  if st.session_state.get('developer_mode'):
+    pages += [
+      st.Page("cicero_topic_reporting.py", title="📈 Topic Reporting"),
+      st.Page("cicero_response_lookup.py", title="🔍 Response Lookup"),
+      st.Page("cicero_chat.py", title="💬 Chat with Cicero"),
+      st.Page("cicero_new_pod_key.py", title="🆕 New Pod Key"),
+      st.Page("cicero_activity_looker.py", title="👁️ Activity Looker")
+    ]
+  st.navigation(pages).run()
   loading_message.empty() # At this point, we no longer need to display a loading message, once we've gotten here and displayed everything above.
 
-  with st.sidebar:
-    if st.session_state['developer_mode']:
+  if st.session_state.get('developer_mode'): # Developer information about the app (performance, etc).
+    with st.sidebar:
       st.caption(f"""Streamlit app memory usage: {psutil.Process(os.getpid()).memory_info().rss // 1024 ** 2} MiB.<br>
         Time to display: {(perf_counter_ns()-nanoseconds_base)/1000/1000/1000} seconds.<br>
         Python version: {platform.python_version()}<br>
@@ -87,33 +75,33 @@ def main() -> None:
         Base url: {get_base_url()}
       """, unsafe_allow_html=True)
       st.button("disable developer mode", on_click=disable_developer_mode, help="Click this button to disable developer mode, allowing you to see and interact with the app as a basic user would. You can refresh the page in your browser to re-enable developer mode.") #this is a callback for streamlit ui update-flow reasons.
-if __name__ == "__main__":
-  with Profiler():
-    main()
-    # These are here for end-user performance/convenience reasons, even though on every other axis this is a bad place for it:
-    if st.session_state.get("activity_log_payload"):
-      print("Writing to log.")
-      ensure_existence_of_activity_log()
-      sql_call_cacheless(
-        # The WTIH clause here basically just does a left join; I just happened to write it in this way.
-        # Note that this will implicitly null the user_feedback. Which simplifies the deployment of that as a new feature, at least...!
-        "WITH tmp(user_pod) AS (SELECT user_pod FROM cicero.default.user_pods WHERE user_email ilike :user_email) INSERT INTO cicero.default.activity_log\
-        (timestamp,           user_email, user_pod,  prompter_or_chatbot,  prompt_sent,  response_given,  model_name,  model_url,  model_parameters,  system_prompt,  base_url) SELECT\
-        current_timestamp(), :user_email, user_pod, :prompter_or_chatbot, :prompt_sent, :response_given, :model_name, :model_url, :model_parameters, :system_prompt, :base_url FROM tmp",
-        st.session_state["activity_log_payload"]
-      )
-      st.session_state["activity_log_payload"] = None
-      print("Done writing to log.")
-    
-    if st.session_state.get("outstanding_activity_log_payload_fulfilled"):
-      print("Writing to 👍/👎 log.")
-      ensure_existence_of_activity_log()
-      sql_call_cacheless(
-        # Note: we are GAMBLING that the user_pod and timestamp will never be necessary in practice to have in here, because getting them would be inconvenient.
-        "UPDATE cicero.default.activity_log SET user_feedback = :user_feedback WHERE user_email = :user_email AND prompter_or_chatbot = :prompter_or_chatbot AND prompt_sent = :prompt_sent AND response_given = :response_given AND model_name = :model_name AND model_url = :model_url AND model_parameters = :model_parameters AND system_prompt = :system_prompt AND base_url = :base_url;",
-        st.session_state["outstanding_activity_log_payload_fulfilled"]
-      )
-      st.session_state["outstanding_activity_log_payload_fulfilled"] = None
-      print("Done writing to log.")
-    
+  else: # Disable the profiler element visually, using css, if not in dev mode.
+    st.markdown("""<style> [allow="accelerometer; ambient-light-sensor; autoplay; battery; camera; clipboard-write; document-domain; encrypted-media; fullscreen; geolocation; gyroscope; layout-animations; legacy-image-formats; magnetometer; microphone; midi; oversized-images; payment; picture-in-picture; publickey-credentials-get; sync-xhr; usb; vr ; wake-lock; xr-spatial-tracking"] { /*this is an arbitrary way to target the profiler element*/ display: none; } </style>""", unsafe_allow_html=True)
+
+  # Write to the activity log if we need to. These are here for end-user performance/convenience reasons, even though on every other axis this is a bad place for it:
+  if st.session_state.get("activity_log_payload"):
+    print("Writing to log.")
+    ensure_existence_of_activity_log()
+    sql_call_cacheless(
+      # The WTIH clause here basically just does a left join; I just happened to write it in this way.
+      # Note that this will implicitly null the user_feedback. Which simplifies the deployment of that as a new feature, at least...!
+      "WITH tmp(user_pod) AS (SELECT user_pod FROM cicero.default.user_pods WHERE user_email ilike :user_email) INSERT INTO cicero.default.activity_log\
+      (timestamp,           user_email, user_pod,  prompter_or_chatbot,  prompt_sent,  response_given,  model_name,  model_url,  model_parameters,  system_prompt,  base_url) SELECT\
+      current_timestamp(), :user_email, user_pod, :prompter_or_chatbot, :prompt_sent, :response_given, :model_name, :model_url, :model_parameters, :system_prompt, :base_url FROM tmp",
+      st.session_state["activity_log_payload"]
+    )
+    st.session_state["activity_log_payload"] = None
+    print("Done writing to log.")
+
+  if st.session_state.get("outstanding_activity_log_payload_fulfilled"):
+    print("Writing to 👍/👎 log.")
+    ensure_existence_of_activity_log()
+    sql_call_cacheless(
+      # Note: we are GAMBLING that the user_pod and timestamp will never be necessary in practice to have in here, because getting them would be inconvenient.
+      "UPDATE cicero.default.activity_log SET user_feedback = :user_feedback WHERE user_email = :user_email AND prompter_or_chatbot = :prompter_or_chatbot AND prompt_sent = :prompt_sent AND response_given = :response_given AND model_name = :model_name AND model_url = :model_url AND model_parameters = :model_parameters AND system_prompt = :system_prompt AND base_url = :base_url;",
+      st.session_state["outstanding_activity_log_payload_fulfilled"]
+    )
+    st.session_state["outstanding_activity_log_payload_fulfilled"] = None
+    print("Done writing to log.")
+
   print("End of a run.", str(datetime.now()).split('.')[0])

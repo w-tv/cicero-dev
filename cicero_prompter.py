@@ -451,160 +451,157 @@ def execute_prompting(model: Long_Model_Name, account: str, ask_type: Ask_Type, 
     print(f"!!! CICERO has detected that the number of outputs may be wrong. Desired {num_outputs=}. Observed {len(outputs)=}. Problematic output: {single_output=}. Parsed into {outputs=}")
   return question, outputs, entire_prompt, prompter_system_prompt
 
-def main() -> None:
 
-  st.session_state['human-facing_prompt'] = '' #to clear the prompt between prompts. could definitely be placed in a better spot.
-  if not st.session_state.get('email'): #this line is of dubious usefulness. It's supposed to let you run cicero_prompter.py locally and stand-alone without cicero.py, however.
-    st.session_state["email"] = str(st.experimental_user["email"]) #this str call also accounts for if the user email is None.
-  if 'use_count' not in st.session_state:
-    st.session_state['use_count'] = count_from_activity_log_times_used_today(st.session_state["email"])
-  use_count_limit = 100 #arbitrary but reasonable choice of limit
-  if st.session_state['email'] in ["abrady@targetedvictory.com", "thall@targetedvictory.com", "test@example.com"]: # Give certain users nigh-unlimited uses.
-    use_count_limit = 100_000_000
-  if st.session_state['use_count'] >= use_count_limit:
-    st.write(f"You cannot use this service more than {use_count_limit} times a day, and you have reached that limit. Please contact the team if this is in error or if you wish to expand the limit.")
-    exit_error(52) # When a user hits the limit it completely locks them out of the ui using an error message. This wasn't a requirement, but it seems fine.
+st.session_state['human-facing_prompt'] = '' #to clear the prompt between prompts. could definitely be placed in a better spot.
+if not st.session_state.get('email'): #this line is of dubious usefulness. It's supposed to let you run cicero_prompter.py locally and stand-alone without cicero.py, however.
+  st.session_state["email"] = str(st.experimental_user["email"]) #this str call also accounts for if the user email is None.
+if 'use_count' not in st.session_state:
+  st.session_state['use_count'] = count_from_activity_log_times_used_today(st.session_state["email"])
+use_count_limit = 100 #arbitrary but reasonable choice of limit
+if st.session_state['email'] in ["abrady@targetedvictory.com", "thall@targetedvictory.com", "test@example.com"]: # Give certain users nigh-unlimited uses.
+  use_count_limit = 100_000_000
+if st.session_state['use_count'] >= use_count_limit:
+  st.write(f"You cannot use this service more than {use_count_limit} times a day, and you have reached that limit. Please contact the team if this is in error or if you wish to expand the limit.")
+  exit_error(52) # When a user hits the limit it completely locks them out of the ui using an error message. This wasn't a requirement, but it seems fine.
 
-  bios: dict[str, str] = load_bios()
+bios: dict[str, str] = load_bios()
 
-  account_names = load_account_names()
+account_names = load_account_names()
 
-  if not st.session_state.get("initted"):
-    set_ui_to_preset("default")
-    st.session_state["initted"] = True
-    st.rerun() #STREAMLIT-BUG-WORKAROUND: this rerun actually has nothing to do with initing, it's just convenient to do here, since we need to do it exactly once, on app startup. It prevents the expander from experiencing a streamlit bug (<https://github.com/streamlit/streamlit/issues/2360>) that is only present in the initial run state. Anyway, this rerun is really fast and breaks nothing (except the developer mode initial performance timer readout, which is now clobbered) so it's a good workaround.
+if not st.session_state.get("initted"):
+  set_ui_to_preset("default")
+  st.session_state["initted"] = True
+  st.rerun() #STREAMLIT-BUG-WORKAROUND: this rerun actually has nothing to do with initing, it's just convenient to do here, since we need to do it exactly once, on app startup. It prevents the expander from experiencing a streamlit bug (<https://github.com/streamlit/streamlit/issues/2360>) that is only present in the initial run state. Anyway, this rerun is really fast and breaks nothing (except the developer mode initial performance timer readout, which is now clobbered) so it's a good workaround.
 
-  login_activity_counter_container = st.container()
+login_activity_counter_container = st.container()
 
-  if st.button("Reset", help="Resets the UI elements to their default values. This button will also trigger cached data like the Candidate Bios and the news RSS feed to refresh. You can also just press F5 to refresh the page."):
-    st.cache_data.clear()
-    set_ui_to_preset("default")
+if st.button("Reset", help="Resets the UI elements to their default values. This button will also trigger cached data like the Candidate Bios and the news RSS feed to refresh. You can also just press F5 to refresh the page."):
+  st.cache_data.clear()
+  set_ui_to_preset("default")
 
-  # Because parts of it update when other parts of it are changed, this news dialogue can't go within the st.form (which precludes that on purpose, as a feature to improve performance)
-  #Restyle the news headline heading to Helvetica Neue. (nb: I think it's crazy to want to change from streamlit default sans-serif font to helvetica, because every font of that general style looks pretty much identical; but the boss gets what the boss wants, within possibility.)
-  #st.markdown(""" <style> .size8 {color: yellow; font-family: Times} </style> """, unsafe_allow_html=True) # This line shows we could do it by size instead, if we wanted.
-  st.markdown(""" <style> @import url('https://fonts.cdnfonts.com/css/helvetica-neue-55'); .textsf {font-family: Helvetica Neue !important; font-size: 18px !important;}  </style> """, unsafe_allow_html=True) # Thanks to this random for hosting this font for us, I guess! https://www.cdnfonts.com/helvetica-neue-55.font
-  # TODO: make the label in this expander match, or just more closely match, the size of the "History of Replies"
-  with st.expander(r"$\textsf{\Large NEWS HEADLINES}$"): # I tried to remove the LaTeX, but then the font size wouldn't change without it
-    exact_match_query = st.text_input("Headline Search  \n*Returns headlines containing the search terms. Hit Enter to filter the headlines.*", key="exact_match_query")
-    overdrive: bool = st.checkbox("Only search headlines from the last 3 days.", key="overdrive")
-    h: list[str] = load_headlines(get_all=False) if not overdrive else load_headlines(get_all=False, past_days=3)
-    if exact_match_query:
-      h = only_those_strings_of_the_list_that_contain_the_given_substring_case_insensitively(h, exact_match_query)
-    headline = st.selectbox("If a headline is selected here, it will be added to your prompt below.", list(h), key="headline") # No typesafe_selectbox here because we actually do want this to possibly be unselected.
+# Because parts of it update when other parts of it are changed, this news dialogue can't go within the st.form (which precludes that on purpose, as a feature to improve performance)
+#Restyle the news headline heading to Helvetica Neue. (nb: I think it's crazy to want to change from streamlit default sans-serif font to helvetica, because every font of that general style looks pretty much identical; but the boss gets what the boss wants, within possibility.)
+#st.markdown(""" <style> .size8 {color: yellow; font-family: Times} </style> """, unsafe_allow_html=True) # This line shows we could do it by size instead, if we wanted.
+st.markdown(""" <style> @import url('https://fonts.cdnfonts.com/css/helvetica-neue-55'); .textsf {font-family: Helvetica Neue !important; font-size: 18px !important;}  </style> """, unsafe_allow_html=True) # Thanks to this random for hosting this font for us, I guess! https://www.cdnfonts.com/helvetica-neue-55.font
+# TODO: make the label in this expander match, or just more closely match, the size of the "History of Replies"
+with st.expander(r"$\textsf{\Large NEWS HEADLINES}$"): # I tried to remove the LaTeX, but then the font size wouldn't change without it
+  exact_match_query = st.text_input("Headline Search  \n*Returns headlines containing the search terms. Hit Enter to filter the headlines.*", key="exact_match_query")
+  overdrive: bool = st.checkbox("Only search headlines from the last 3 days.", key="overdrive")
+  h: list[str] = load_headlines(get_all=False) if not overdrive else load_headlines(get_all=False, past_days=3)
+  if exact_match_query:
+    h = only_those_strings_of_the_list_that_contain_the_given_substring_case_insensitively(h, exact_match_query)
+  headline = st.selectbox("If a headline is selected here, it will be added to your prompt below.", list(h), key="headline") # No typesafe_selectbox here because we actually do want this to possibly be unselected.
 
-  st.text("") # Just for vertical spacing.
+st.text("") # Just for vertical spacing.
 
-  default_sys_prompt: str = "You are a helpful, expert copywriter who specializes in writing fundraising text messages and emails for conservative candidates and causes. Be direct with your responses, and avoid extraneous messages like 'Hello!' and 'I hope this helps!'. These text messages and emails tend to be more punchy and engaging than normal marketing material. Do not mention that you are a helpful, expert copywriter."
-  
-  with st.form('query_builder'):
-    with st.sidebar:
-      if st.session_state["developer_mode"]:
-        topic_weight: float = st.slider("Topic Weight", min_value=0.0, max_value=10.0, key="topic_weight")
-        tone_weight: float = st.slider("Tone Weight", min_value=0.0, max_value=10.0, key="tone_weight")
-        client_weight: float = st.slider("Client Weight", min_value=0.0, max_value=10.0, key="client_weight")
-        ask_weight: float = st.slider("Ask Weight", min_value=0.0, max_value=10.0, key="ask_weight")
-        text_len_weight: float = st.slider("Text Len Weight", min_value=0.0, max_value=10.0, key="text_len_weight")
-        st.session_state["the_real_dude_model_name"] = typesafe_selectbox("Model selection for Cicero (the actual, historical man (it's really him))", short_model_names, default="Llama-3-70b-Instruct") #TODO: this is deliberately not in the preset system, because it might get removed later.
-        st.session_state["the_real_dude_system_prompt"] = typesafe_selectbox("Model system prompt for Cicero (the actual, historical man (it's really him))", [default_sys_prompt]) #TODO: this is deliberately not in the preset system, because it might get removed later.
-        doc_pool_size: int = st.slider("Doc Pool Size", min_value=5, max_value=100, value=30) #TODO: this is deliberately not in the preset system, because it might get removed later.
-        num_examples: int = st.slider("Number of Examples", min_value=5, max_value=100, value=10) #TODO: this is deliberately not in the preset system, because it might get removed later.
-      else:
-        topic_weight = 4
-        tone_weight = 1
-        client_weight = 6
-        ask_weight = 2
-        text_len_weight = 3
-        st.session_state["the_real_dude_model_name"] = "Llama-3-70b-Instruct"
-        st.session_state["the_real_dude_system_prompt"] = default_sys_prompt
-        doc_pool_size = 30
-        num_examples = 10
-    st.session_state["the_real_dude_model"] = short_model_name_to_long_model_name(st.session_state["the_real_dude_model_name"])
-    model_name = typesafe_selectbox("Model (required)", short_model_names, default="Llama-3-70b-Instruct", key="model") if st.session_state["developer_mode"] else "Llama-3-70b-Instruct"
-    model = short_model_name_to_long_model_name(model_name)
-    account = st.selectbox("Account (required)", account_names, key="account") # No typesafe_selectbox here because we actually do want this to possibly be unselected.
-    ask_type = typesafe_selectbox("Ask Type", get_args(Ask_Type), key="ask_type").lower()
-    topics = st.multiselect("Topics", sorted([t for t, d in topics_big.items() if d["show in prompter?"]]), key="topics" )
-    topics = external_topic_names_to_internal_topic_names_list_mapping(topics)
-    length_select = typesafe_selectbox("Length", get_args(Selectable_Length), key='lengths', format_func=lambda x: f"{x.capitalize()} ({'<160' if x == 'short' else '161-399' if x == 'medium' else '400+'} characters)")
-    additional_topics = [x.strip().lower() for x in st.text_input("Additional Topics (examples: Biden, survey, deadline)", key="additional_topics" ).split(",") if x.strip()] # The list comprehension is to filter out empty strings on split, because otherwise this fails to make a truly empty list in the default case, instead having a list with an empty string in, because split changes its behavior when you give it arguments. Anyway, this also filters out trailing comma edge-cases and such.
-    tones = st.multiselect("Tones", get_args(Tone), key="tones")
-    num_outputs = typesafe_selectbox(r"\# Outputs", get_args(Num_Outputs), key='num_outputs')
-    temperature: float = st.slider("Output Variance:", min_value=0.0, max_value=1.0, key="temperature") if st.session_state["developer_mode"] else 0.7
-    buttonhole = st.empty()
-    with buttonhole:
-      if st.session_state.get("submit_button_disabled"):
-        st.form_submit_button("Processing...", type="primary", disabled=True)
-      else:
-        st.form_submit_button("Submit", type="primary", on_click=disable_submit_button_til_complete)
+default_sys_prompt: str = "You are a helpful, expert copywriter who specializes in writing fundraising text messages and emails for conservative candidates and causes. Be direct with your responses, and avoid extraneous messages like 'Hello!' and 'I hope this helps!'. These text messages and emails tend to be more punchy and engaging than normal marketing material. Do not mention that you are a helpful, expert copywriter."
+
+with st.form('query_builder'):
+  with st.sidebar:
     if st.session_state.get("developer_mode"):
-      st.session_state["use_backup_similarity_search_library"] = typesafe_selectbox("(developer mode option) trigger a fake error in the appropriate place in this run to use backup similarity search library", [False, True])
-  if st.session_state.get("developer_mode"):
-    if st.button("Developer mode special button for testing: “***I'm feeling (un)lucky***”"):
-      st.session_state["submit_button_disabled"] = True
-      account = "AAF" #TODO: is there a better testing value? Could I have my own dummy account that just writes nice things about me personally, for example? Or nasty things about Ceasar?
-
-  #Composition and sending a request:
-  did_a_query = False
-  if st.session_state.get("submit_button_disabled"):
-    if not account:
-      st.warning("***No Account is selected, so I can't send the request!***")
-    elif not model:
-      st.warning("***No Model is selected, so I can't send the request! (If you have no ability to select a Model and get this error, please contact the Optimization team.***")
+      topic_weight: float = st.slider("Topic Weight", min_value=0.0, max_value=10.0, key="topic_weight")
+      tone_weight: float = st.slider("Tone Weight", min_value=0.0, max_value=10.0, key="tone_weight")
+      client_weight: float = st.slider("Client Weight", min_value=0.0, max_value=10.0, key="client_weight")
+      ask_weight: float = st.slider("Ask Weight", min_value=0.0, max_value=10.0, key="ask_weight")
+      text_len_weight: float = st.slider("Text Len Weight", min_value=0.0, max_value=10.0, key="text_len_weight")
+      st.session_state["the_real_dude_model_name"] = typesafe_selectbox("Model selection for Cicero (the actual, historical man (it's really him))", short_model_names, default="Llama-3-70b-Instruct") #TODO: this is deliberately not in the preset system, because it might get removed later.
+      st.session_state["the_real_dude_system_prompt"] = typesafe_selectbox("Model system prompt for Cicero (the actual, historical man (it's really him))", [default_sys_prompt]) #TODO: this is deliberately not in the preset system, because it might get removed later.
+      doc_pool_size: int = st.slider("Doc Pool Size", min_value=5, max_value=100, value=30) #TODO: this is deliberately not in the preset system, because it might get removed later.
+      num_examples: int = st.slider("Number of Examples", min_value=5, max_value=100, value=10) #TODO: this is deliberately not in the preset system, because it might get removed later.
     else:
-      did_a_query = True
-      cicero_chat.reset_chat()
-      st.session_state['use_count']+=1 #this is just an optimization for the front-end display of the query count
-      bio = bios.get(account) if ("bio" in topics and account in bios) else None
-      max_tokens = 4096
-      prompt_sent, st.session_state['outputs'], st.session_state['entire_prompt'], prompter_system_prompt = execute_prompting(model, account, ask_type, topics, additional_topics, tones, length_select, headline, num_outputs, temperature, bio, max_tokens, topic_weight, tone_weight, client_weight, ask_weight, text_len_weight, doc_pool_size, num_examples)
-      if len(st.session_state['outputs']) != num_outputs:
-        st.info("CICERO has detected that the number of outputs may be wrong.")
-      if 'history' not in st.session_state:
-        st.session_state['history'] = []
-      st.session_state['history'] += st.session_state['outputs']
-      st.session_state['character_counts_caption'] = "Character counts: "+str([len(o) for o in st.session_state['outputs']])
+      topic_weight = 4
+      tone_weight = 1
+      client_weight = 6
+      ask_weight = 2
+      text_len_weight = 3
+      st.session_state["the_real_dude_model_name"] = "Llama-3-70b-Instruct"
+      st.session_state["the_real_dude_system_prompt"] = default_sys_prompt
+      doc_pool_size = 30
+      num_examples = 10
+  st.session_state["the_real_dude_model"] = short_model_name_to_long_model_name(st.session_state["the_real_dude_model_name"])
+  model_name = typesafe_selectbox("Model (required)", short_model_names, default="Llama-3-70b-Instruct", key="model") if st.session_state.get("developer_mode") else "Llama-3-70b-Instruct"
+  model = short_model_name_to_long_model_name(model_name)
+  account = st.selectbox("Account (required)", account_names, key="account") # No typesafe_selectbox here because we actually do want this to possibly be unselected.
+  ask_type = typesafe_selectbox("Ask Type", get_args(Ask_Type), key="ask_type").lower()
+  topics = st.multiselect("Topics", sorted([t for t, d in topics_big.items() if d["show in prompter?"]]), key="topics" )
+  topics = external_topic_names_to_internal_topic_names_list_mapping(topics)
+  length_select = typesafe_selectbox("Length", get_args(Selectable_Length), key='lengths', format_func=lambda x: f"{x.capitalize()} ({'<160' if x == 'short' else '161-399' if x == 'medium' else '400+'} characters)")
+  additional_topics = [x.strip().lower() for x in st.text_input("Additional Topics (examples: Biden, survey, deadline)", key="additional_topics" ).split(",") if x.strip()] # The list comprehension is to filter out empty strings on split, because otherwise this fails to make a truly empty list in the default case, instead having a list with an empty string in, because split changes its behavior when you give it arguments. Anyway, this also filters out trailing comma edge-cases and such.
+  tones = st.multiselect("Tones", get_args(Tone), key="tones")
+  num_outputs = typesafe_selectbox(r"\# Outputs", get_args(Num_Outputs), key='num_outputs')
+  temperature: float = st.slider("Output Variance:", min_value=0.0, max_value=1.0, key="temperature") if st.session_state.get("developer_mode") else 0.7
+  buttonhole = st.empty()
+  with buttonhole:
+    if st.session_state.get("submit_button_disabled"):
+      st.form_submit_button("Processing...", type="primary", disabled=True)
+    else:
+      st.form_submit_button("Submit", type="primary", on_click=disable_submit_button_til_complete)
+  if st.session_state.get("developer_mode"):
+    st.session_state["use_backup_similarity_search_library"] = typesafe_selectbox("(developer mode option) trigger a fake error in the appropriate place in this run to use backup similarity search library", [False, True])
+if st.session_state.get("developer_mode"):
+  if st.button("Developer mode special button for testing: “***I'm feeling (un)lucky***”"):
+    st.session_state["submit_button_disabled"] = True
+    account = "AAF" #TODO: is there a better testing value? Could I have my own dummy account that just writes nice things about me personally, for example? Or nasty things about Ceasar?
 
-  # The idea is for these output elements to persist after one query button, until overwritten by the results of the next query.
+#Composition and sending a request:
+did_a_query = False
+if st.session_state.get("submit_button_disabled"):
+  if not account:
+    st.warning("***No Account is selected, so I can't send the request!***")
+  elif not model:
+    st.warning("***No Model is selected, so I can't send the request! (If you have no ability to select a Model and get this error, please contact the Optimization team.***")
+  else:
+    did_a_query = True
+    cicero_chat.reset_chat()
+    st.session_state['use_count']+=1 #this is just an optimization for the front-end display of the query count
+    bio = bios.get(account) if ("bio" in topics and account in bios) else None
+    max_tokens = 4096
+    prompt_sent, st.session_state['outputs'], st.session_state['entire_prompt'], prompter_system_prompt = execute_prompting(model, account, ask_type, topics, additional_topics, tones, length_select, headline, num_outputs, temperature, bio, max_tokens, topic_weight, tone_weight, client_weight, ask_weight, text_len_weight, doc_pool_size, num_examples)
+    if len(st.session_state['outputs']) != num_outputs:
+      st.info("CICERO has detected that the number of outputs may be wrong.")
+    if 'history' not in st.session_state:
+      st.session_state['history'] = []
+    st.session_state['history'] += st.session_state['outputs']
+    st.session_state['character_counts_caption'] = "Character counts: "+str([len(o) for o in st.session_state['outputs']])
 
-  if 'entire_prompt' in st.session_state and st.session_state.get("developer_mode"):
-    with st.expander("Developer Mode Message: the prompt passed to the model"):
-      st.caption(st.session_state['entire_prompt'].replace("$", r"\$"))
+# The idea is for these output elements to persist after one query button, until overwritten by the results of the next query.
 
-  st.error("WARNING! Outputs have not been fact checked. CICERO is not responsible for inaccuracies in deployed copy. Please check all *names*, *places*, *counts*, *times*, *events*, and *titles* (esp. military titles) for accuracy.  \nAll numbers included in outputs are suggestions only and should be updated. They are NOT analytically optimized to increase conversions (yet) and are based solely on frequency in past copy.", icon="⚠️")
-  if 'outputs' in st.session_state:
-    key_collision_preventer = 1
-    for output in st.session_state['outputs']:
-      col1, col2 = st.columns([.95, .05])
-      with col1:
-        st.write( output.replace("$", r"\$") ) #this prevents us from entering math mode when we ask about money.
-      with col2:
-        if st.button("⚡", key="⚡"+str(key_collision_preventer), help="Edit with Cicero"):
-          cicero_chat.reset_chat()
-          cicero_chat.grow_chat(streamlit_key_suffix="_prompter", alternate_content=output)
-        key_collision_preventer += 1
-    st.caption(st.session_state.get('character_counts_caption'))
-    if st.session_state.get('messages'):
-      cicero_chat.display_chat(streamlit_key_suffix="_prompter")
-  st.error('**REMINDER!** Please tag all projects with "**optimization**" in the LABELS field in Salesforce.')
+if 'entire_prompt' in st.session_state and st.session_state.get("developer_mode"):
+  with st.expander("Developer Mode Message: the prompt passed to the model"):
+    st.caption(st.session_state['entire_prompt'].replace("$", r"\$"))
 
-  with st.sidebar: #The history display includes a result of the logic of the script, that has to be updated in the middle of the script where the button press is (when the button is in fact pressed), so the code to display it has to be after all the logic of the script or else it will lag behind the actual state of the history by one time step.
-    st.header("History of replies:")
-    if 'history' not in st.session_state: st.session_state['history'] = []
-    st.dataframe( pd.DataFrame(reversed( st.session_state['history'] ),columns=(["Outputs"])), hide_index=True, use_container_width=True)
+st.error("WARNING! Outputs have not been fact checked. CICERO is not responsible for inaccuracies in deployed copy. Please check all *names*, *places*, *counts*, *times*, *events*, and *titles* (esp. military titles) for accuracy.  \nAll numbers included in outputs are suggestions only and should be updated. They are NOT analytically optimized to increase conversions (yet) and are based solely on frequency in past copy.", icon="⚠️")
+if 'outputs' in st.session_state:
+  key_collision_preventer = 1
+  for output in st.session_state['outputs']:
+    col1, col2 = st.columns([.95, .05])
+    with col1:
+      st.write( output.replace("$", r"\$") ) #this prevents us from entering math mode when we ask about money.
+    with col2:
+      if st.button("⚡", key="⚡"+str(key_collision_preventer), help="Edit with Cicero"):
+        cicero_chat.reset_chat()
+        cicero_chat.grow_chat(streamlit_key_suffix="_prompter", alternate_content=output)
+      key_collision_preventer += 1
+  st.caption(st.session_state.get('character_counts_caption'))
+  if st.session_state.get('messages'):
+    cicero_chat.display_chat(streamlit_key_suffix="_prompter")
+st.error('**REMINDER!** Please tag all projects with "**optimization**" in the LABELS field in Salesforce.')
 
-  login_activity_counter_container.write(
-    f"""You are logged in as {st.session_state['email']}{" (internally, "+str(st.experimental_user['email'])+")" if st.session_state["developer_mode"] else ""}. You have prompted {st.session_state['use_count']} time{'s' if st.session_state['use_count'] != 1 else ''} today, out of a limit of {use_count_limit}. {"You are in developer mode." if st.session_state["developer_mode"] else ""}"""
-  )
+with st.sidebar: #The history display includes a result of the logic of the script, that has to be updated in the middle of the script where the button press is (when the button is in fact pressed), so the code to display it has to be after all the logic of the script or else it will lag behind the actual state of the history by one time step.
+  st.header("History of replies:")
+  if 'history' not in st.session_state: st.session_state['history'] = []
+  st.dataframe( pd.DataFrame(reversed( st.session_state['history'] ),columns=(["Outputs"])), hide_index=True, use_container_width=True)
 
-  st.session_state["submit_button_disabled"] = False
-  buttonhole.form_submit_button("Submit ", type="primary", on_click=disable_submit_button_til_complete) # After everything, re-enable the submit button. Note that the space at the end of Submit here doesn't show up in the UI; it's just a convenient way to make the key of this replacement button not identical to the original button (which would cause an error). I didn't even bother to file an issue about this because who cares.
-  # Activity logging takes a bit, so I've put it last to preserve immediate-feeling performance and responses for the user making a query.
-  if did_a_query:
-    # prompt_sent is only illustrative. But maybe that's enough. Maybe we should be using a different prompt?
-    st.session_state["activity_log_payload"] = {"user_email": st.session_state['email'], "prompter_or_chatbot": "prompter", "prompt_sent": prompt_sent, "response_given": json.dumps(st.session_state['outputs']), "model_name": model_name, "model_url": model, "model_parameters": str({"max_tokens": max_tokens, "temperature": temperature}), "system_prompt": prompter_system_prompt, "base_url": get_base_url()}
+login_activity_counter_container.write(
+  f"""You are logged in as {st.session_state['email']}{" (internally, "+str(st.experimental_user['email'])+")" if st.session_state.get("developer_mode") else ""}. You have prompted {st.session_state['use_count']} time{'s' if st.session_state['use_count'] != 1 else ''} today, out of a limit of {use_count_limit}. {"You are in developer mode." if st.session_state.get("developer_mode") else ""}"""
+)
+
+st.session_state["submit_button_disabled"] = False
+buttonhole.form_submit_button("Submit ", type="primary", on_click=disable_submit_button_til_complete) # After everything, re-enable the submit button. Note that the space at the end of Submit here doesn't show up in the UI; it's just a convenient way to make the key of this replacement button not identical to the original button (which would cause an error). I didn't even bother to file an issue about this because who cares.
+# Activity logging takes a bit, so I've put it last to preserve immediate-feeling performance and responses for the user making a query.
+if did_a_query:
+  # prompt_sent is only illustrative. But maybe that's enough. Maybe we should be using a different prompt?
+  st.session_state["activity_log_payload"] = {"user_email": st.session_state['email'], "prompter_or_chatbot": "prompter", "prompt_sent": prompt_sent, "response_given": json.dumps(st.session_state['outputs']), "model_name": model_name, "model_url": model, "model_parameters": str({"max_tokens": max_tokens, "temperature": temperature}), "system_prompt": prompter_system_prompt, "base_url": get_base_url()}
 
 
-  # import streamlit.components.v1 as components; components.html('<!--<script>//you can include arbitrary html and javascript this way</script>-->') #or, use st.markdown, if you want arbitrary html but javascript isn't needed.
-
-if __name__ == "__main__": main()
+# import streamlit.components.v1 as components; components.html('<!--<script>//you can include arbitrary html and javascript this way</script>-->') #or, use st.markdown, if you want arbitrary html but javascript isn't needed.
