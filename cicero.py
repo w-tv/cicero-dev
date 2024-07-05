@@ -51,7 +51,7 @@ with Profiler():
   def disable_developer_mode() -> None:
     st.session_state["developer_mode_disabled"] = True
 
-  # Since we use st.navigation explicitly, the default page detection is disabled, even though we use a pages folder (although we don't name that folder pages/, in order to suppress an error). This is good, because we want to hide some of the pages from non-dev-mode users.
+  # Since we use st.navigation explicitly, the default page detection is disabled, even though we may use a pages folder later (although we shouldn't name that folder pages/, purely in order to suppress a warning message about how we shouldn't do that). This is good, because we want to hide some of the pages from non-dev-mode users.
   pages = [ #pages visible to everyone
     st.Page("cicero_prompter.py", title="🗣️ Prompter"), # There is an icon parameter to st.Page, so we could write eg icon="🗣️", but including the emoji in the title makes it slightly larger and thus nicer-looking.
   ]
