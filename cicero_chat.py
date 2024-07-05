@@ -13,7 +13,7 @@ def grow_chat(streamlit_key_suffix: str = "", alternate_content: str = "") -> No
   sys_prompt = st.session_state["the_real_dude_system_prompt"]
   if not st.session_state.get("chat"):
     st.session_state.chat = ChatSession(model=long_model_name, system_message=sys_prompt, max_tokens=4096) # Keep in mind that unless DATABRICKS_HOST and DATABRICKS_TOKEN are in the environment (streamlit does this with secret value by default), then this line of code will fail with an extremely cryptic error asking you to run this program with a `setup` command line argument (which won't do anything)
-  if not st.session_state.get("messages"): # We keep our own list of messages, I think because I found it hard to format the chat_history output when I tried once. 
+  if not st.session_state.get("messages"): # We keep our own list of messages, I think because I found it hard to format the chat_history output when I tried once.
     st.session_state.messages = []
   p: str = alternate_content or st.session_state["user_input_for_chatbot_this_frame"+streamlit_key_suffix]
   if not st.session_state.messages:
@@ -50,18 +50,21 @@ def reset_chat() -> None:
 def display_chat(streamlit_key_suffix: str = "") -> None:
   """Display chat messages from history on app reload; this is how we get the messages to display, and then the chat box.
   The streamlit_key_suffix is only necessary because we use this code in two places. But that does make it necessary, for every widget in this function.
-  Known issue: if you click fast enough, you can get significant UI ghosting on this page.
+
   *A computer can never be held accountable. Therefore a computer must never make a management decision.*[꙳](https://twitter.com/bumblebike/status/832394003492564993)"""
   if st.session_state.get("messages"):
     for message in st.session_state.messages:
       with st.chat_message(message["role"], avatar=message.get("avatar")):
         st.markdown(message["content"].replace("$", r"\$").replace("[", r"\["))
   if st.session_state.get("outstanding_activity_log_payload"):
-    c1, c2, c3 = st.columns([.04,.04,.92])
-    user_feedback = "good" if c1.button("👍︎", key="👍"+streamlit_key_suffix) else "bad" if c2.button("👎︎", key="👎"+streamlit_key_suffix) else None
-    c3.write("***Was this output what you were looking for?***")
+    emptyable = st.empty()
+    with emptyable.container():
+      c1, c2, c3 = st.columns([.04,.04,.92])
+      user_feedback = "good" if c1.button("👍︎", key="👍"+streamlit_key_suffix) else "bad" if c2.button("👎︎", key="👎"+streamlit_key_suffix) else None
+      c3.write("***Was this output what you were looking for?***")
     if user_feedback:
-      st.container().chat_input(on_submit=grow_chat, key="user_input_for_chatbot_this_frame"+streamlit_key_suffix, args=(streamlit_key_suffix,) ) #Note that because it's a callback, the profiler will not catch grow_chat here. However, it takes about a second. (Update: maybe it's about 4 seconds, now? That's in the happy path, as well.) #Without the container, this UI element floats BELOW the pyinstrument profiler now, which is inconvenient. But also we might want it to float down later, if we start using streaming text... #The container is not related to the ghosting, by the way. The ghosting happens either way.
+      emptyable.empty()
+      st.container().chat_input(on_submit=grow_chat, key="user_input_for_chatbot_this_frame"+streamlit_key_suffix, args=(streamlit_key_suffix,) ) #Note that because it's a callback, the profiler will not catch grow_chat here. However, it takes about a second. (Update: maybe it's about 4 seconds, now? That's in the happy path, as well.) #Without the container, this UI element floats BELOW the pyinstrument profiler now, which is inconvenient. But also we might want it to float down later, if we start using streaming text...
       st.session_state["outstanding_activity_log_payload_fulfilled"] = st.session_state["outstanding_activity_log_payload"] | {"user_feedback": user_feedback}
       st.session_state["outstanding_activity_log_payload"] = None
   else:
