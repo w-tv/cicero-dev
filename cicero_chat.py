@@ -5,9 +5,9 @@ from databricks_genai_inference import ChatSession, FoundationModelAPIException
 from cicero_shared import consul_show, get_base_url, popup
 
 def grow_chat(streamlit_key_suffix: str = "", alternate_content: str = "") -> None:
-  """Note that this function will do something special to the prompt if there are no messages yet.
+  """Note that this function will do something special to the prompt if alternate_content is supplied.
   Also, the streamlit_key_suffix is only necessary because we use this code in two places.
-  Random info: chat.history is an alias for chat.chat_history (you can mutate chat.chat_history but not chat.history, btw). Internally, it's, like: [{'role': 'system', 'content': 'You are a helpful assistant.'}, {'role': 'user', 'content': 'Knock, knock.'}, {'role': 'assistant', 'content': "Hello! Who's there?"}, {'role': 'user', 'content': 'Guess who!'}, {'role': 'assistant', 'content': "Okay, I'll play along! Is it a person, a place, or a thing?"}]"""
+  Random fyi: chat.history is an alias for chat.chat_history (you can mutate chat.chat_history but not chat.history, btw). Internally, it's, like: [{'role': 'system', 'content': 'You are a helpful assistant.'}, {'role': 'user', 'content': 'Knock, knock.'}, {'role': 'assistant', 'content': "Hello! Who's there?"}, {'role': 'user', 'content': 'Guess who!'}, {'role': 'assistant', 'content': "Okay, I'll play along! Is it a person, a place, or a thing?"}]"""
   short_model_name = st.session_state["the_real_dude_model_name"]
   long_model_name = st.session_state["the_real_dude_model"]
   sys_prompt = st.session_state["the_real_dude_system_prompt"]
@@ -15,11 +15,11 @@ def grow_chat(streamlit_key_suffix: str = "", alternate_content: str = "") -> No
     st.session_state.chat = ChatSession(model=long_model_name, system_message=sys_prompt, max_tokens=4096) # Keep in mind that unless DATABRICKS_HOST and DATABRICKS_TOKEN are in the environment (streamlit does this with secret value by default), then this line of code will fail with an extremely cryptic error asking you to run this program with a `setup` command line argument (which won't do anything)
   if not st.session_state.get("messages"): # We keep our own list of messages, I think because I found it hard to format the chat_history output when I tried once.
     st.session_state.messages = []
-  p: str = alternate_content or st.session_state["user_input_for_chatbot_this_frame"+streamlit_key_suffix]
-  if not st.session_state.messages:
-    display_p = "« "+p+" »"
-    p = "Here is a conservative fundraising text: [" + p + "] Analyze the quality of the text based off of these five fundraising elements: the Hook, Urgency, Agency, Stakes, and the Call to Action (CTA). Do not assign scores to the elements. It's possible one or more of these elements is missing from the text provided. If so, please point that out. Then, directly ask the user what assistance they need with the text. Additionally, mention that you can also help edit the text to be shorter or longer, and convert the text into an email."
+  if alternate_content:
+    p = "Here is a conservative fundraising text: [" + alternate_content + "] Analyze the quality of the text based off of these five fundraising elements: the Hook, Urgency, Agency, Stakes, and the Call to Action (CTA). Do not assign scores to the elements. It's possible one or more of these elements is missing from the text provided. If so, please point that out. Then, directly ask the user what assistance they need with the text. Additionally, mention that you can also help edit the text to be shorter or longer, and convert the text into an email."
+    display_p = "« " + alternate_content + " »"
   else:
+    p = st.session_state["user_input_for_chatbot_this_frame"+streamlit_key_suffix]
     display_p = p
   old_chat = st.session_state.chat.chat_history.copy()
   while True: #databricks_genai_inference-BUG-WORKAROUND: it prompts with the entire chat history every time, without truncating history to fit the token limit even though this makes it ultimately useless as a chat session manager. Since I now have to manually manage the chat session as well! So, we just try removing messages until it works
