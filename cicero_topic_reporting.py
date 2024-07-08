@@ -463,7 +463,6 @@ with col1:
 with col2:
   accounts = st.multiselect("Account", load_account_names(), help="This control allows you to filter on the account name. If nothing is selected in this control all of the accounts will be presented.")
   accounts_string = "true" if not accounts else f"account_name in {to_sql_tuple_string(external_account_names_to_internal_account_names_list_mapping(accounts))}"
-  st.write(accounts_string)
 with col3:
   project_types = st.multiselect("Project Type", ["Email: House", "Email: Rental External", "Email: Rental Internal", "Text Message: P2P", "Text Message: P2P External", "Text Message: P2P Internal", "Text Message: SMS"], help="This control allows you to filter on the project type. If nothing is selected in this control, no filtering will be done.")
   project_types_string = "true" if not project_types else f"project_type in {to_sql_tuple_string(project_types)}"
