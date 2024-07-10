@@ -4,6 +4,8 @@ import streamlit as st
 from databricks_genai_inference import ChatSession, FoundationModelAPIException
 from cicero_shared import consul_show, get_base_url, popup
 
+st.session_state["chatter"] = 'loqui'
+
 def grow_chat(streamlit_key_suffix: str = "", alternate_content: str = "") -> None:
   """Note that this function will do something special to the prompt if alternate_content is supplied.
   Also, the streamlit_key_suffix is only necessary because we use this code in two places.
@@ -56,12 +58,13 @@ def display_chat(streamlit_key_suffix: str = "") -> None:
     for message in st.session_state.messages:
       with st.chat_message(message["role"], avatar=message.get("avatar")):
         st.markdown(message["content"].replace("$", r"\$").replace("[", r"\["))
-  if st.session_state.get("outstanding_activity_log_payload"):
+  if st.session_state.get("outstanding_activity_log_payload") and st.session_state.get("chatter")=='loqui':
     emptyable = st.empty()
     with emptyable.container():
-      c1, c2, c3 = st.columns([.04,.04,.92])
+      c1, c2, c3, c4 = st.columns([.04,.04,.01,.92], gap='small', vertical_alignment="center")
       user_feedback = "good" if c1.button("👍︎", key="👍"+streamlit_key_suffix) else "bad" if c2.button("👎︎", key="👎"+streamlit_key_suffix) else None
-      c3.write("***Did Cicero understand your request? Respond here to continue to talk to Cicero.***")
+      c3.write('')
+      c4.write("***Did Cicero understand your request? Let us know to continue chatting.***")
     if user_feedback:
       emptyable.empty()
       st.container().chat_input(on_submit=grow_chat, key="user_input_for_chatbot_this_frame"+streamlit_key_suffix, args=(streamlit_key_suffix,) ) #Note that because it's a callback, the profiler will not catch grow_chat here. However, it takes about a second. (Update: maybe it's about 4 seconds, now? That's in the happy path, as well.) #Without the container, this UI element floats BELOW the pyinstrument profiler now, which is inconvenient. But also we might want it to float down later, if we start using streaming text...
@@ -70,7 +73,7 @@ def display_chat(streamlit_key_suffix: str = "") -> None:
   else:
     st.container().chat_input(on_submit=grow_chat, key="user_input_for_chatbot_this_frame"+streamlit_key_suffix, args=(streamlit_key_suffix,) ) #Note that because it's a callback, the profiler will not catch grow_chat here. However, it takes about a second. (Update: maybe it's about 4 seconds, now? That's in the happy path, as well.)
 
-st.markdown('This is where you can chat with Cicero directly! You can do things like: rewrite a text, write a text based off a seed phrase/quote, fall in love, and SO MUCH MORE!')
-if st.button("Reset (erase) chat"):
+st.write('''**Chat freeform with Cicero directly ChatGPT-style!**  \nHere are some ideas: rewrite copy, make copy longer, convert a text into an email, or write copy based off a starter phrase/quote.''')
+if st.button("Reset"):
   reset_chat()
 display_chat()
