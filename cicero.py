@@ -96,7 +96,11 @@ with Profiler():
     print("Done writing to log.")
 
   if st.session_state.get("outstanding_activity_log_payload_fulfilled"):
-    print("Writing to 👍/👎 log.")
+    try:
+      print("Writing to 👍/👎 log.")
+    except UnicodeEncodeError:
+      print("Writing to Thumbs Log")
+      pass
     ensure_existence_of_activity_log()
     sql_call_cacheless(
       # Note: we are GAMBLING that the user_pod and timestamp will never be necessary in practice to have in here, because getting them would be inconvenient.

@@ -61,7 +61,7 @@ def display_chat(streamlit_key_suffix: str = "") -> None:
     with emptyable.container():
       c1, c2, c3 = st.columns([.04,.04,.92])
       user_feedback = "good" if c1.button("👍︎", key="👍"+streamlit_key_suffix) else "bad" if c2.button("👎︎", key="👎"+streamlit_key_suffix) else None
-      c3.write("***Did Cicero understand your request?***")
+      c3.write("***Did Cicero understand your request? Respond here if to continue to talk to Cicero.***")
     if user_feedback:
       emptyable.empty()
       st.container().chat_input(on_submit=grow_chat, key="user_input_for_chatbot_this_frame"+streamlit_key_suffix, args=(streamlit_key_suffix,) ) #Note that because it's a callback, the profiler will not catch grow_chat here. However, it takes about a second. (Update: maybe it's about 4 seconds, now? That's in the happy path, as well.) #Without the container, this UI element floats BELOW the pyinstrument profiler now, which is inconvenient. But also we might want it to float down later, if we start using streaming text...
