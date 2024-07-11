@@ -4,15 +4,13 @@ import streamlit as st
 from databricks_genai_inference import ChatSession, FoundationModelAPIException
 from cicero_shared import consul_show, get_base_url, popup
 
-st.session_state["chatter"] = 'loqui'
-
 def grow_chat(streamlit_key_suffix: str = "", alternate_content: str = "") -> None:
   """Note that this function will do something special to the prompt if alternate_content is supplied.
-  Also, the streamlit_key_suffix is only necessary because we use this code in two places.
+  Also, the streamlit_key_suffix is only necessary because we use this code in two places. If streamlit_key_suffix is "", we infer we're in the chat page, and if otherwise we infer we're being used on a different page (so far, the only thing that does this is prompter).
   Random fyi: chat.history is an alias for chat.chat_history (you can mutate chat.chat_history but not chat.history, btw). Internally, it's, like: [{'role': 'system', 'content': 'You are a helpful assistant.'}, {'role': 'user', 'content': 'Knock, knock.'}, {'role': 'assistant', 'content': "Hello! Who's there?"}, {'role': 'user', 'content': 'Guess who!'}, {'role': 'assistant', 'content': "Okay, I'll play along! Is it a person, a place, or a thing?"}]"""
   short_model_name = st.session_state["the_real_dude_model_name"]
   long_model_name = st.session_state["the_real_dude_model"]
-  sys_prompt = st.session_state["the_real_dude_system_prompt"]
+  sys_prompt = st.session_state["the_real_dude_system_prompt"] if streamlit_key_suffix else "You are an expert copywriter who specializes in writing fundraising and engagement texts and emails for conservative political candidates in the United States of America. Make sure all messages are in English. Be direct with your responses, and avoid extraneous messages like 'Hello!' and 'I hope this helps!'. These text messages and emails tend to be more punchy and engaging than normal marketing material. Focus on these five fundraising elements when writing content: the Hook, Urgency, Agency, Stakes, and the Call to Action (CTA). Do not make up facts or statistics. Do not mention that you are a helpful, expert copywriter. Do not use emojis or hashtags in your messages. Make sure each written message is unique. Write the exact number of messages asked for."
   if not st.session_state.get("chat"):
     st.session_state.chat = ChatSession(model=long_model_name, system_message=sys_prompt, max_tokens=4096) # Keep in mind that unless DATABRICKS_HOST and DATABRICKS_TOKEN are in the environment (streamlit does this with secret value by default), then this line of code will fail with an extremely cryptic error asking you to run this program with a `setup` command line argument (which won't do anything)
   if not st.session_state.get("messages"): # We keep our own list of messages, I think because I found it hard to format the chat_history output when I tried once.
@@ -51,14 +49,14 @@ def reset_chat() -> None:
 
 def display_chat(streamlit_key_suffix: str = "") -> None:
   """Display chat messages from history on app reload; this is how we get the messages to display, and then the chat box.
-  The streamlit_key_suffix is only necessary because we use this code in two places. But that does make it necessary, for every widget in this function.
+  The streamlit_key_suffix is only necessary because we use this code in two places. But that does make it necessary, for every widget in this function. If streamlit_key_suffix is "", we infer we're in the chat page, and if otherwise we infer we're being used on a different page (so far, the only thing that does this is prompter).
 
   *A computer can never be held accountable. Therefore a computer must never make a management decision.*[꙳](https://twitter.com/bumblebike/status/832394003492564993)"""
   if st.session_state.get("messages"):
     for message in st.session_state.messages:
       with st.chat_message(message["role"], avatar=message.get("avatar")):
         st.markdown(message["content"].replace("$", r"\$").replace("[", r"\["))
-  if st.session_state.get("outstanding_activity_log_payload") and st.session_state.get("chatter")=='loqui':
+  if st.session_state.get("outstanding_activity_log_payload") and not streamlit_key_suffix:
     emptyable = st.empty()
     with emptyable.container():
       c1, c2, c3, c4 = st.columns([.04,.04,.01,.92], gap='small', vertical_alignment="center")

@@ -53,8 +53,6 @@ def load_headlines(get_all: bool = False, past_days: int = 7) -> list[str]:
   )
   return [result[0] for result in results]
 
-st.session_state["chatter"] = 'silentium'
-
 Short_Model_Name = Literal["DBRX-Instruct", "Llama-3-70b-Instruct", "Mixtral-8x7b-Instruct"] #See https://stackoverflow.com/questions/64522040/dynamically-create-literal-alias-from-list-of-valid-values for an explanation of what we're doing here. #COULD: one day use the `type` keyword here for defining this type. But it's not supported yet.
 short_model_names: tuple[Short_Model_Name, ...] = get_args(Short_Model_Name)
 Long_Model_Name = Literal["databricks-dbrx-instruct", "databricks-meta-llama-3-70b-instruct", "databricks-mixtral-8x7b-instruct"] #IMPORTANT: the cleanest way of implementing this REQUIRES that short_model_names and long_model_names correspond via index. This is an unfortunate burden, but it's better than the other ways I tried...
@@ -496,7 +494,7 @@ with st.expander(r"$\textsf{\Large NEWS HEADLINES}$"): # I tried to remove the L
 
 st.text("") # Just for vertical spacing.
 
-default_sys_prompt: str = "You are a helpful, expert copywriter who specializes in writing fundraising text messages and emails for conservative candidates and causes. Be direct with your responses, and avoid extraneous messages like 'Hello!' and 'I hope this helps!'. These text messages and emails tend to be more punchy and engaging than normal marketing material. Do not mention that you are a helpful, expert copywriter."
+chat_for_prompter_sys_prompt: str = "You are a helpful, expert copywriter who specializes in writing fundraising text messages and emails for conservative candidates and causes. Be direct with your responses, and avoid extraneous messages like 'Hello!' and 'I hope this helps!'. These text messages and emails tend to be more punchy and engaging than normal marketing material. Do not mention that you are a helpful, expert copywriter." # There's only one of these, so the fact that we have a ui widget for picking it is a little weird...
 
 with st.form('query_builder'):
   with st.sidebar:
@@ -507,7 +505,7 @@ with st.form('query_builder'):
       ask_weight: float = st.slider("Ask Weight", min_value=0.0, max_value=10.0, key="ask_weight")
       text_len_weight: float = st.slider("Text Len Weight", min_value=0.0, max_value=10.0, key="text_len_weight")
       st.session_state["the_real_dude_model_name"] = typesafe_selectbox("Model selection for Cicero (the actual, historical man (it's really him))", short_model_names, default="Llama-3-70b-Instruct") #TODO: this is deliberately not in the preset system, because it might get removed later.
-      st.session_state["the_real_dude_system_prompt"] = typesafe_selectbox("Model system prompt for Cicero (the actual, historical man (it's really him))", [default_sys_prompt]) #TODO: this is deliberately not in the preset system, because it might get removed later.
+      st.session_state["the_real_dude_system_prompt"] = typesafe_selectbox("Model system prompt for Cicero (the actual, historical man (it's really him))", [chat_for_prompter_sys_prompt]) #TODO: this is deliberately not in the preset system, because it might get removed later.
       doc_pool_size: int = st.slider("Doc Pool Size", min_value=5, max_value=100, value=30) #TODO: this is deliberately not in the preset system, because it might get removed later.
       num_examples: int = st.slider("Number of Examples", min_value=5, max_value=100, value=10) #TODO: this is deliberately not in the preset system, because it might get removed later.
     else:
@@ -517,7 +515,7 @@ with st.form('query_builder'):
       ask_weight = 2
       text_len_weight = 3
       st.session_state["the_real_dude_model_name"] = "Llama-3-70b-Instruct"
-      st.session_state["the_real_dude_system_prompt"] = default_sys_prompt
+      st.session_state["the_real_dude_system_prompt"] = chat_for_prompter_sys_prompt
       doc_pool_size = 30
       num_examples = 10
   st.session_state["the_real_dude_model"] = short_model_name_to_long_model_name(st.session_state["the_real_dude_model_name"])
