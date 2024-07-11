@@ -519,7 +519,8 @@ with st.form('query_builder'):
       doc_pool_size = 30
       num_examples = 10
   st.session_state["the_real_dude_model"] = short_model_name_to_long_model_name(st.session_state["the_real_dude_model_name"])
-  model_name = typesafe_selectbox("Model (required)", short_model_names, default="Llama-3-70b-Instruct", key="model") if st.session_state.get("developer_mode") else "Llama-3-70b-Instruct"
+
+  model_name = typesafe_selectbox("Model (required)", short_model_names, key="model_name") if st.session_state.get("developer_mode") else "Llama-3-70b-Instruct"
   model = short_model_name_to_long_model_name(model_name)
   account = st.selectbox("Account (required)", account_names, key="account") # No typesafe_selectbox here because we actually do want this to possibly be unselected.
   ask_type = typesafe_selectbox("Ask Type", get_args(Ask_Type), key="ask_type").lower()
@@ -552,7 +553,7 @@ if st.session_state.get("submit_button_disabled"):
     st.warning("***No Model is selected, so I can't send the request! (If you have no ability to select a Model and get this error, please contact the Optimization team.***")
   else:
     did_a_query = True
-    cicero_chat.reset_chat()
+    cicero_chat.reset_chat(streamlit_key_suffix="_prompter")
     st.session_state['use_count']+=1 #this is just an optimization for the front-end display of the query count
     bio = bios.get(account) if ("bio" in topics and account in bios) else None
     max_tokens = 4096
@@ -579,11 +580,11 @@ if 'outputs' in st.session_state:
       st.write( output.replace("$", r"\$") ) #this prevents us from entering math mode when we ask about money.
     with col2:
       if st.button("⚡", key="⚡"+str(key_collision_preventer), help="Edit with Cicero"):
-        cicero_chat.reset_chat()
+        cicero_chat.reset_chat(streamlit_key_suffix="_prompter")
         cicero_chat.grow_chat(streamlit_key_suffix="_prompter", alternate_content=output)
       key_collision_preventer += 1
   st.caption(st.session_state.get('character_counts_caption'))
-  if st.session_state.get('messages'):
+  if st.session_state.get('messages') and st.session_state.get('messages').get("_prompter"):
     cicero_chat.display_chat(streamlit_key_suffix="_prompter")
 st.error('**REMINDER!** Please tag all projects with "**optimization**" in the LABELS field in Salesforce.')
 

@@ -8,6 +8,7 @@ from time import perf_counter_ns
 nanoseconds_base : int = perf_counter_ns()
 import streamlit as st
 import os, psutil, platform
+from cicero_chat import main as cicero_chat
 from cicero_shared import ensure_existence_of_activity_log, exit_error, get_base_url, sql_call_cacheless
 from google.auth.transport import requests
 from google.oauth2 import id_token
@@ -61,7 +62,7 @@ with Profiler():
     pages += [
       st.Page("cicero_topic_reporting.py", title="📈 Topic Reporting"),
       st.Page("cicero_response_lookup.py", title="🔍 Response Lookup"),
-      st.Page("cicero_chat.py", title="💬 Chat with Cicero"),
+      st.Page(cicero_chat, title="💬 Chat with Cicero"),
       st.Page("cicero_new_pod_key.py", title="🆕 New Pod Key"),
       st.Page("cicero_activity_looker.py", title="👁️ Activity Looker")
     ]
