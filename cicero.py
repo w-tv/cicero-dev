@@ -60,18 +60,18 @@ with Profiler():
 
   # Since we use st.navigation explicitly, the default page detection is disabled, even though we may use a pages folder later (although we shouldn't name that folder pages/, purely in order to suppress a warning message about how we shouldn't do that). This is good, because we want to hide some of the pages from non-dev-mode users.
   pages = [ #pages visible to everyone
-    st.Page("cicero_prompter.py", title="🗣️ Prompter"), # There is an icon parameter to st.Page, so we could write eg icon="🗣️", but including the emoji in the title makes it slightly larger and thus nicer-looking.
+    st.Page("cicero_prompter.py", title="🗣️ Prompter", default=True), # There is an icon parameter to st.Page, so we could write eg icon="🗣️", but including the emoji in the title makes it slightly larger and thus nicer-looking.
   ]
   if st.session_state.get('developer_mode'):
     pages += [
-      st.Page("cicero_topic_reporting.py", title="📈 Topic Reporting"),
-      st.Page("cicero_response_lookup.py", title="🔍 Response Lookup"),
-      st.Page("cicero_new_pod_key.py", title="🆕 New Pod Key"),
-      st.Page("cicero_activity_looker.py", title="👁️ Activity Looker")
+      st.Page("cicero_topic_reporting.py", title="📈 Topic Reporting", url_path='Topic_Reporting'),
+      st.Page("cicero_response_lookup.py", title="🔍 Response Lookup", url_path="Response_Lookup"),
+      st.Page("cicero_new_pod_key.py", title="🆕 New Pod Key", url_path="New_Pod_Key"),
+      st.Page("cicero_activity_looker.py", title="👁️ Activity Looker", url_path="Activity_Looker")
     ]
   if st.session_state.get('chat_with_cicero_access'):
     pages += [
-      st.Page(cicero_chat, title="💬 Chat with Cicero")
+      st.Page(cicero_chat, title="💬 Chat with Cicero", url_path="Chat_With_Cicero")
     ]
   st.navigation(pages).run()
   loading_message.empty() # At this point, we no longer need to display a loading message, once we've gotten here and displayed everything above.
