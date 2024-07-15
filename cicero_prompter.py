@@ -161,7 +161,7 @@ def execute_prompting(model: Long_Model_Name, account: str, ask_type: Ask_Type, 
   score_threshold = 0.5 # Document Similarity Score Acceptance Threshold
   consul_show(f"{score_threshold=}, {doc_pool_size=}, {num_examples=}")
   assert_always(num_examples <= doc_pool_size, "You can't ask to provide more examples than there are documents in the pool! Try again with a different value.")
-  ref_tag_name = "models.lovelytics.ref_tags" # Tags Table Name
+  ref_tag_name = "cicero.ref_tables.ref_tags" # Tags Table Name
   primary_key = "PROJECT_NAME" # Index Table Primary Key Name
   topics += additional_topics
   topics_str = ", ".join(topics)
@@ -234,7 +234,7 @@ def execute_prompting(model: Long_Model_Name, account: str, ask_type: Ask_Type, 
   reference_texts : list[ReferenceTextElement] = [] # reference_texts will be a list of dictionaries containing example user prompts and assistant responses (i.e. the text messages). Also, scores (a number, represented numerically).
   # Setup Vector Search Client that we will use in the loop.
   vsc = VectorSearchClient( personal_access_token=st.secrets["DATABRICKS_TOKEN"], workspace_url=st.secrets['DATABRICKS_HOST'], disable_notice=True )
-  text_index = vsc.get_index(endpoint_name="rag_llm_vector", index_name="models.lovelytics.gold_text_outputs_index")
+  text_index = vsc.get_index(endpoint_name="rag_llm_vector", index_name="cicero.text_data.gold_text_outputs_index")
   # Get a list of all existing tagged topics #COULD: cache. but probably will refactor instead
   topic_tags = set(x["Tag_Name"] for x in sql_call(f"SELECT Tag_Name FROM {ref_tag_name} WHERE Tag_Type = 'Topic'") )
   for c in combos:
@@ -272,7 +272,7 @@ def execute_prompting(model: Long_Model_Name, account: str, ask_type: Ask_Type, 
       c["text_regex"] = text_regex
     #c["results_found"]= list(results_found)
     combo_results = sql_call_cacheless(
-      "SELECT project_name, final_text from models.lovelytics.gold_text_outputs where TRUE"+
+      "SELECT project_name, final_text from cicero.text_data.gold_text_outputs where TRUE"+
         # Only apply filters if they are present in the current filter combination...
         ("topic_regex" in c) * " AND topics rlike :topic_regex" +
         ("tone_regex" in c) * " AND tones rlike :tone_regex" +
