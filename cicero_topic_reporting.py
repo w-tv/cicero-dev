@@ -54,6 +54,7 @@ internal_account_name_to_external_account_name = { #many-to-one relationship #TO
   'American Fortitude PAC' : 'American Fortitude PAC - TMA',
   'American Leadership Action: 824 Solutions' : 'American Leadership Action - TMA',
   'American Principles Project - Olympic Media (TMA)' : 'American Principles Project - TMA',
+  'American Voice LLC' : 'American Voice',
   'DMS: American Voice' : 'American Voice',
   'Americans for Prosperity - Action' : 'AFP Action',
   'Anderson, Derrick (VA-07)' : 'Derrick Anderson',
