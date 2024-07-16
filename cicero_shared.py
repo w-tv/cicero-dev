@@ -66,6 +66,7 @@ def sql_call_cacheless(query: str, sql_params_dict:dict[str, Any]|None=None) -> 
   except Exception as e:
     die_with_database_error_popup(e.args)
 
+# TODO: refactor to cicero.ref_tables.ref_account_rollup
 @st.cache_data(show_spinner=False)
 def load_account_names() -> list[str]:
   return [row[0] for row in sql_call("SELECT * FROM cicero.default.client_list ORDER BY account_name ASC")]
