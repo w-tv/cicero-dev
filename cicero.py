@@ -67,7 +67,8 @@ with Profiler():
       st.Page("cicero_topic_reporting.py", title="📈 Topic Reporting", url_path='Topic_Reporting'),
       st.Page("cicero_response_lookup.py", title="🔍 Response Lookup", url_path="Response_Lookup"),
       st.Page("cicero_new_pod_key.py", title="🆕 New Pod Key", url_path="New_Pod_Key"),
-      st.Page("cicero_activity_looker.py", title="👁️ Activity Looker", url_path="Activity_Looker")
+      st.Page("cicero_activity_looker.py", title="👁️ Activity Looker", url_path="Activity_Looker"),
+      st.Page("cicero_chat_corporate.py", title="💼 Chat with Cicero ", url_path="Chat_With_Cicero_Corporate")
     ]
   if st.session_state.get('chat_with_cicero_access'):
     pages += [
