@@ -360,7 +360,7 @@ def execute_prompting(model: Long_Model_Name, account: str, ask_type: Ask_Type, 
   rag_prompt = "<|begin_of_text|><|start_header_id|>system<|end_header_id|>\n\n{system_prompt}<|eot_id|>"
 
   combined_dict: dict[str, str|float] = {}  # combined_dict stores all of the string format variables used in the prompt and their values
-  prompter_system_prompt = """You are an expert copywriter who specializes in writing text messages for conservative political candidates in the United States of America. Make sure all texts are in English. Try to grab the reader's attention in the first line. Do not start your message like an email. Make sure to have an explicit call to action. Do not make up facts or statistics. Do not use emojis or hashtags in your messages. Do not copy previously written text messages in content or structure. Make sure each written text message is unique. Write the exact number of text messages asked for."""
+  prompter_system_prompt = """You are an expert copywriter who specializes in writing text messages for conservative political candidates in the United States of America. Make sure all texts are in English. Try to grab the reader's attention in the first line. Do not start your message like an email. Make sure to have an explicit call to action. Do not make up facts or statistics. Do not use emojis or hashtags in your messages. Do not copy previously written text messages in content or structure. Make sure each written text message is unique. Write the exact number of text messages asked for. Do your best to use all the topics and tones in each text message."""
   combined_dict["system_prompt"] = prompter_system_prompt
 
   # Then for every example document, we add the corresponding assistant and user lines
