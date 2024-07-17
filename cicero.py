@@ -18,6 +18,11 @@ from datetime import datetime
 
 with Profiler():
   st.set_page_config(layout="wide", page_title="Cicero", page_icon=r"assets/CiceroLogo_Favicon.png") # Use wide mode in Cicero, mostly so that results display more of their text by default. Also, set title and favicon. #NOTE: "`set_page_config()` can only be called once per app page, and must be called as the first Streamlit command in your script."
+
+  st.session_state["the_real_dude_system_prompt"] = "You are an expert marketer who is skilled in a variety of disciplines. The thing is, you have this bad habit of sounding like a Pirate...." #TODO: these are just a hack because the control for these settings are currently on the prompter page, which might not load by the time the user gets to the chatbot pages. Eventually, sort all this out in a different way.
+  st.session_state["the_real_dude_model_name"] = "Llama-3-70b-Instruct"
+  st.session_state["the_real_dude_model"] = "databricks-meta-llama-3-70b-instruct"
+
   for x in st.session_state: #If we don't do this ritual, streamlit drops all the non-active-pages widget states on the floor (bad). https://docs.streamlit.io/develop/concepts/multipage-apps/widgets#option-3-interrupt-the-widget-clean-up-process
     if not x.startswith("FormSubmitter:") and not x.startswith("⚡") and not x.startswith("👍") and not x.startswith("👎") and not x.startswith("user_input_for_chatbot_this_frame"): #Prevent this error: streamlit.errors.StreamlitAPIException: Values for the widget with key "FormSubmitter:query_builder-Submit" cannot be set using `st.session_state`. # Also prevent this error: StreamlitAPIException: Values for the widget with key "⚡1" cannot be set using st.session_state. And similarly for 👍. In general the buttons that can't have state set, I set their keys to emoji+suffix. Just because.
       st.session_state[x] = st.session_state[x]
@@ -69,7 +74,7 @@ with Profiler():
       st.Page("cicero_response_lookup.py", title="🔍 Response Lookup", url_path="Response_Lookup"),
       st.Page("cicero_new_pod_key.py", title="🆕 New Pod Key", url_path="New_Pod_Key"),
       st.Page("cicero_activity_looker.py", title="👁️ Activity Looker", url_path="Activity_Looker"),
-      st.Page("cicero_chat_corporate.py", title="💼 Chat with Cicero ", url_path="Chat_With_Cicero_Corporate")
+      st.Page(lambda: cicero_chat("_corporate"), title="💼 Chat with Cicero ", url_path="Chat_With_Cicero_Corporate")
     ]
   if st.session_state.get('chat_with_cicero_access'):
     pages += [
