@@ -446,7 +446,7 @@ def execute_prompting(model: Long_Model_Name, account: str, ask_type: Ask_Type, 
     """Detect if a string is likely the random natter often produced by LLMs, based on how it starts."""
     msg_pattern = r"\*?\*?Message \d\.?\*?\*?$"
     return x.startswith("Here ") or x.startswith("Here's ") or x.startswith("Sure") or x.startswith("OK") or bool(re.match(msg_pattern, x))
-  outputs = [ x for o in single_output.split('\n') for x in [dequote(behead(dequote(o))).strip()] if x and x.isascii() and not is_natter(x) ]
+  outputs = [ x for o in single_output.split('\n') for x in [dequote(behead(dequote(o))).strip()] if x and x.isascii() and not is_natter(x) and len(x) > 40 ]
   print("Done with prompting.")
   if num_outputs != len(outputs):
     print(f"!!! CICERO has detected that the number of outputs may be wrong. Desired {num_outputs=}. Observed {len(outputs)=}. Problematic output: {single_output=}. Parsed into {outputs=}")
