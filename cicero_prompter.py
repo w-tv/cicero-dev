@@ -495,8 +495,6 @@ with st.expander(r"$\textsf{\Large NEWS HEADLINES}$"): # I tried to remove the L
 
 st.text("") # Just for vertical spacing.
 
-chat_for_prompter_sys_prompt: str = "You are a helpful, expert copywriter who specializes in writing fundraising text messages and emails for conservative candidates and causes. Be direct with your responses, and avoid extraneous messages like 'Hello!' and 'I hope this helps!'. These text messages and emails tend to be more punchy and engaging than normal marketing material. Do not mention that you are a helpful, expert copywriter." # There's only one of these, so the fact that we have a ui widget for picking it is a little weird...
-
 with st.form('query_builder'):
   with st.sidebar:
     if st.session_state.get("developer_mode"):
@@ -505,8 +503,6 @@ with st.form('query_builder'):
       client_weight: float = st.slider("Client Weight", min_value=0.0, max_value=10.0, key="client_weight")
       ask_weight: float = st.slider("Ask Weight", min_value=0.0, max_value=10.0, key="ask_weight")
       text_len_weight: float = st.slider("Text Len Weight", min_value=0.0, max_value=10.0, key="text_len_weight")
-      st.session_state["the_real_dude_model_name"] = typesafe_selectbox("Model selection for Cicero (the actual, historical man (it's really him))", short_model_names, default="Llama-3-70b-Instruct") #TODO: this is deliberately not in the preset system, because it might get removed later.
-      st.session_state["the_real_dude_system_prompt"] = typesafe_selectbox("Model system prompt for Cicero (the actual, historical man (it's really him))", [chat_for_prompter_sys_prompt]) #TODO: this is deliberately not in the preset system, because it might get removed later.
       doc_pool_size: int = st.slider("Doc Pool Size", min_value=5, max_value=100, value=30) #TODO: this is deliberately not in the preset system, because it might get removed later.
       num_examples: int = st.slider("Number of Examples", min_value=5, max_value=100, value=10) #TODO: this is deliberately not in the preset system, because it might get removed later.
     else:
@@ -515,11 +511,8 @@ with st.form('query_builder'):
       client_weight = 6
       ask_weight = 2
       text_len_weight = 3
-      st.session_state["the_real_dude_model_name"] = "Llama-3-70b-Instruct"
-      st.session_state["the_real_dude_system_prompt"] = chat_for_prompter_sys_prompt
       doc_pool_size = 30
       num_examples = 10
-  st.session_state["the_real_dude_model"] = short_model_name_to_long_model_name(st.session_state["the_real_dude_model_name"])
 
   model_name = typesafe_selectbox("Model (required)", short_model_names, key="model_name") if st.session_state.get("developer_mode") else "Llama-3-70b-Instruct"
   model = short_model_name_to_long_model_name(model_name)

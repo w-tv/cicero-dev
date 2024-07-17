@@ -1,5 +1,7 @@
 #!/usr/bin/env -S streamlit run
 
+"""Cicero (the actual, historical man (it's really him))."""
+
 import streamlit as st
 from databricks_genai_inference import ChatSession, FoundationModelAPIException
 from cicero_shared import consul_show, get_base_url, popup
@@ -8,9 +10,14 @@ def grow_chat(streamlit_key_suffix: str = "", alternate_content: str = "") -> No
   """Note that this function will do something special to the prompt if alternate_content is supplied.
   Also, the streamlit_key_suffix is only necessary because we use this code in two places. If streamlit_key_suffix is "", we infer we're in the chat page, and if otherwise we infer we're being used on a different page (so far, the only thing that does this is prompter).
   Random fyi: chat.history is an alias for chat.chat_history (you can mutate chat.chat_history but not chat.history, btw). Internally, it's, like: [{'role': 'system', 'content': 'You are a helpful assistant.'}, {'role': 'user', 'content': 'Knock, knock.'}, {'role': 'assistant', 'content': "Hello! Who's there?"}, {'role': 'user', 'content': 'Guess who!'}, {'role': 'assistant', 'content': "Okay, I'll play along! Is it a person, a place, or a thing?"}]"""
-  short_model_name = st.session_state["the_real_dude_model_name"]
-  long_model_name = st.session_state["the_real_dude_model"]
-  sys_prompt = st.session_state["the_real_dude_system_prompt"] if streamlit_key_suffix else "You are an expert copywriter who specializes in writing fundraising and engagement texts and emails for conservative political candidates in the United States of America. Make sure all messages are in English. Be direct with your responses, and avoid extraneous messages like 'Hello!' and 'I hope this helps!'. These text messages and emails tend to be more punchy and engaging than normal marketing material. Focus on these five fundraising elements when writing content: the Hook, Urgency, Agency, Stakes, and the Call to Action (CTA). Do not make up facts or statistics. Do not mention that you are a helpful, expert copywriter. Do not use emojis or hashtags in your messages. Make sure each written message is unique. Write the exact number of messages asked for."
+  short_model_name = "Llama-3-70b-Instruct"
+  long_model_name = "databricks-meta-llama-3-70b-instruct"
+  if streamlit_key_suffix=="_prompter":
+    sys_prompt = "You are a helpful, expert copywriter who specializes in writing fundraising text messages and emails for conservative candidates and causes. Be direct with your responses, and avoid extraneous messages like 'Hello!' and 'I hope this helps!'. These text messages and emails tend to be more punchy and engaging than normal marketing material. Do not mention that you are a helpful, expert copywriter."
+  elif streamlit_key_suffix=="_corporate":
+    sys_prompt = "You are an expert marketer who is skilled in a variety of disciplines. The thing is, you have this bad habit of sounding like a Pirate...." #TODO: pretty sure this should actually be something else.
+  else:
+    sys_prompt = "You are an expert copywriter who specializes in writing fundraising and engagement texts and emails for conservative political candidates in the United States of America. Make sure all messages are in English. Be direct with your responses, and avoid extraneous messages like 'Hello!' and 'I hope this helps!'. These text messages and emails tend to be more punchy and engaging than normal marketing material. Focus on these five fundraising elements when writing content: the Hook, Urgency, Agency, Stakes, and the Call to Action (CTA). Do not make up facts or statistics. Do not mention that you are a helpful, expert copywriter. Do not use emojis or hashtags in your messages. Make sure each written message is unique. Write the exact number of messages asked for."
   if not st.session_state.get("chat"):
     st.session_state.chat = {}
   if not st.session_state.get("chat").get(streamlit_key_suffix):
