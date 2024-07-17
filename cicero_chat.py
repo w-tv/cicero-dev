@@ -41,11 +41,14 @@ def grow_chat(streamlit_key_suffix: str = "", alternate_content: str = "") -> No
       if e.message.startswith('{"error_code":"BAD_REQUEST","message":"Bad request: prompt token count'): # Find out if it's exactly the right error we know how to handle.
         if len(chat.chat_history) <= 2: # This means there is only the system prompt and the current user prompt left, which means the user prompt is simply too long.
           popup("Prompt too long.", "User prompt to chatbot too long, sorry. Try using a shorter one.")
-          chat.chat_history = old_chat #remove failed prompt, and also restore all of the message we probably popped off while trying to cull history.
+          chat.chat_history = old_chat #remove failed prompt, and also restore all of the messages we probably popped off while trying to cull history.
           break
         else:
           consul_show(f"Truncating chat history from {len(chat.chat_history)} messages...")
           chat.chat_history = [chat.chat_history[0]]+chat.chat_history[3:-1]#remove one message-response pair from the start of history, preserving the system message at the beginning. Also remove the failed prompting we've just appended at the end with our other actions. This clause will repeat until the total prompt (the entire history) is small enough that the prompting goes through.
+      elif e.message.startswith('{"error_code":"REQUEST_LIMIT_EXCEEDED","message":"REQUEST_LIMIT_EXCEEDED: Exceeded workspace rate limit for'): # Also we want to handle this one, actually.
+        print("!!! chat rate limit hit; retrying...", e)
+        chat.chat_history = old_chat #remove failed prompt. But, there is no break statement after this because we just want to try again. The rate-limit is 2 per second so there's a good chance this works.
       else: # I guess it's some other error, so crash 🤷
         raise e
 
