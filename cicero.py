@@ -63,6 +63,10 @@ with Profiler():
   pages = [ #pages visible to everyone
     st.Page("cicero_prompter.py", title="🗣️ Prompter", default=True), # There is an icon parameter to st.Page, so we could write eg icon="🗣️", but including the emoji in the title makes it slightly larger and thus nicer-looking.
   ]
+  if st.session_state.get('chat_with_cicero_access'):
+    pages += [
+      st.Page(cicero_chat, title="💬 Chat with Cicero", url_path="Chat_With_Cicero")
+    ]
   if st.session_state.get('developer_mode'):
     pages += [
       st.Page("cicero_topic_reporting.py", title="📈 Topic Reporting", url_path='Topic_Reporting'),
@@ -72,10 +76,6 @@ with Profiler():
       st.Page("cicero_activity_looker.py", title="👁️ Activity Looker", url_path="Activity_Looker"),
       st.Page("cicero_meddler.py", title="✍️ Meddler", url_path="Meddler"),
       st.Page(lambda: cicero_chat("_corporate"), title="💼 Chat with Cicero (🕴️)", url_path="Chat_With_Cicero_Corporate")
-    ]
-  if st.session_state.get('chat_with_cicero_access'):
-    pages += [
-      st.Page(cicero_chat, title="💬 Chat with Cicero", url_path="Chat_With_Cicero")
     ]
   st.navigation(pages).run()
   loading_message.empty() # At this point, we no longer need to display a loading message, once we've gotten here and displayed everything above.
