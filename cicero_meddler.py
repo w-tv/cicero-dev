@@ -6,9 +6,9 @@ from cicero_topic_reporting import internal_account_name_to_external_account_nam
 
 
 st.button("Refresh the page", help="Clicking this button will do nothing, but it will refresh the page, which is sometimes useful if this page loaded before the activity log was written to, and you want to see the new data in the activity log.")
-st.write("""TODO: page that will let us:
+st.write("""TODO: Figure out how to write the record hashes... then, sections that will let us:
   * add rollup name(s)
-  * add a bio (corresponding to a rollup name)
+  * add a bio (corresponding to a rollup name) (internal or external?)
   * add/remove client from the account list dropdown — and maybe some other stuff if you can think of anything"""
 )
 with st.expander("Account names"):
@@ -24,6 +24,6 @@ with st.expander("Account names"):
 with st.expander("Rollup"):
   c = st.columns(2)
   with c[0]:
-    st.write(internal_account_name_to_external_account_name)
+    st.write(r"¯\_(ツ)_/¯")
   with c[1]:
-    st.write({k: v for k, v in sql_call_cacheless("SELECT Account_Name, Rollup_Name FROM cicero.ref_tables.ref_account_rollup SORT BY Account_Name ASC -- WHERE Visible_Frontend")}) #Last part doesn't work yet, so it's commented out.
+    st.write("¯\\\_(ツ)\_/¯")
