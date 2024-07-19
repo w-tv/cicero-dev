@@ -1,9 +1,7 @@
 #!/usr/bin/env -S streamlit run
 """ This shows you the top of the activity log, to make sure things are going through."""
 import streamlit as st
-from cicero_shared import sql_call_cacheless
-from cicero_topic_reporting import internal_account_name_to_external_account_name
-
+from cicero_shared import sql_call_cacheless, topics_big
 
 st.button("Refresh the page", help="Clicking this button will do nothing, but it will refresh the page, which is sometimes useful if this page loaded before the activity log was written to, and you want to see the new data in the activity log.")
 st.write("""TODO: Figure out how to write the record hashes... then, sections that will let us:
@@ -26,4 +24,15 @@ with st.expander("Rollup"):
   with c[0]:
     st.write(r"¯\_(ツ)_/¯")
   with c[1]:
-    st.write("¯\\\_(ツ)\_/¯")
+    st.write(r"¯\\\_(ツ)\_/¯")
+
+with st.expander("Topics"):
+  c = st.columns(2)
+  with c[0]:
+    st.write(topics_big)
+  with c[1]:
+    st.write(
+      {"All":{ "color":"#61A5A2", "internal name":"all", "show in prompter?": False}} # We need to add this in bespoke.
+      | # dict addition operator
+      {external.title():{"color":color.upper(), "internal name":internal.removesuffix("_hook"), "show in prompter?": True} for external, internal, color in sql_call_cacheless('select tag_name, tag_column_name, color from cicero.ref_tables.ref_tags WHERE tag_type == "Topic" ORDER BY tag_name ASC')} #TODO: Visible_Frontend and Enabled will presumably be useful some day, when we get around to making them not all false.
+    )
