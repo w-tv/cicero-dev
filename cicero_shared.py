@@ -145,6 +145,8 @@ topics_big: dict[str, Topics_Big_Payload] = {
   'Iran': {'color': '#A547F6', 'internal name': 'iran', 'show in prompter?': True},
   'Israel': {'color': '#C839F0', 'internal name': 'israel', 'show in prompter?': True},
   'Joe Biden': {'color': '#FB9A86', 'internal name': 'biden', 'show in prompter?': True},
+  'Kamala Harris': {'color': '#FB9A87', 'internal name': 'kamala', 'show in prompter?': True},
+  'Kimberly Cheatle': {'color': '#FB9A88', 'internal name': 'kimberly_cheatle', 'show in prompter?': True},
   'Matching': {'color': '#916990', 'internal name': 'matching', 'show in prompter?': True},
   'Media Conservative': {'color': '#DBC921', 'internal name': 'con_media', 'show in prompter?': True},
   'Media Mainstream': {'color': '#8D648A', 'internal name': 'main_media', 'show in prompter?': True},
