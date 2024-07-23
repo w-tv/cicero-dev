@@ -119,4 +119,4 @@ with Profiler():
     st.session_state["outstanding_activity_log_payload_fulfilled"] = None
     print("Done writing to log.")
 
-  print("End of a run.", str(datetime.now()).split('.')[0])
+  print("End of a run.", str(datetime.now(tz=datetime.now().astimezone().tzinfo)) )
