@@ -160,7 +160,7 @@ def sample_dissimilar_texts(population: list[ReferenceTextElement], k: int, max_
     not_selected = scored_unselected
   return random.sample(final_arr, k=len(final_arr))
 
-def execute_prompting(model: Long_Model_Name, account: str, ask_type: Ask_Type, topics: list[str], additional_topics: list[str], tones: list[Tone], text_len: Selectable_Length, headline: str|None, num_outputs: Num_Outputs, model_temperature: float = 0.8, bio: str|None = None, max_tokens: int = 4096, topic_weight: float = 4, tone_weight: float = 1, client_weight: float = 6, ask_weight: float = 2, text_len_weight: float = 3, doc_pool_size: int = 30, num_examples: int = 10) -> tuple[str, list[str], str, str]:
+def execute_prompting(model: Long_Model_Name, account: str, ask_type: Ask_Type, topics: list[str], additional_topics: list[str], tones: list[Tone], text_len: Selectable_Length, headline: str|None, num_outputs: Num_Outputs, model_temperature: float = 0.8, bio: str|None = None, max_tokens: int = 4096, topic_weight: float = 4, tone_weight: float = 1, client_weight: float = 6, ask_weight: float = 2, text_len_weight: float = 3, doc_pool_size: int = 30, num_examples: int = 10) -> tuple[str, list[str], str, str, str]:
   score_threshold = 0.5 # Document Similarity Score Acceptance Threshold
   consul_show(f"{score_threshold=}, {doc_pool_size=}, {num_examples=}")
   assert_always(num_examples <= doc_pool_size, "You can't ask to provide more examples than there are documents in the pool! Try again with a different value.")
@@ -240,6 +240,7 @@ def execute_prompting(model: Long_Model_Name, account: str, ask_type: Ask_Type, 
   text_index = vsc.get_index(endpoint_name="rag_llm_vector", index_name="cicero.text_data.gold_text_outputs_index")
   # Get a list of all existing tagged topics #COULD: cache. but probably will refactor instead
   topic_tags = set(x["Tag_Name"] for x in sql_call(f"SELECT Tag_Name FROM {ref_tag_name} WHERE Tag_Type = 'Topic'") )
+  used_similarity_search_backup = "no"
   for c in combos:
     if "topics" not in c: #TODO: Perhaps one could replace all this regex with several sql CONTAINS statements some day?
       topic_regex = ""
@@ -314,6 +315,7 @@ def execute_prompting(model: Long_Model_Name, account: str, ask_type: Ask_Type, 
       # Then add all results sorted by score descending to the reference_texts list
       reference_texts.extend(search_results)
     except:
+      used_similarity_search_backup = "faiss"
       if st.session_state.get("developer_mode"):
         st.write("developer mode message: error was encountered in the main similarity search library (or perhaps you induced a fake error there for testing purposes) so we are using the backup option")
         print("developer mode message: error was encountered in the main similarity search library (or perhaps you induced a fake error there for testing purposes) so we are using the backup option")
@@ -455,7 +457,7 @@ def execute_prompting(model: Long_Model_Name, account: str, ask_type: Ask_Type, 
   print("Done with prompting.")
   if num_outputs != len(outputs):
     print(f"!!! CICERO has detected that the number of outputs may be wrong. Desired {num_outputs=}. Observed {len(outputs)=}. Problematic output: {single_output=}. Parsed into {outputs=}")
-  return question, outputs, entire_prompt, prompter_system_prompt
+  return question, outputs, entire_prompt, prompter_system_prompt, used_similarity_search_backup
 
 
 st.session_state['human-facing_prompt'] = '' #to clear the prompt between prompts. could definitely be placed in a better spot.
@@ -557,7 +559,7 @@ if st.session_state.get("submit_button_disabled"):
     st.session_state['use_count']+=1 #this is just an optimization for the front-end display of the query count
     bio = bios.get(account) if ("bio" in topics and account in bios) else None
     max_tokens = 4096
-    prompt_sent, st.session_state['outputs'], st.session_state['entire_prompt'], prompter_system_prompt = execute_prompting(model, account, ask_type, topics, additional_topics, tones, length_select, headline, num_outputs, temperature, bio, max_tokens, topic_weight, tone_weight, client_weight, ask_weight, text_len_weight, doc_pool_size, num_examples)
+    prompt_sent, st.session_state['outputs'], st.session_state['entire_prompt'], prompter_system_prompt, used_similarity_search_backup = execute_prompting(model, account, ask_type, topics, additional_topics, tones, length_select, headline, num_outputs, temperature, bio, max_tokens, topic_weight, tone_weight, client_weight, ask_weight, text_len_weight, doc_pool_size, num_examples)
     if len(st.session_state['outputs']) != num_outputs:
       st.info("CICERO has detected that the number of outputs may be wrong.")
     if 'history' not in st.session_state:
@@ -602,7 +604,7 @@ buttonhole.form_submit_button("Submit ", type="primary", on_click=disable_submit
 # Activity logging takes a bit, so I've put it last to preserve immediate-feeling performance and responses for the user making a query.
 if did_a_query:
   # prompt_sent is only illustrative. But maybe that's enough. Maybe we should be using a different prompt?
-  st.session_state["activity_log_payload"] = {"user_email": st.session_state['email'], "prompter_or_chatbot": "prompter", "prompt_sent": prompt_sent, "response_given": json.dumps(st.session_state['outputs']), "model_name": model_name, "model_url": model, "model_parameters": str({"max_tokens": max_tokens, "temperature": temperature}), "system_prompt": prompter_system_prompt, "base_url": get_base_url()}
+  st.session_state["activity_log_payload"] = {"user_email": st.session_state['email'], "prompter_or_chatbot": "prompter", "prompt_sent": prompt_sent, "response_given": json.dumps(st.session_state['outputs']), "model_name": model_name, "model_url": model, "model_parameters": str({"max_tokens": max_tokens, "temperature": temperature}), "system_prompt": prompter_system_prompt, "base_url": get_base_url(), "used_similarity_search_backup": used_similarity_search_backup}
 
 
 # import streamlit.components.v1 as components; components.html('<!--<script>//you can include arbitrary html and javascript this way</script>-->') #or, use st.markdown, if you want arbitrary html but javascript isn't needed.

@@ -73,7 +73,7 @@ with Profiler():
       # st.Page("cicero_topic_reporting_refactor.py", title="📈 Topic Reporting (Under Construction)", url_path='Topic_Reporting_Refactor'),
       # st.Page("cicero_response_lookup.py", title="🔍 Response Lookup", url_path="Response_Lookup"),
       st.Page("cicero_new_pod_key.py", title="🆕 New Pod Key", url_path="New_Pod_Key"),
-      # st.Page("cicero_activity_looker.py", title="👁️ Activity Looker", url_path="Activity_Looker"),
+      st.Page("cicero_activity_looker.py", title="👁️ Activity Looker", url_path="Activity_Looker"),
       st.Page("cicero_meddler.py", title="✍️ Meddler", url_path="Meddler"),
       st.Page(lambda: cicero_chat("_corporate"), title="💼 Chat with Cicero (🕴️)", url_path="Chat_With_Cicero_Corporate")
     ]
@@ -101,8 +101,8 @@ with Profiler():
       # The WTIH clause here basically just does a left join; I just happened to write it in this way.
       # Note that this will implicitly null the user_feedback. Which simplifies the deployment of that as a new feature, at least...!
       "WITH tmp(user_pod) AS (SELECT user_pod FROM cicero.default.user_pods WHERE user_email ilike :user_email) INSERT INTO cicero.default.activity_log\
-      (timestamp,           user_email, user_pod,  prompter_or_chatbot,  prompt_sent,  response_given,  model_name,  model_url,  model_parameters,  system_prompt,  base_url) SELECT\
-      current_timestamp(), :user_email, user_pod, :prompter_or_chatbot, :prompt_sent, :response_given, :model_name, :model_url, :model_parameters, :system_prompt, :base_url FROM tmp",
+      (timestamp,           user_email, user_pod,  prompter_or_chatbot,  prompt_sent,  response_given,  model_name,  model_url,  model_parameters,  system_prompt,  base_url, used_similarity_search_backup) SELECT\
+      current_timestamp(), :user_email, user_pod, :prompter_or_chatbot, :prompt_sent, :response_given, :model_name, :model_url, :model_parameters, :system_prompt, :base_url, :used_similarity_search_backup FROM tmp",
       st.session_state["activity_log_payload"]
     )
     st.session_state["activity_log_payload"] = None
