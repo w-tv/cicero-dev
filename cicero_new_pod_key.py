@@ -14,8 +14,8 @@ from pandas import read_excel
 def do_one(email: str, pod: str) -> None:
   keyword_arguments = locals() # This is a dict of the arguments passed to the function. It must be called at the top of the function, because if it is called later then it will list any other local variables as well.
   # Note that the databricks sql connector apparently doesn't support putting these two into the same call with a semicolon between them.
-  sql_call("DELETE FROM cicero.default.user_pods WHERE user_email ilike :email", keyword_arguments)
-  sql_call("INSERT INTO cicero.default.user_pods (user_email, user_pod) VALUES (:email, :pod)", keyword_arguments)
+  sql_call("DELETE FROM cicero.ref_tables.user_pods WHERE user_email ilike :email", keyword_arguments)
+  sql_call("INSERT INTO cicero.ref_tables.user_pods (user_email, user_pod) VALUES (:email, :pod)", keyword_arguments)
 
 st.warning("This page is an internal developer tool for Cicero. Also the controls aren't very self-explanatory.\n\nYou may also enjoy the song “Brand New Key” by Melanie Safka (RIP) https://www.youtube.com/watch?v=-mXlW9LytYo, although this will not help you use the tool in any way.")
 st.write("## Meddle")
@@ -61,8 +61,8 @@ if st.button("update the activity log retroactively to match the file contents")
 
 st.write("## Pod table")
 st.info("This is the database table of user pods that Cicero currently uses. Remember: this section is completely collapsable in the user interface, if its huge size is visually distracting.")
-sql_call("CREATE TABLE IF NOT EXISTS cicero.default.user_pods (user_email string, user_pod string)")
-pod_table_results = sql_call("SELECT * FROM cicero.default.user_pods")
+sql_call("CREATE TABLE IF NOT EXISTS cicero.ref_tables.user_pods (user_email string, user_pod string)")
+pod_table_results = sql_call("SELECT * FROM cicero.ref_tables.user_pods")
 st.write(pod_table_results)
 
 st.write("## Activity log (main, not chatbot)")

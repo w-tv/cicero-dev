@@ -53,11 +53,14 @@ with Profiler():
 
   st.session_state['developer_mode'] = st.session_state['email'] in ["achang@targetedvictory.com", "abrady@targetedvictory.com", "thall@targetedvictory.com", "wcarpenter@targetedvictory.com", "cmahon@targetedvictory.com", "rtauscher@targetedvictory.com", "cmajor@targetedvictory.com", "test@example.com"] and not st.session_state.get("developer_mode_disabled")
   st.session_state['chat_with_cicero_access'] = st.session_state['email'] in ["achang@targetedvictory.com", "abrady@targetedvictory.com", "thall@targetedvictory.com", "wcarpenter@targetedvictory.com", "test@example.com", "sgoh@targetedvictory.com", "cmahon@targetedvictory.com", "akrishnan@targetedvictory.com", "aisaac@targetedvictory.com", "czelazny@targetedvictory.com", "akhamma@targetedvictory.com", "bgulick@targetedvictory.com", "cabrams@targetedvictory.com", "tveach@targetedvictory.com", "srowan@targetedvictory.com", "kbonini@targetedvictory.com", "sspooner@targetedvictory.com", "kdamato@targetedvictory.com", "zspringer@targetedvictory.com", "tdacey@targetedvictory.com"] and not st.session_state.get("CwC_access_disabled")
-  
+  st.session_state['chat_with_corpo_access'] = st.session_state['email'] in ["achang@targetedvictory.com", "abrady@targetedvictory.com", "thall@targetedvictory.com", "wcarpenter@targetedvictory.com", "test@example.com"] and not st.session_state.get("CwCorpo_access_disabled")
+
   def disable_developer_mode() -> None:
     st.session_state["developer_mode_disabled"] = True
   def disable_CwC() -> None:
     st.session_state["CwC_access_disabled"] = True
+  def disable_CwCorpo() -> None:
+    st.session_state["CwCorpo_access_disabled"] = True
 
   # Since we use st.navigation explicitly, the default page detection is disabled, even though we may use a pages folder later (although we shouldn't name that folder pages/, purely in order to suppress a warning message about how we shouldn't do that). This is good, because we want to hide some of the pages from non-dev-mode users.
   pages = [ #pages visible to everyone
@@ -67,6 +70,10 @@ with Profiler():
     pages += [
       st.Page(cicero_chat, title="💬 Chat with Cicero", url_path="Chat_With_Cicero")
     ]
+  if st.session_state.get('chat_with_corpo_access'):
+    pages += [
+      st.Page(lambda: cicero_chat("_corporate"), title="💼 Chat with Cicero", url_path="Chat_With_Cicero_Corporate")
+    ]
   if st.session_state.get('developer_mode'):
     pages += [
       st.Page("cicero_topic_reporting.py", title="📈 Topic Reporting", url_path='Topic_Reporting'),
@@ -74,8 +81,7 @@ with Profiler():
       # st.Page("cicero_response_lookup.py", title="🔍 Response Lookup", url_path="Response_Lookup"),
       st.Page("cicero_new_pod_key.py", title="🆕 New Pod Key", url_path="New_Pod_Key"),
       st.Page("cicero_activity_looker.py", title="👁️ Activity Looker", url_path="Activity_Looker"),
-      st.Page("cicero_meddler.py", title="✍️ Meddler", url_path="Meddler"),
-      st.Page(lambda: cicero_chat("_corporate"), title="💼 Chat with Cicero (🕴️)", url_path="Chat_With_Cicero_Corporate")
+      st.Page("cicero_meddler.py", title="✍️ Meddler", url_path="Meddler")
     ]
   st.navigation(pages).run()
   loading_message.empty() # At this point, we no longer need to display a loading message, once we've gotten here and displayed everything above.
@@ -88,8 +94,9 @@ with Profiler():
         Streamlit version: {st.__version__}<br>
         Base url: {get_base_url()}
       """, unsafe_allow_html=True)
-      st.button("disable developer mode", on_click=disable_developer_mode, help="Click this button to disable developer mode, allowing you to see and interact with the app as a basic user would. You can refresh the page in your browser to re-enable developer mode.") #this is a callback for streamlit ui update-flow reasons.
-      st.button("disable chat with cicero", on_click=disable_CwC, help="Click this button to disable the Chat With Cicero page. You can refresh the page in your browser to re-enable Chat with Cicero.")
+      st.button("disable Developer Mode", on_click=disable_developer_mode, help="Click this button to disable developer mode, allowing you to see and interact with the app as a basic user would. You can refresh the page in your browser to re-enable developer mode.") #this is a callback for streamlit ui update-flow reasons.
+      st.button("disable Chat with Cicero", on_click=disable_CwC, help="Click this button to disable the Chat With Cicero page. You can refresh the page in your browser to re-enable Chat with Cicero.")
+      st.button("disable Chat with Cicero-Corporate", on_click=disable_CwCorpo, help="Click this button to disable the Chat With Cicero Corporate page. You can refresh the page in your browser to re-enable Chat with Cicero Corporate.")
   else: # Disable the profiler element visually, using css, if not in dev mode.
     st.markdown("""<style> [allow="accelerometer; ambient-light-sensor; autoplay; battery; camera; clipboard-write; document-domain; encrypted-media; fullscreen; geolocation; gyroscope; layout-animations; legacy-image-formats; magnetometer; microphone; midi; oversized-images; payment; picture-in-picture; publickey-credentials-get; sync-xhr; usb; vr ; wake-lock; xr-spatial-tracking"] { /*this is an arbitrary way to target the profiler element*/ display: none; } </style>""", unsafe_allow_html=True)
 
