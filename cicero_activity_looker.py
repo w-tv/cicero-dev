@@ -7,3 +7,5 @@ st.button("Refresh the page", help="Clicking this button will do nothing, but it
 results = sql_call_cacheless("SELECT * FROM cicero.default.activity_log ORDER BY timestamp DESC LIMIT 20")
 column_names = {i+1: k for i, k in enumerate(results[0].asDict())}
 st.dataframe(results, column_config=column_names)
+st.caption("Use of similarity search backup:")
+st.line_chart({r.timestamp: r.used_similarity_search_backup for r in results})
