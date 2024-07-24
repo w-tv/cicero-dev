@@ -7,6 +7,28 @@ import streamlit as st
 from typing import Any, NoReturn, TypedDict, TypeVar, Sequence
 import urllib.parse
 
+def get_all_ycomb(string_to_get_from_streamlit_session_state: str, *args: Any) -> Any | None:
+  """Get all Y-combinatorally. This function repeatedly retrieves things from things using `.get()` . Starting with the first argument from st.session_state, and then all the subsequent args from the first. This loses type-safety, in a way, since it just returns Any, but st.session_state already didn't have type-safety (TODO: figure out how to TypedDict the session_state? Seems impossible.) because it always just returns `Any | None`. This function also returns `Any | None`. However, long get chains on things taken from session_state like `st.session_state.get("chat").get(streamlit_key_suffix)` get you errors like `error: Item "None" of "Any | None" has no attribute "get"  [union-attr]` — and quite likely so, because that could give you a type error at runtime! You also can't do the ol' `if st.session_state.get("messages") and st.session_state.get("messages").get(streamlit_key_suffix)` "shortcut"-`and` trick, because there might be side-effects between the first and second call of the function. So you'd have to do something crazy like `if m := st.session_state.get("messages") and m.get(streamlit_key_suffix)` (actually, that leads to a type error `error: Name "m" is used before definition  [used-before-def]`). Or break up the clauses or use a variable. Or, you can simply call `get_all_ycomb("messages", streamlit_key_suffix)` for the same effect.
+
+  Much like .get(), which is better than . and [], this function will never throw an error (unless you make it visit an object that has no .get() method but is not None), only ever return None if something is not found. Note that there is no indication of where in the chain the None is coming from.
+
+  You may also use the base case of get_all_ycomb as a simple shorthand for the longer st.session_state.get, which all will agree is much longer to type.
+
+  "Y-combinatorally" refers to https://en.wikipedia.org/wiki/Fixed-point_combinator#Y_combinator , which is not actually important to understand. It's just the concept of a loop, really. Really this function is more like a fixed-point operator with limited depth than anything having to do with the lambda calculus. But whatever.
+
+  get_all_ycomb is a particular type of safe navigation operator, which you can read the wikipedia page about. https://en.wikipedia.org/wiki/Safe_navigation_operator
+
+  Needing this whole thing is very silly. But that's the Python way!"""
+  x = st.session_state.get(string_to_get_from_streamlit_session_state)
+  if x is None:
+    return None
+  else:
+    for a in args:
+      x = x.get(a)
+      if x is None:
+        return None
+  return x
+
 def get_base_url() -> str:
   """Gets the url where the streamlit app is currently running, not including any page paths underneath. In testing, for example, this value is probably http://localhost:8501 . This function is from BramVanroy https://github.com/streamlit/streamlit/issues/798#issuecomment-1647759949 , with modifications. “WARNING: I found that in multi-page apps, this will always only return the base url and not the sub-page URL with the page appended to the end.”"""
   try:
