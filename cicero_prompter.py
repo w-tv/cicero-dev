@@ -160,7 +160,7 @@ def sample_dissimilar_texts(population: list[ReferenceTextElement], k: int, max_
     not_selected = scored_unselected
   return random.sample(final_arr, k=len(final_arr))
 
-def execute_prompting(model: Long_Model_Name, account: str, ask_type: Ask_Type, topics: list[str], additional_topics: list[str], tones: list[Tone], text_len: Selectable_Length, headline: str|None, num_outputs: Num_Outputs, model_temperature: float = 0.8, bio: str|None = None, max_tokens: int = 4096, topic_weight: float = 4, tone_weight: float = 1, client_weight: float = 6, ask_weight: float = 2, text_len_weight: float = 3, doc_pool_size: int = 30, num_examples: int = 10) -> tuple[str, list[str], str, str, str]:
+def execute_prompting(model: Long_Model_Name, account: str, sender: str|None, ask_type: Ask_Type, topics: list[str], additional_topics: list[str], tones: list[Tone], text_len: Selectable_Length, headline: str|None, num_outputs: Num_Outputs, model_temperature: float = 0.8, bio: str|None = None, max_tokens: int = 4096, topic_weight: float = 4, tone_weight: float = 1, client_weight: float = 6, ask_weight: float = 2, text_len_weight: float = 3, doc_pool_size: int = 30, num_examples: int = 10) -> tuple[str, list[str], str, str, str]:
   score_threshold = 0.5 # Document Similarity Score Acceptance Threshold
   consul_show(f"{score_threshold=}, {doc_pool_size=}, {num_examples=}")
   assert_always(num_examples <= doc_pool_size, "You can't ask to provide more examples than there are documents in the pool! Try again with a different value.")
@@ -388,7 +388,7 @@ def execute_prompting(model: Long_Model_Name, account: str, ask_type: Ask_Type, 
   combined_dict["chat_history"] = ""
 
   # Create the question prompt and add it to the combined_dict dictionary
-  question_prompt = f"Please write me {num2words(num_outputs)} {text_len} {ask_type} text messages for {account}" if text_len != "long" else f"Please write me a {text_len} {ask_type} text message for {account}"
+  question_prompt = f"Please write me { 'a' if text_len == "long" else num2words(num_outputs) } {text_len} {ask_type} text message(s) for {account}" + sender*f" sent from {sender}"
   question_prompt += {
     "short": " that each use about 250 characters",
     "medium": " that each use about 350 characters",
@@ -524,7 +524,7 @@ with st.form('query_builder'):
   model_name = typesafe_selectbox("Model (required)", short_model_names, key="model_name") if st.session_state.get("developer_mode") else "Llama-3-70b-Instruct"
   model = short_model_name_to_long_model_name(model_name)
   account = st.selectbox("Account (required)", account_names, key="account") # No typesafe_selectbox here because we actually do want this to possibly be unselected.
-  sender = st.text_input("Sender Name", key="sender") if st.session_state.get("developer_mode") else None #TODO: this doesn't do anything yet.
+  sender = st.text_input("Sender Name", key="sender") if st.session_state.get("developer_mode") else None
   ask_type = typesafe_selectbox("Ask Type", get_args(Ask_Type), key="ask_type").lower()
   topics = st.multiselect("Topics", sorted([t for t, d in topics_big.items() if d["show in prompter?"]]), key="topics" )
   topics = external_topic_names_to_internal_topic_names_list_mapping(topics)
@@ -559,7 +559,7 @@ if st.session_state.get("submit_button_disabled"):
     st.session_state['use_count']+=1 #this is just an optimization for the front-end display of the query count
     bio = bios.get(account) if ("bio" in topics and account in bios) else None
     max_tokens = 4096
-    prompt_sent, st.session_state['outputs'], st.session_state['entire_prompt'], prompter_system_prompt, used_similarity_search_backup = execute_prompting(model, account, ask_type, topics, additional_topics, tones, length_select, headline, num_outputs, temperature, bio, max_tokens, topic_weight, tone_weight, client_weight, ask_weight, text_len_weight, doc_pool_size, num_examples)
+    prompt_sent, st.session_state['outputs'], st.session_state['entire_prompt'], prompter_system_prompt, used_similarity_search_backup = execute_prompting(model, account, sender, ask_type, topics, additional_topics, tones, length_select, headline, num_outputs, temperature, bio, max_tokens, topic_weight, tone_weight, client_weight, ask_weight, text_len_weight, doc_pool_size, num_examples)
     if len(st.session_state['outputs']) != num_outputs:
       st.info("CICERO has detected that the number of outputs may be wrong.")
     if 'history' not in st.session_state:
