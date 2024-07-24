@@ -11,7 +11,10 @@ def content_from_url(url: str) -> str:
   # from https://stackoverflow.com/questions/69593352/how-to-get-all-copyable-text-from-a-web-page-python/69594284#69594284
   response = requests.get(url,headers={'User-Agent': 'Mozilla/5.0'})
   soup = bs4.BeautifulSoup(response.text, 'html.parser')
-  return soup.body.get_text(' ', strip=True)
+  if b := soup.body:
+    return b.get_text(' ', strip=True)
+  else:
+    return "" # there is no content on the page, I guess, so the correct thing to return is the empty string.
 
 def expand_url_content(s: str) -> str:
   """Expand the urls in a string to the content of their contents (placing said contents back into the same containing string."""
