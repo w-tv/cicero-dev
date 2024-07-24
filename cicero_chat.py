@@ -5,6 +5,18 @@
 import streamlit as st
 from databricks_genai_inference import ChatSession, FoundationModelAPIException
 from cicero_shared import consul_show, get, get_base_url, popup
+import bs4, requests, re # for some reason bs4 is how you import beautifulsoup smh smh
+
+def content_from_url(url: str) -> str:
+  # from https://stackoverflow.com/questions/69593352/how-to-get-all-copyable-text-from-a-web-page-python/69594284#69594284
+  response = requests.get(url,headers={'User-Agent': 'Mozilla/5.0'})
+  soup = bs4.BeautifulSoup(response.text, 'html.parser')
+  return soup.body.get_text(' ', strip=True)
+
+def expand_url_content(s: str) -> str:
+  """Expand the urls in a string to the content of their contents (placing said contents back into the same containing string."""
+  url_regex = r"""(?i)\b((?:[a-z][\w-]+:(?:/{1,3}|[a-z0-9%])|www\d{0,3}[.]|[a-z0-9.\-]+[.][a-z]{2,4}/)(?:[^\s()<>]+|\(([^\s()<>]+|(\([^\s()<>]+\)))*\))+(?:\(([^\s()<>]+|(\([^\s()<>]+\)))*\)|[^\s`!()\[\]{};:'".,<>?«»“”‘’]))""" # from https://gist.github.com/gruber/249502
+  return re.sub(url_regex, lambda x: content_from_url(x.group(0)), s)
 
 def grow_chat(streamlit_key_suffix: str = "", alternate_content: str = "") -> None:
   """Note that this function will do something special to the prompt if alternate_content is supplied.
@@ -34,6 +46,9 @@ def grow_chat(streamlit_key_suffix: str = "", alternate_content: str = "") -> No
   else:
     p = st.session_state["user_input_for_chatbot_this_frame"+streamlit_key_suffix]
     display_p = p
+  if streamlit_key_suffix=="_corporate": #implement url content expansion, at this point only for the corp chat
+    p = expand_url_content(p)
+
   old_chat = chat.chat_history.copy()
   while True: #databricks_genai_inference-BUG-WORKAROUND: it prompts with the entire chat history every time, without truncating history to fit the token limit even though this makes it ultimately useless as a chat session manager. Since I now have to manually manage the chat session as well! So, we just try removing messages until it works
     try:
