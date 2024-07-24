@@ -4,7 +4,7 @@
 
 import streamlit as st
 from databricks_genai_inference import ChatSession, FoundationModelAPIException
-from cicero_shared import consul_show, get_all_y, get_base_url, popup
+from cicero_shared import consul_show, get, get_base_url, popup
 
 def grow_chat(streamlit_key_suffix: str = "", alternate_content: str = "") -> None:
   """Note that this function will do something special to the prompt if alternate_content is supplied.
@@ -20,12 +20,12 @@ def grow_chat(streamlit_key_suffix: str = "", alternate_content: str = "") -> No
     sys_prompt = "You are an expert copywriter who specializes in writing fundraising and engagement texts and emails for conservative political candidates in the United States of America. Make sure all messages are in English. Be direct with your responses, and avoid extraneous messages like 'Hello!' and 'I hope this helps!'. These text messages and emails tend to be more punchy and engaging than normal marketing material. Focus on these five fundraising elements when writing content: the Hook, Urgency, Agency, Stakes, and the Call to Action (CTA). Do not make up facts or statistics. Do not mention that you are a helpful, expert copywriter. Do not use emojis or hashtags in your messages. Make sure each written message is unique. Write the exact number of messages asked for."
   if not st.session_state.get("chat"):
     st.session_state.chat = {}
-  if not get_all_y("chat", streamlit_key_suffix):
+  if not get("chat", streamlit_key_suffix):
     st.session_state.chat[streamlit_key_suffix] = ChatSession(model=long_model_name, system_message=sys_prompt, max_tokens=4096) # Keep in mind that unless DATABRICKS_HOST and DATABRICKS_TOKEN are in the environment (streamlit does this with secret value by default), then this line of code will fail with an extremely cryptic error asking you to run this program with a `setup` command line argument (which won't do anything)
   chat = st.session_state.chat[streamlit_key_suffix] # Note that, as an object reference, updating and accessing chat will continue to update and access the same object.
   if not st.session_state.get("messages"): # We keep our own list of messages, I think because I found it hard to format the chat_history output when I tried once.
     st.session_state.messages = {}
-  if not get_all_y("messages", streamlit_key_suffix):
+  if not get("messages", streamlit_key_suffix):
     st.session_state.messages[streamlit_key_suffix] = []
   messages = st.session_state.messages[streamlit_key_suffix] # Note that, as an object reference, updating and accessing messages will continue to update and access the same object.
   if alternate_content:
@@ -72,7 +72,7 @@ def display_chat(streamlit_key_suffix: str = "") -> None:
   The streamlit_key_suffix is only necessary because we use this code in two places. But that does make it necessary, for every widget in this function. If streamlit_key_suffix is "", we infer we're in the chat page, and if otherwise we infer we're being used on a different page (so far, the only thing that does this is prompter).
 
   *A computer can never be held accountable. Therefore a computer must never make a management decision.*[꙳](https://twitter.com/bumblebike/status/832394003492564993)"""
-  if get_all_y("messages", streamlit_key_suffix):
+  if get("messages", streamlit_key_suffix):
     for message in st.session_state.messages[streamlit_key_suffix]:
       with st.chat_message(message["role"], avatar=message.get("avatar")):
         st.markdown(message["content"].replace("$", r"\$").replace("[", r"\["))
