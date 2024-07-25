@@ -12,7 +12,10 @@ def content_from_url(url: str) -> str:
   response = requests.get(url,headers={'User-Agent': 'Mozilla/5.0'})
   soup = bs4.BeautifulSoup(response.text, 'html.parser')
   if b := soup.body:
-    return b.get_text(' ', strip=True)
+    b = b.get_text(' ', strip=True)
+    if len(b) > 4000:
+      b = b[:4000] 
+    return b
   else:
     return "" # there is no content on the page, I guess, so the correct thing to return is the empty string.
 
