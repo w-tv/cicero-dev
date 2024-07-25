@@ -30,7 +30,7 @@ with st.expander("Topics"):
   with c[1]:
     st.write(
       {"All":{ "color":"#61A5A2", "internal name":"all", "show in prompter?": False}} # We need to add this in bespoke.
-      | # dict addition operator "why did they need to use an existing symbol meant for something else when there is already a perfectly good addition operator symbol: '+'" - chang
+      | # dict addition operator "why did they need to use an existing symbol meant for something else when there is already a perfectly good addition operator symbol: '+'" - chang "because, of course, | is the perfectly good existing operator for or ;)" - wyatt
       {external.title():{"color":color.upper(), "internal name":internal.removesuffix("_hook"), "show in prompter?": True} for external, internal, color in sql_call_cacheless('select tag_name, tag_column_name, color from cicero.ref_tables.ref_tags WHERE tag_type == "Topic" ORDER BY tag_name ASC')} #TODO: Visible_Frontend and Enabled will presumably be useful some day, when we get around to making them not all false.
     )
 
