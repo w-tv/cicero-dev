@@ -16,10 +16,13 @@ def content_from_url(url: str) -> str:
   else:
     return "" # there is no content on the page, I guess, so the correct thing to return is the empty string.
 
+def content_from_url_regex_match(m: re.Match[str]) -> str:
+  return content_from_url(m.group(0))
+
 def expand_url_content(s: str) -> str:
   """Expand the urls in a string to the content of their contents (placing said contents back into the same containing string."""
   url_regex = r"""(?i)\b((?:[a-z][\w-]+:(?:/{1,3}|[a-z0-9%])|www\d{0,3}[.]|[a-z0-9.\-]+[.][a-z]{2,4}/)(?:[^\s()<>]+|\(([^\s()<>]+|(\([^\s()<>]+\)))*\))+(?:\(([^\s()<>]+|(\([^\s()<>]+\)))*\)|[^\s`!()\[\]{};:'".,<>?«»“”‘’]))""" # from https://gist.github.com/gruber/249502
-  return re.sub(url_regex, lambda x: content_from_url(x.group(0)), s)
+  return re.sub(pattern=url_regex, repl=content_from_url_regex_match, string=s)
 
 def grow_chat(streamlit_key_suffix: str = "", alternate_content: str|None = None, account: str|None = None) -> None:
   """Note that this function will do something special to the prompt if alternate_content is supplied.
