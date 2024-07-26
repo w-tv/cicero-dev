@@ -388,7 +388,7 @@ def execute_prompting(model: Long_Model_Name, account: str, sender: str|None, as
   combined_dict["chat_history"] = ""
 
   # Create the question prompt and add it to the combined_dict dictionary
-  question_prompt = f"Please write me { 'a' if text_len == "long" else num2words(num_outputs) } {text_len} {ask_type} text message(s) for {account}" + bool(sender)*f" sent from {sender}"
+  question_prompt = f"Please write me { 'a' if text_len == 'long' else num2words(num_outputs) } {text_len} {ask_type} text message(s) for {account}" + bool(sender)*f" sent from {sender}"
   question_prompt += {
     "short": " that each use about 250 characters",
     "medium": " that each use about 350 characters",
