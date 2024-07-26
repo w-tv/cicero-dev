@@ -1,15 +1,15 @@
 #!/usr/bin/env -S streamlit run
 """ This shows you the top of the activity log, to make sure things are going through."""
 import streamlit as st
-from cicero_shared import sql_call_cacheless, topics_big
+from cicero_shared import sql_call_cacheless, st_print, topics_big
 
 st.button("Refresh the page", help="Clicking this button will do nothing, but it will refresh the page, which is sometimes useful if this page loaded before the activity log was written to, and you want to see the new data in the activity log.")
 st.write("""TODO: Figure out how to write the record hashes... then, sections that will let us:
   * add rollup name(s)
   * add a bio (corresponding to a rollup name) (internal or external?)
-  * add/remove client from the account list dropdown — and maybe some other stuff if you can think of anything"""
+  * and maybe some other stuff if you can think of anything"""
 )
-with st.expander("Account names"):
+with st.expander("Account names w/ rollup"):
   c = st.columns(3)
   with c[0]:
     acct = st.text_input("New account name").strip()
@@ -18,9 +18,20 @@ with st.expander("Account names"):
   with c[2]:
     #st.caption("")
     if st.button("Add a new account and rollup name to the ref_account_rollup table (DO NOT CLICK)") and acct and rollup:
-      # this code definitely doesn't work
-      sql_call_cacheless("INSERT INTO cicero.ref_tables.ref_account_rollup (ACCOUNT_NAME, ROLLUP_NAME) VALUES (acct, rollup)", {"acct": acct, "rollup": rollup}) # This is untested because I didn't want to mar the names. (:kongzi:)
-  st.table(sql_call_cacheless("SELECT Account_Name, Rollup_Name FROM cicero.ref_tables.ref_account_rollup ORDER BY Account_Name ASC"))
+      sql_call_cacheless("INSERT INTO cicero.ref_tables.ref_account_rollup (account_name, rollup_name) VALUES (:acct, :rollup)", {"acct": acct, "rollup": rollup}) # This is untested because I didn't want to mar the names. (:kongzi:)
+  st.table(sql_call_cacheless("SELECT account_name, rollup_name FROM cicero.ref_tables.ref_account_rollup ORDER BY account_name ASC"))
+
+with st.expander("Add/remove client from the account list dropdown"):
+  c = st.columns(2)
+  with c[0]:
+    acct2 = st.text_input("New account/client name").strip()
+  with c[1]:
+    if st.button("Add a new account to the client list (the prompter account dropdown)"):
+      if acct2:
+        st_print( sql_call_cacheless("INSERT INTO cicero.default.client_list (account_name) VALUES (:acct)", {"acct": acct2}) )
+      else:
+        st_print("No account?")
+  st.table(sql_call_cacheless("SELECT account_name FROM cicero.default.client_list ORDER BY account_name ASC"))
 
 # thanks for this, we gotta align the Visible_Frontend and Enabled columns with topic big
 with st.expander("Topics"):

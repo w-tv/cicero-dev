@@ -29,6 +29,10 @@ def get(string_to_get_from_streamlit_session_state: str, *args: Any) -> Any | No
         return None
   return x
 
+def st_print(*args: Any) -> None:
+  print(*args)
+  st.write(*args)
+
 def get_base_url() -> str:
   """Gets the url where the streamlit app is currently running, not including any page paths underneath. In testing, for example, this value is probably http://localhost:8501 . This function is from BramVanroy https://github.com/streamlit/streamlit/issues/798#issuecomment-1647759949 , with modifications. “WARNING: I found that in multi-page apps, this will always only return the base url and not the sub-page URL with the page appended to the end.”"""
   try:
@@ -88,7 +92,7 @@ def sql_call_cacheless(query: str, sql_params_dict:dict[str, Any]|None=None) -> 
   except Exception as e:
     die_with_database_error_popup(e.args)
 
-# TODO: refactor to cicero.ref_tables.ref_account_rollup
+# TODO: refactor to cicero.ref_tables.ref_account_rollup # "Donald Trump - TMA" has been added to client_list since then, so also move that over.
 @st.cache_data(show_spinner=False)
 def load_account_names() -> list[str]:
   return [row[0] for row in sql_call("SELECT * FROM cicero.default.client_list ORDER BY account_name ASC")]
