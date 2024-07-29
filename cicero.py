@@ -52,6 +52,7 @@ with Profiler():
     loading_message.write("Loading CICERO.  This may take up to a minute...")
 
   st.session_state['developer_mode'] = st.session_state['email'] in ["achang@targetedvictory.com", "abrady@targetedvictory.com", "thall@targetedvictory.com", "wcarpenter@targetedvictory.com", "cmahon@targetedvictory.com", "rtauscher@targetedvictory.com", "cmajor@targetedvictory.com", "test@example.com"] and not st.session_state.get("developer_mode_disabled")
+  st.session_state['topic_reporting_access'] = st.session_state['email'] in ["achang@targetedvictory.com", "abrady@targetedvictory.com", "thall@targetedvictory.com", "wcarpenter@targetedvictory.com", "test@example.com", "akrishnan@targetedvictory.com"] and not st.session_state.get("topic_reporting_disabled")  
   st.session_state['chat_with_cicero_access'] = st.session_state['email'] in ["achang@targetedvictory.com", "abrady@targetedvictory.com", "thall@targetedvictory.com", "wcarpenter@targetedvictory.com", "test@example.com", "sgoh@targetedvictory.com", "cmahon@targetedvictory.com", "akrishnan@targetedvictory.com", "aisaac@targetedvictory.com", "czelazny@targetedvictory.com", "akhamma@targetedvictory.com", "bgulick@targetedvictory.com", "cabrams@targetedvictory.com", "tveach@targetedvictory.com", "srowan@targetedvictory.com", "kbonini@targetedvictory.com", "sspooner@targetedvictory.com", "kdamato@targetedvictory.com", "zspringer@targetedvictory.com", "tdacey@targetedvictory.com"] and not st.session_state.get("CwC_access_disabled")
   st.session_state['chat_with_corpo_access'] = st.session_state['email'] in ["achang@targetedvictory.com", "abrady@targetedvictory.com", "thall@targetedvictory.com", "wcarpenter@targetedvictory.com", "test@example.com"] and not st.session_state.get("CwCorpo_access_disabled")
   st.session_state['sender_access'] = st.session_state['email'] in ["achang@targetedvictory.com", "abrady@targetedvictory.com", "thall@targetedvictory.com", "wcarpenter@targetedvictory.com", "test@example.com", "sgoh@targetedvictory.com", "cmahon@targetedvictory.com", "akrishnan@targetedvictory.com", "aisaac@targetedvictory.com", "czelazny@targetedvictory.com", "akhamma@targetedvictory.com", "bgulick@targetedvictory.com", "cabrams@targetedvictory.com", "tveach@targetedvictory.com", "srowan@targetedvictory.com", "kbonini@targetedvictory.com", "sspooner@targetedvictory.com", "kdamato@targetedvictory.com", "zspringer@targetedvictory.com", "tdacey@targetedvictory.com"]
@@ -62,6 +63,8 @@ with Profiler():
     st.session_state["CwC_access_disabled"] = True
   def disable_CwCorpo() -> None:
     st.session_state["CwCorpo_access_disabled"] = True
+  def disable_topic_reporting() -> None:
+    st.session_state["topic_reporting_disabled"] = True
 
   # Since we use st.navigation explicitly, the default page detection is disabled, even though we may use a pages folder later (although we shouldn't name that folder pages/, purely in order to suppress a warning message about how we shouldn't do that). This is good, because we want to hide some of the pages from non-dev-mode users.
   pages = [ #pages visible to everyone
@@ -75,9 +78,12 @@ with Profiler():
     pages += [
       st.Page(lambda: cicero_chat("_corporate"), title="💼 Chat with Cicero", url_path="Chat_With_Cicero_Corporate")
     ]
+  if st.session_state.get('topic_reporting_access'):
+    pages += [
+      st.Page("cicero_topic_reporting.py", title="📈 Topic Reporting", url_path='Topic_Reporting')
+    ]
   if st.session_state.get('developer_mode'):
     pages += [
-      st.Page("cicero_topic_reporting.py", title="📈 Topic Reporting", url_path='Topic_Reporting'),
       # st.Page("cicero_topic_reporting_refactor.py", title="📈 Topic Reporting (Under Construction)", url_path='Topic_Reporting_Refactor'),
       # st.Page("cicero_response_lookup.py", title="🔍 Response Lookup", url_path="Response_Lookup"),
       st.Page("cicero_new_pod_key.py", title="🆕 New Pod Key", url_path="New_Pod_Key"),
