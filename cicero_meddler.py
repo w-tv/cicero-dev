@@ -18,7 +18,7 @@ with st.expander("Account names w/ rollup"):
   with c[2]:
     #st.caption("")
     if st.button("Add a new account and rollup name to the ref_account_rollup table (DO NOT CLICK)") and acct and rollup:
-      sql_call_cacheless("INSERT INTO cicero.ref_tables.ref_account_rollup (account_name, rollup_name) VALUES (:acct, :rollup)", {"acct": acct, "rollup": rollup}) # This is untested because I didn't want to mar the names. (:kongzi:)
+      sql_call_cacheless("INSERT INTO cicero.ref_tables.ref_account_rollup (account_name, rollup_name, modified_datetime) VALUES (:acct, :rollup, NOW())", {"acct": acct, "rollup": rollup}) # This is untested because I didn't want to mar the names. (:kongzi:)
   st.table(sql_call_cacheless("SELECT account_name, rollup_name FROM cicero.ref_tables.ref_account_rollup ORDER BY account_name ASC"))
 
 with st.expander("Add/remove client from the account list dropdown"):
