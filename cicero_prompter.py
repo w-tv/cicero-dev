@@ -6,7 +6,7 @@ import streamlit as st
 import pandas as pd
 import json
 from typing import Any, Literal, TypedDict, TypeVar, get_args
-from cicero_shared import assert_always, consul_show, ensure_existence_of_activity_log, exit_error, get_base_url, load_account_names, sql_call, sql_call_cacheless, topics_big, typesafe_selectbox
+from cicero_shared import assert_always, consul_show, ensure_existence_of_activity_log, exit_error, get, get_base_url, load_account_names, sql_call, sql_call_cacheless, topics_big, typesafe_selectbox
 import cicero_chat
 
 from num2words import num2words
@@ -15,8 +15,8 @@ from functools import reduce
 from langchain.prompts import PromptTemplate
 from langchain_community.chat_models.databricks import ChatDatabricks
 from langchain.schema.output_parser import StrOutputParser
-from langchain_community.vectorstores import FAISS
-from langchain_community.embeddings import HuggingFaceEmbeddings
+from langchain_community.vectorstores.faiss import FAISS
+from langchain_community.embeddings.huggingface import HuggingFaceEmbeddings
 
 import re
 import random
@@ -586,7 +586,7 @@ if 'outputs' in st.session_state:
         cicero_chat.grow_chat(streamlit_key_suffix="_prompter", alternate_content=output)
       key_collision_preventer += 1
   st.caption(st.session_state.get('character_counts_caption'))
-  if st.session_state.get('messages') and st.session_state.get('messages').get("_prompter"):
+  if get("messages", "_prompter"):
     cicero_chat.display_chat(streamlit_key_suffix="_prompter")
 st.error('**REMINDER!** Please tag all projects with "**optimization**" in the LABELS field in Salesforce.')
 
