@@ -1,4 +1,4 @@
-streamlit >= 1.36.0 # We use a bugfix from 1.36.0
+streamlit >= 1.37.0 # We use a bugfix from 1.36.0
 pandas
 psutil
 torch == 2.3.0 # For some reason, 2.3.1 of this has some bug that makes torch not be found properly or something? So we import this explicitly here to avoid that (sentence-transformers depends on torch)
