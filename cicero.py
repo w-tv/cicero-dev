@@ -1,7 +1,7 @@
 #!/usr/bin/env -S streamlit run
 """ This is Cicero.
 You must have streamlit installed to run this program. Among other things. Why not run this script using run.bat instead?
-Check the cicero_*.py files for various functionalities of Cicero.
+Check the cicero_*.py files for various functionalities of Cicero. This file basically just does user auth, displays some stats, and hosts subsidiary pages (one will be open by default).
 """
 
 from time import perf_counter_ns
@@ -9,10 +9,9 @@ nanoseconds_base : int = perf_counter_ns()
 import streamlit as st
 import os, psutil, platform
 from cicero_chat import main as cicero_chat
-from cicero_shared import ensure_existence_of_activity_log, exit_error, get_base_url, sql_call_cacheless
+from cicero_shared import ensure_existence_of_activity_log, exit_error, get_base_url, sql_call_cacheless, st_print
 from google.auth.transport import requests
 from google.oauth2 import id_token
-from streamlit.web.server.websocket_headers import _get_websocket_headers
 from streamlit_profiler import Profiler
 from datetime import datetime
 
@@ -29,13 +28,12 @@ with Profiler():
 
 
   # Google sign-in logic, using IAP. From https://cloud.google.com/iap/docs/signed-headers-howto, with modifications. Will set the email to a new value iff it succeeds.
-  if h := _get_websocket_headers():
-    if iap_jwt := h.get("X-Goog-Iap-Jwt-Assertion"):
-      try:
-        decoded_jwt = id_token.verify_token(iap_jwt, requests.Request(), audience=st.secrets["aud"], certs_url="https://www.gstatic.com/iap/verify/public_key") #type: ignore[no-untyped-call] #GOOGLE-OR-MYPY-BUG-WORKAROUND. I don't really know what the problem is here, but it's probably some inscrutable class thing. Could file a bug later, maybe.
-        st.session_state["email"] = decoded_jwt["email"].split(":")[1]
-      except Exception as e: # This pass probably hits if you don't have an aud, you don't have an X-Goog-IAP-JWT-Assertion header (you aren't behind an IAP), or the decode fails (the header is forged or otherwise invalid).
-        st.write(e)
+  if iap_jwt := st.context.headers.get("X-Goog-Iap-Jwt-Assertion"):
+    try:
+      decoded_jwt = id_token.verify_token(iap_jwt, requests.Request(), audience=st.secrets["aud"], certs_url="https://www.gstatic.com/iap/verify/public_key") #type: ignore[no-untyped-call] #GOOGLE-OR-MYPY-BUG-WORKAROUND. I don't really know what the problem is here, but it's probably some inscrutable class thing. Could file a bug later, maybe.
+      st.session_state["email"] = decoded_jwt["email"].split(":")[1]
+    except Exception as e: # This pass probably hits if you don't have an aud, you don't have an X-Goog-IAP-JWT-Assertion header (you aren't behind an IAP), or the decode fails (the header is forged or otherwise invalid).
+      st_print(e)
 
   if st.session_state['email'] == 'None':
     st.write("Your user email is None, which implies we are currently running publicly on Streamlit Community Cloud. https://docs.streamlit.io/library/api-reference/personalization/st.experimental_user#public-app-on-streamlit-community-cloud. This app is configured to function only privately and permissionedly, so we will now exit. Good day.")
