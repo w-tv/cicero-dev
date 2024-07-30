@@ -27,6 +27,7 @@ typing-extensions
 pipreqs
 deptry >= 0.14.1
 ruff
+pyright
 
 ## type stubs that aren't installed by mypy --install-types for whatever reason
 

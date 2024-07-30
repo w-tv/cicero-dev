@@ -546,6 +546,8 @@ if st.session_state.get("developer_mode"):
     st.session_state["submit_button_disabled"] = True
     account = "AAF" #TODO: is there a better testing value? Could I have my own dummy account that just writes nice things about me personally, for example? Or nasty things about Ceasar?
 
+max_tokens = 4096 # This isn't really a thing we should let the user control, at the moment, but we the developers could change it, much like the other variables.
+
 #Composition and sending a request:
 did_a_query = False
 if st.session_state.get("submit_button_disabled"):
@@ -558,8 +560,11 @@ if st.session_state.get("submit_button_disabled"):
     cicero_chat.reset_chat(streamlit_key_suffix="_prompter")
     st.session_state['use_count']+=1 #this is just an optimization for the front-end display of the query count
     bio = bios.get(account) if ("bio" in topics and account in bios) else None
-    max_tokens = 4096
     prompt_sent, st.session_state['outputs'], st.session_state['entire_prompt'], prompter_system_prompt, used_similarity_search_backup = execute_prompting(model, account, sender, ask_type, topics, additional_topics, tones, length_select, headline, num_outputs, temperature, bio, max_tokens, topic_weight, tone_weight, client_weight, ask_weight, text_len_weight, doc_pool_size, num_examples)
+    # Activity logging takes a bit, so I've put it last (in cicero.py, not this file) to preserve immediate-feeling performance and responses for the user making a query. But we set it up here.
+    # prompt_sent is only illustrative. But maybe that's enough. Maybe we should be using a different prompt?
+    st.session_state["activity_log_payload"] = {"user_email": st.session_state['email'], "prompter_or_chatbot": "prompter", "prompt_sent": prompt_sent, "response_given": json.dumps(st.session_state['outputs']), "model_name": model_name, "model_url": model, "model_parameters": str({"max_tokens": max_tokens, "temperature": temperature}), "system_prompt": prompter_system_prompt, "base_url": get_base_url(), "used_similarity_search_backup": used_similarity_search_backup}
+
     if len(st.session_state['outputs']) != num_outputs:
       st.info("CICERO has detected that the number of outputs may be wrong.")
     if 'history' not in st.session_state:
@@ -601,10 +606,5 @@ login_activity_counter_container.write(
 
 st.session_state["submit_button_disabled"] = False
 buttonhole.form_submit_button("Submit ", type="primary", on_click=disable_submit_button_til_complete) # After everything, re-enable the submit button. Note that the space at the end of Submit here doesn't show up in the UI; it's just a convenient way to make the key of this replacement button not identical to the original button (which would cause an error). I didn't even bother to file an issue about this because who cares.
-# Activity logging takes a bit, so I've put it last to preserve immediate-feeling performance and responses for the user making a query.
-if did_a_query:
-  # prompt_sent is only illustrative. But maybe that's enough. Maybe we should be using a different prompt?
-  st.session_state["activity_log_payload"] = {"user_email": st.session_state['email'], "prompter_or_chatbot": "prompter", "prompt_sent": prompt_sent, "response_given": json.dumps(st.session_state['outputs']), "model_name": model_name, "model_url": model, "model_parameters": str({"max_tokens": max_tokens, "temperature": temperature}), "system_prompt": prompter_system_prompt, "base_url": get_base_url(), "used_similarity_search_backup": used_similarity_search_backup}
-
 
 # import streamlit.components.v1 as components; components.html('<!--<script>//you can include arbitrary html and javascript this way</script>-->') #or, use st.markdown, if you want arbitrary html but javascript isn't needed.

@@ -44,6 +44,7 @@ if st.button("update the pod table and also the activity log retroactively IN A 
   #even though datetime is now a proper timestamp and not a string, this seems to work.
   sql_call("UPDATE cicero.default.activity_log SET user_pod = :pod WHERE user_email ilike :email AND timestamp >= :date_str", {"email": one_new_email, "pod": one_new_pod, "date_str": date_str})
 
+new_pods_tuples = None #avoid run-time variable-not-defined error. Obviously we could just put the buttons inside the file_uploader if, but I think it leads for better discoverability to do it this way.
 st.write("### File entry")
 if file := st.file_uploader("Here, you can pick a new pod key excel file. If you do so, you can use it to modify the pod table, using the controls also in this section."):
   new_pods_table = read_excel(file, header=None)
@@ -52,12 +53,18 @@ if file := st.file_uploader("Here, you can pick a new pod key excel file. If you
   st.write(new_pods_tuples)
 
 if st.button("update the pod table results to match the file contents (will not delete pod table entries not spoken about in file)"):
-  for t in new_pods_tuples:
-    do_one(*t)
+  if new_pods_tuples:
+    for t in new_pods_tuples:
+      do_one(*t)
+  else:
+    st.error("*No file is selected, or perhaps I just don't recognize the format of the file.*")
 
 if st.button("update the activity log retroactively to match the file contents"):
-  for t in new_pods_tuples:
-    sql_call("UPDATE cicero.default.activity_log SET user_pod = :pod WHERE user_email ilike :email", {"email": t[0], "pod": t[1]})
+  if new_pods_tuples:
+    for t in new_pods_tuples:
+      sql_call("UPDATE cicero.default.activity_log SET user_pod = :pod WHERE user_email ilike :email", {"email": t[0], "pod": t[1]})
+  else:
+    st.error("*No file is selected, or perhaps I just don't recognize the format of the file.*")
 
 st.write("## Pod table")
 st.info("This is the database table of user pods that Cicero currently uses. Remember: this section is completely collapsable in the user interface, if its huge size is visually distracting.")
