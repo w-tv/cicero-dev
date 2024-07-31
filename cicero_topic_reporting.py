@@ -12,7 +12,7 @@ List of derived quantities, left to right (does not include "topic", which is al
 """
 import streamlit as st
 from typing import Any, Sequence
-from cicero_shared import load_account_names, sql_call, st_print, topics_big
+from cicero_shared import load_account_names, sql_call, topics_big
 
 import pandas as pd
 import altair as alt
@@ -108,7 +108,6 @@ if "all_hook" in topics: #This special case is just copy-pasted from above, with
 key_of_rows = ("Topic", "TV Funds ($)", "FPM ($)", "ROAS (%)", "Project count")
 dicted_rows = {key_of_rows[i]: [row[i] for row in summary_data_per_topic] for i, key in enumerate(key_of_rows)} #various formats probably work for this; this is just one of them.
 dicted_rows["color"] = [tb["color"] for t in dicted_rows["Topic"] for _, tb in topics_big.items() if tb["internal name"] == t.removesuffix("_hook")] #COULD: one day revise the assumptions that necessitate this logic, which is really grody. #TODO: in some cases we get a "All arrays must be of the same length" error on this, but I'm pretty sure that's just a result of us being mid- topic-pivot.
-st_print(dicted_rows)
 if len(summary_data_per_topic):
   chart = alt.Chart(pd.DataFrame(dicted_rows)).mark_circle(size=90).encode(alt.X("ROAS (%)"), alt.Y("FPM ($)"), alt.Color("Topic", scale=alt.Scale(domain=dicted_rows["Topic"], range=dicted_rows["color"]), legend=None), tooltip=key_of_rows) #type: ignore[no-untyped-call] #ALTAIR-BUG-WORKAROUND https://github.com/vega/altair/issues/3408 — Fixed, waiting for next release. The current (buggy) release is 5.3.0 and I'm watching https://github.com/vega/altair/releases like a hawk for a new release (GitHub has a Watch>Custom>Releases option) but based on that page their release cadence is slow, although it will probably be this year (2024).
   st.altair_chart(chart, use_container_width=True)
