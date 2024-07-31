@@ -12,13 +12,14 @@ List of derived quantities, left to right (does not include "topic", which is al
 """
 import streamlit as st
 from typing import Any, Sequence
-from cicero_shared import load_account_names, sql_call, topics_big
+from cicero_shared import load_account_names, sql_call, st_print, topics_big
 
 import pandas as pd
 import altair as alt
 
 def to_sql_tuple_string(x: Sequence[str]) -> str:
   """SQL doesn't like the trailing comma python puts in a singleton tuple, so we can't just use the tuple constructor and then convert that to string; we have to do this instead."""
+  # databricks-sql-python-BUG-WORKAROUND: https://github.com/databricks/databricks-sql-python/issues/377 https://github.com/databricks/databricks-sql-python/issues/290
   if len(x) == 0:
     return "(NULL)" #this is a special case, because SQL doesn't like 'in ()' for some reason
   else:
@@ -44,6 +45,11 @@ def external_account_names_to_internal_account_names_list_mapping(external_accou
 
 def external_topic_names_to_internal_hooks_list_mapping(external_topic_names: list[str]) -> list[str]:
   return [topics_big[e]["internal name"]+"_hook" for e in external_topic_names]
+
+def permissible_account_names(user_email: str) -> list[str]:
+  """Note that these should be the "external" names (the short and more user-friendly ones, which map to a number of internal projects (or whatever) run by those people (or however that works).
+  Note that all users are always allowed to see the aggregate of all things, as permitted by the page logic (tho not explicitly addressed in this function) largely because we don't really care."""
+  return sql_call("FROM cicero.ref_tables.user_pods SELECT user_permitted_to_see_these_accounts_in_topic_reporting WHERE user_email = :user_email", locals())[0][0] or []
 
 with st.expander("Topics..."):
   # Complicated logic just to have defaults and de/select all. Remember, the streamlit logic seems to be that the default value is overriden by user-selected values... unless the default value changes. Which makes sense, as these things go.
@@ -77,6 +83,7 @@ with col1:
   past_days = st.radio("Date range", [1, 7, 14, 30, 30*6], index=1, format_func=lambda x: "Yesterday" if x == 1 else f"Last {x} days", help="The date range from which to display data. This will display data from any calendar day greater than or equal to (the present day minus the number of days specified). That is, 'Yesterday' will display data from both yesterday and today (and possibly, in rare circumstances, from the future).\n\nUnlike the rest of the controls in this row, this control only controls the top graph, and is never applied to the bottom graph.")
 with col2:
   accounts = st.multiselect("Account", load_account_names(), help="This control allows you to filter on the account name. If nothing is selected in this control all of the accounts will be presented.")
+  st_print(permissible_account_names(st.session_state["email"]))
   accounts_string = "true" if not accounts else f"account_name in {to_sql_tuple_string(external_account_names_to_internal_account_names_list_mapping(accounts))}"
 with col3:
   project_types = st.multiselect("Project Type", ["Email: House", "Email: Rental External", "Email: Rental Internal", "Text Message: P2P", "Text Message: P2P External", "Text Message: P2P Internal", "Text Message: SMS"], help="This control allows you to filter on the project type. If nothing is selected in this control, no filtering will be done.")
