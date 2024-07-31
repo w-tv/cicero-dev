@@ -49,7 +49,11 @@ def external_topic_names_to_internal_hooks_list_mapping(external_topic_names: li
 def permissible_account_names(user_email: str) -> list[str]:
   """Note that these should be the "external" names (the short and more user-friendly ones, which map to a number of internal projects (or whatever) run by those people (or however that works).
   Note that all users are always allowed to see the aggregate of all things, as permitted by the page logic (tho not explicitly addressed in this function) largely because we don't really care."""
-  return sql_call("FROM cicero.ref_tables.user_pods SELECT user_permitted_to_see_these_accounts_in_topic_reporting WHERE user_email = :user_email", locals())[0][0] or []
+  return sql_call("FROM cicero.ref_tables.user_pods SELECT user_permitted_to_see_these_accounts_in_topic_reporting WHERE user_email = :user_email", locals())[0][0]
+
+def lowalph(s: str) -> str:
+  """Given a string, return only its alphabetical characters, lowercased. This is especially useful when trying to string compare things that might have different punctuation. In our case, often en dashes vs hpyhens."""
+  return ''.join(filter(str.isalpha, s)).lower()
 
 with st.expander("Topics..."):
   # Complicated logic just to have defaults and de/select all. Remember, the streamlit logic seems to be that the default value is overriden by user-selected values... unless the default value changes. Which makes sense, as these things go.
@@ -82,8 +86,8 @@ col1, col2, col3, col4 = st.columns(4) #possibly refactor this into non-unpackin
 with col1:
   past_days = st.radio("Date range", [1, 7, 14, 30, 30*6], index=1, format_func=lambda x: "Yesterday" if x == 1 else f"Last {x} days", help="The date range from which to display data. This will display data from any calendar day greater than or equal to (the present day minus the number of days specified). That is, 'Yesterday' will display data from both yesterday and today (and possibly, in rare circumstances, from the future).\n\nUnlike the rest of the controls in this row, this control only controls the top graph, and is never applied to the bottom graph.")
 with col2:
-  accounts = st.multiselect("Account", load_account_names(), help="This control allows you to filter on the account name. If nothing is selected in this control all of the accounts will be presented.")
-  st_print(permissible_account_names(st.session_state["email"]))
+  permitted_accounts = [ x for x in load_account_names() if lowalph(x) in map(lowalph, permissible_account_names(st.session_state["email"])) ]
+  accounts = st.multiselect("Account", permitted_accounts, help="This control allows you to filter on the account name. If nothing is selected in this control all of the accounts will be presented. Also, you must be individually permissioned for access to account names, so you may not have the ability to select additional ones.")
   accounts_string = "true" if not accounts else f"account_name in {to_sql_tuple_string(external_account_names_to_internal_account_names_list_mapping(accounts))}"
 with col3:
   project_types = st.multiselect("Project Type", ["Email: House", "Email: Rental External", "Email: Rental Internal", "Text Message: P2P", "Text Message: P2P External", "Text Message: P2P Internal", "Text Message: SMS"], help="This control allows you to filter on the project type. If nothing is selected in this control, no filtering will be done.")
@@ -102,7 +106,8 @@ if "all_hook" in topics: #This special case is just copy-pasted from above, with
   summary_data_per_topic += sql_call(f"""WITH stats(topic, funds, sent, spend, project_count) AS (SELECT "all_hook", SUM(TV_FUNDS), SUM(SENT), SUM(SPEND_AMOUNT), COUNT(DISTINCT PROJECT_NAME) FROM hook_reporting.default.gold_topic_data_pivot WHERE {project_types_string} and {accounts_string} and {askgoal_string} and SEND_DATE >= CURRENT_DATE() - INTERVAL {past_days} DAY and SEND_DATE <= CURRENT_DATE()) SELECT topic, funds, cast( try_divide(funds, sent)*1000*100 as int )/100, cast( try_divide(funds, spend)*100 as int ), project_count from stats""") #TODO: handle (remove) the case where all_hook is 0, in this and the lower graph.
 key_of_rows = ("Topic", "TV Funds ($)", "FPM ($)", "ROAS (%)", "Project count")
 dicted_rows = {key_of_rows[i]: [row[i] for row in summary_data_per_topic] for i, key in enumerate(key_of_rows)} #various formats probably work for this; this is just one of them.
-dicted_rows["color"] = [tb["color"] for t in dicted_rows["Topic"] for _, tb in topics_big.items() if tb["internal name"] == t.removesuffix("_hook")] #COULD: one day revise the assumptions that necessitate this logic, which is really grody.
+dicted_rows["color"] = [tb["color"] for t in dicted_rows["Topic"] for _, tb in topics_big.items() if tb["internal name"] == t.removesuffix("_hook")] #COULD: one day revise the assumptions that necessitate this logic, which is really grody. #TODO: in some cases we get a "All arrays must be of the same length" error on this, but I'm pretty sure that's just a result of us being mid- topic-pivot.
+st_print(dicted_rows)
 if len(summary_data_per_topic):
   chart = alt.Chart(pd.DataFrame(dicted_rows)).mark_circle(size=90).encode(alt.X("ROAS (%)"), alt.Y("FPM ($)"), alt.Color("Topic", scale=alt.Scale(domain=dicted_rows["Topic"], range=dicted_rows["color"]), legend=None), tooltip=key_of_rows) #type: ignore[no-untyped-call] #ALTAIR-BUG-WORKAROUND https://github.com/vega/altair/issues/3408 — Fixed, waiting for next release. The current (buggy) release is 5.3.0 and I'm watching https://github.com/vega/altair/releases like a hawk for a new release (GitHub has a Watch>Custom>Releases option) but based on that page their release cadence is slow, although it will probably be this year (2024).
   st.altair_chart(chart, use_container_width=True)
