@@ -87,7 +87,7 @@ col1, col2, col3, col4 = st.columns(4) #possibly refactor this into non-unpackin
 with col1:
   past_days = st.radio("Date range", [1, 7, 14, 30, 30*6], index=1, format_func=lambda x: "Yesterday" if x == 1 else f"Last {x} days", help="The date range from which to display data. This will display data from any calendar day greater than or equal to (the present day minus the number of days specified). That is, 'Yesterday' will display data from both yesterday and today (and possibly, in rare circumstances, from the future).\n\nUnlike the rest of the controls in this row, this control only controls the top graph, and is never applied to the bottom graph.")
 with col2:
-  permitted_accounts = [ x for x in load_account_names() if lowalph(x) in map(lowalph, permissible_account_names(st.session_state["email"])) ]
+  permitted_accounts = load_account_names() if "everything" in permissible_account_names(st.session_state["email"]) else [ x for x in load_account_names() if lowalph(x) in map(lowalph, permissible_account_names(st.session_state["email"])) ]
   accounts = st.multiselect("Account", permitted_accounts, help="This control allows you to filter on the account name. If nothing is selected in this control all of the accounts will be presented. Also, you must be individually permissioned for access to account names, so you may not have the ability to select additional ones.")
   accounts_string = "true" if not accounts else f"account_name in {to_sql_tuple_string(external_account_names_to_internal_account_names_list_mapping(accounts))}"
 with col3:
