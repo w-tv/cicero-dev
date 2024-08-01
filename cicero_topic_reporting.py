@@ -35,7 +35,7 @@ def to_graphable_dict(values: Sequence[Sequence[Any]], x:str='x', y:str='y', col
   else:
     return [{x: value[0], y:value[1], color:value[2]} for value in values]
 
-internal_account_name_to_external_account_name = {k: v for k, v in sql_call("SELECT account_name, rollup_name FROM cicero.ref_tables.ref_account_rollup SORT BY account_name ASC -- WHERE visible_frontend")} # TODO: Last part doesn't work yet, so it's commented out. Unclear if we should just set them all to true? #many-to-one relationship of several internal names per one external name. This is what everyone at work calls a "rollup" (one of several sense of the word "rollup" that they use), apparently because many values are "rolled-up" into the few values.
+internal_account_name_to_external_account_name = {k: v for k, v in sql_call("SELECT account_name, rollup_name FROM cicero.ref_tables.ref_account_rollup WHERE visible_frontend SORT BY account_name ASC")} # many-to-one relationship of several internal names per one external name. This is what everyone at work calls a "rollup" (one of several sense of the word "rollup" that they use), apparently because many values are "rolled-up" into the few values.
 
 def external_account_name_to_internal_account_names(external_account_name: str) -> list[str]:
   return [ian for ian, ean in internal_account_name_to_external_account_name.items() if ean == external_account_name]

@@ -93,10 +93,9 @@ def sql_call_cacheless(query: str, sql_params_dict:dict[str, Any]|None=None) -> 
   except Exception as e:
     die_with_database_error_popup(e.args)
 
-# TODO: refactor to cicero.ref_tables.ref_account_rollup # "Donald Trump - TMA" has been added to client_list since then, so also move that over.
 @st.cache_data(show_spinner=False)
 def load_account_names() -> list[str]:
-  return [row[0] for row in sql_call("SELECT * FROM cicero.default.client_list ORDER BY account_name ASC")]
+  return [row[0] for row in sql_call("SELECT DISTINCT rollup_name FROM cicero.ref_tables.ref_account_rollup WHERE visible_frontend ORDER BY rollup_name ASC")]
 
 def assert_always(x: Any, message_to_assert: str|None = None) -> None | NoReturn: #COULD: currently this enjoys no type-narrowing properties, alas.
   """This function is equivalent to assert, but cannot be disabled by -O"""
