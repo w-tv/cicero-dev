@@ -5,7 +5,7 @@
 import streamlit as st
 import pandas as pd
 import json
-from typing import Any, Literal, TypedDict, TypeVar, get_args
+from typing import Any, Literal, TypeAliasType, TypedDict, TypeVar, get_args
 from cicero_shared import assert_always, consul_show, ensure_existence_of_activity_log, exit_error, get, get_base_url, load_account_names, sql_call, sql_call_cacheless, topics_big, typesafe_selectbox
 import cicero_chat
 
@@ -54,15 +54,21 @@ def load_headlines(get_all: bool = False, past_days: int = 7) -> list[str]:
   )
   return [result[0] for result in results]
 
-Short_Model_Name = Literal["DBRX-Instruct", "Llama-3.1-70b-Instruct", "Mixtral-8x7b-Instruct", 'Llama-3.1-405b-Instruct'] #See https://stackoverflow.com/questions/64522040/dynamically-create-literal-alias-from-list-of-valid-values for an explanation of what we're doing here. #COULD: one day use the `type` keyword here for defining this type. But it's not supported yet.
-short_model_names: tuple[Short_Model_Name, ...] = get_args(Short_Model_Name)
-Long_Model_Name = Literal["databricks-dbrx-instruct", "databricks-meta-llama-3-1-70b-instruct", "databricks-mixtral-8x7b-instruct", 'databricks-meta-llama-3-1-405b-instruct'] #IMPORTANT: the cleanest way of implementing this REQUIRES that short_model_names and long_model_names correspond via index. This is an unfortunate burden, but it's better than the other ways I tried...
-long_model_names: tuple[Long_Model_Name, ...] = get_args(Long_Model_Name)
-#TODO: "valid values" dict? And then use that for "I'm feeling lucky"?
-Selectable_Length = Literal['short', 'medium', 'long']
-Ask_Type = Literal['Hard Ask', 'Medium Ask', 'Soft Ask', 'Soft Ask Petition', 'Soft Ask Poll', 'Soft Ask Survey']
-Tone = Literal['Agency', 'Apologetic', 'Candid', 'Exclusivity', 'Fiesty', 'Grateful', 'Not Asking For Money', 'Pleading', 'Quick Request', 'Secretive', 'Time Sensitive', 'Urgency'] #Could: , 'Swear Jar' will probably be in here some day, but we don't have "we need more swear jar data to make this tone better"
-Num_Outputs = Literal[1,3,5,10]
+def aa(t: TypeAliasType) -> Any:
+  "“aa”, “alias' args”: get the type arguments of the type within a TypeAlias. (Usually, we have a lot of Literal types, that are aliased, and this gets you the values from those types.) Pronounced like a quiet startled yelp."
+  return get_args(t.__value__) # We only need .__value__ here because of the type keyword.
+
+# The `type` keyword here, used for defining type alias, is completely optional, but seems like a good idea. (Note: the resulting types are TypeAlias objects now, instead of their original types, so some indirection may be required, like using `aa` instead of `get_args`.) It was added to python in 3.12, so it's quite recent. It's also rather hard to check for the neccessity of adding a `type` keyword, although it's theoretically automatically detectable. I think you need to do `ruff check --select PYI026`, and even then it only works on .pyi files. So, we might not have complete strictness on marking every type alias as `type` yet. See also, https://github.com/astral-sh/ruff/issues/8704 " Add rule to encourage using type aliases (generalize PYI026) #8704 "
+#See https://stackoverflow.com/questions/64522040/dynamically-create-literal-alias-from-list-of-valid-values for an explanation of what we're doing here with the Literal types and get_args (here, `aa`).
+type Short_Model_Name = Literal["DBRX-Instruct", "Llama-3.1-70b-Instruct", "Mixtral-8x7b-Instruct", 'Llama-3.1-405b-Instruct'] 
+type Long_Model_Name = Literal["databricks-dbrx-instruct", "databricks-meta-llama-3-1-70b-instruct", "databricks-mixtral-8x7b-instruct", 'databricks-meta-llama-3-1-405b-instruct'] #IMPORTANT: the cleanest way of implementing this REQUIRES that short_model_names and long_model_names entries correspond via index. This is an unfortunate burden, since it cannot be enforced automatically, but it's better than the other ways I tried...
+short_model_names: tuple[Short_Model_Name, ...] = aa(Short_Model_Name) 
+long_model_names: tuple[Long_Model_Name, ...] = aa(Long_Model_Name) # We only need .__value__ here because of the type keyword.
+#Could: have a "valid values" dict? And then use that for "I'm feeling lucky"?
+type Selectable_Length = Literal['short', 'medium', 'long']
+type Ask_Type = Literal['Hard Ask', 'Medium Ask', 'Soft Ask', 'Soft Ask Petition', 'Soft Ask Poll', 'Soft Ask Survey']
+type Tone = Literal['Agency', 'Apologetic', 'Candid', 'Exclusivity', 'Fiesty', 'Grateful', 'Not Asking For Money', 'Pleading', 'Quick Request', 'Secretive', 'Time Sensitive', 'Urgency'] #Could: , 'Swear Jar' will probably be in here some day, but we don't have "we need more swear jar data to make this tone better"
+type Num_Outputs = Literal[1,3,5,10]
 
 #Make default state, and other presets, so we can manage presets and resets.
 # Ah, finally, I've figured out how you're actually supposed to do it: https://docs.streamlit.io/library/advanced-features/button-behavior-and-examples#option-1-use-a-key-for-the-button-and-put-the-logic-before-the-widget
@@ -122,9 +128,10 @@ def only_those_strings_of_the_list_that_contain_the_given_substring_case_insensi
 def short_model_name_to_long_model_name(short_model_name: Short_Model_Name) -> Long_Model_Name:
   return long_model_names[short_model_names.index(short_model_name)]
 
+# This looks like it should take a `type` keyword, but apparently it does not (pyright complains). For more on TypedDicts and this call, see https://typing.readthedocs.io/en/latest/spec/typeddict.html#alternative-syntax. Note that we use the alt syntax here simply because it is much shorter!
 ReferenceTextElement = TypedDict('ReferenceTextElement', {'prompt': str, 'text': str, 'score': float})
 
-def sample_dissimilar_texts(population: list[ReferenceTextElement], k: int, max_similarity: float=0.8) -> list[ReferenceTextElement]: #TODO: it seems that this function is only called when text is Long, which is probably not right? #TODO: it takes line 20 seconds for this code to run, it seems, and this code is called {# Outputs} times (again, only on Long) and furthermore I suspect this code can be replaced with about 5 lines, so maybe that refactor will also speed things up.
+def sample_dissimilar_texts(population: list[ReferenceTextElement], k: int, max_similarity: float=0.8) -> list[ReferenceTextElement]: #TODO: it seems that this function is only called when text is Long, which is probably not right? #TODO: it takes maybe 20 seconds for this code to run, it seems, and this code is called {# Outputs} times (again, only on Long) and furthermore I suspect this code can be replaced with about 5 lines, so maybe that refactor will also speed things up. # On further investigation it seems like this is rarely the bottleneck. Or is it?
   consul_show(f"sample_dissimilar_texts's {max_similarity=}")
   final_arr: list[ReferenceTextElement] = []
   not_selected = []
@@ -229,7 +236,7 @@ def execute_prompting(model: Long_Model_Name, account: str, sender: str|None, as
   # Then, the filters are sorted by their weight in descending order
   # So higher weight filter combinations are first in the array which means any documents with those filters will be considered first
   combos = [{y[0]: y[1] for y in x[0]} for x in sorted(combos_set, key=lambda a: a[1], reverse=True)] #a list of dictionaries
-  # TODO: write example of a combo here
+  # Could: write example of a combo here
 
   ### Find as Many Relevant Documents as Possible ###
   print("Finding the documents")
@@ -525,13 +532,13 @@ with st.form('query_builder'):
   model = short_model_name_to_long_model_name(model_name)
   account = st.selectbox("Account (required)", account_names, key="account") # No typesafe_selectbox here because we actually do want this to possibly be unselected.
   sender = st.text_input("Sender Name", key="sender") if st.session_state.get("sender_access") else None
-  ask_type = typesafe_selectbox("Ask Type", get_args(Ask_Type), key="ask_type").lower()
+  ask_type = typesafe_selectbox("Ask Type", aa(Ask_Type), key="ask_type").lower()
   topics = st.multiselect("Topics", sorted([t for t, d in topics_big.items() if d["show in prompter?"]]), key="topics" )
   topics = external_topic_names_to_internal_topic_names_list_mapping(topics)
-  length_select = typesafe_selectbox("Length", get_args(Selectable_Length), key='lengths', format_func=lambda x: f"{x.capitalize()} ({'<160' if x == 'short' else '161-399' if x == 'medium' else '400+'} characters)")
+  length_select = typesafe_selectbox("Length", aa(Selectable_Length), key='lengths', format_func=lambda x: f"{x.capitalize()} ({'<160' if x == 'short' else '161-399' if x == 'medium' else '400+'} characters)")
   additional_topics = [x.strip().lower() for x in st.text_input("Additional Topics (examples: Biden, survey, deadline)", key="additional_topics" ).split(",") if x.strip()] # The list comprehension is to filter out empty strings on split, because otherwise this fails to make a truly empty list in the default case, instead having a list with an empty string in, because split changes its behavior when you give it arguments. Anyway, this also filters out trailing comma edge-cases and such.
-  tones = st.multiselect("Tones", get_args(Tone), key="tones")
-  num_outputs = typesafe_selectbox(r"\# Outputs", get_args(Num_Outputs), key='num_outputs')
+  tones = st.multiselect("Tones", aa(Tone), key="tones")
+  num_outputs = typesafe_selectbox(r"\# Outputs", aa(Num_Outputs), key='num_outputs')
   temperature: float = st.slider("Output Variance:", min_value=0.0, max_value=1.0, key="temperature") if st.session_state.get("developer_mode") else 0.7
   buttonhole = st.empty()
   with buttonhole:
