@@ -20,14 +20,14 @@ streamlit-profiler @ git+https://github.com/wyattscarpenter/streamlit-profiler@p
 beautifulsoup4
 
 # Dev-only requirements (tooling)
-uv >= 0.1.35, <= 0.1.36 # I'm not sure the exact version that added uv run, but that's really all we need. But then after 0.1.37 they changed the semantics of uv run or something so it doesn't work for me anymore. (0.1.37 also adds an annoying message about how uv run is experimental, which prints all the time, much to my chagrin.) We'll just stay locked in to this range until uv run settles down a bit more, then we'll migrate over to the newer version.
-mypy >= 1.9.0
+uv >= 0.2.32 # At some point in 0.2.x they added uv run back in, and that's really all we need.
+mypy >= 1.11.1
 mypy-extensions >= 1.0.0
 typing-extensions
 pipreqs
 deptry >= 0.14.1
 ruff
-pyright
+pyright >= 1.1.374
 
 ## type stubs that aren't installed by mypy --install-types for whatever reason
 
