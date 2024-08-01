@@ -321,7 +321,7 @@ def execute_prompting(model: Long_Model_Name, account: str, sender: str|None, as
         start = end
       # Then add all results sorted by score descending to the reference_texts list
       reference_texts.extend(search_results)
-    except:
+    except Exception as _e:
       used_similarity_search_backup = "faiss"
       if st.session_state.get("developer_mode"):
         st.write("developer mode message: error was encountered in the main similarity search library (or perhaps you induced a fake error there for testing purposes) so we are using the backup option")
@@ -551,7 +551,7 @@ with st.form('query_builder'):
 if st.session_state.get("developer_mode"):
   if st.button("Developer mode special button for testing: “***I'm feeling (un)lucky***”"):
     st.session_state["submit_button_disabled"] = True
-    account = "AAF" #TODO: is there a better testing value? Could I have my own dummy account that just writes nice things about me personally, for example? Or nasty things about Ceasar?
+    account = "AAF" # Just a testing value.
 
 max_tokens = 4096 # This isn't really a thing we should let the user control, at the moment, but we the developers could change it, much like the other variables.
 
@@ -604,7 +604,8 @@ st.error('**REMINDER!** Please tag all projects with "**optimization**" in the L
 
 with st.sidebar: #The history display includes a result of the logic of the script, that has to be updated in the middle of the script where the button press is (when the button is in fact pressed), so the code to display it has to be after all the logic of the script or else it will lag behind the actual state of the history by one time step.
   st.header("History of replies:")
-  if 'history' not in st.session_state: st.session_state['history'] = []
+  if 'history' not in st.session_state:
+    st.session_state['history'] = []
   st.dataframe( pd.DataFrame(reversed( st.session_state['history'] ),columns=(["Outputs"])), hide_index=True, use_container_width=True)
 
 login_activity_counter_container.write(
