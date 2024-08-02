@@ -60,10 +60,11 @@ def aa(t: TypeAliasType) -> Any:
 
 # The `type` keyword here, used for defining type alias, is completely optional, but seems like a good idea. (Note: the resulting types are TypeAlias objects now, instead of their original types, so some indirection may be required, like using `aa` instead of `get_args`.) It was added to python in 3.12, so it's quite recent. It's also rather hard to check for the neccessity of adding a `type` keyword, although it's theoretically automatically detectable. I think you need to do `ruff check --select PYI026`, and even then it only works on .pyi files. So, we might not have complete strictness on marking every type alias as `type` yet. See also, https://github.com/astral-sh/ruff/issues/8704 " Add rule to encourage using type aliases (generalize PYI026) #8704 "
 #See https://stackoverflow.com/questions/64522040/dynamically-create-literal-alias-from-list-of-valid-values for an explanation of what we're doing here with the Literal types and get_args (here, `aa`).
-type Short_Model_Name = Literal["DBRX-Instruct", "Llama-3.1-70b-Instruct", "Mixtral-8x7b-Instruct", 'Llama-3.1-405b-Instruct'] 
-type Long_Model_Name = Literal["databricks-dbrx-instruct", "databricks-meta-llama-3-1-70b-instruct", "databricks-mixtral-8x7b-instruct", 'databricks-meta-llama-3-1-405b-instruct'] #IMPORTANT: the cleanest way of implementing this REQUIRES that short_model_names and long_model_names entries correspond via index. This is an unfortunate burden, since it cannot be enforced automatically, but it's better than the other ways I tried...
+type Short_Model_Name = Literal["Llama-3.1-405b-Instruct", "DBRX-Instruct", "Llama-3.1-70b-Instruct", "Mixtral-8x7b-Instruct"] 
+type Long_Model_Name = Literal["databricks-meta-llama-3-1-405b-instruct", "databricks-dbrx-instruct", "databricks-meta-llama-3-1-70b-instruct", "databricks-mixtral-8x7b-instruct"] #IMPORTANT: the cleanest way of implementing this REQUIRES that short_model_names and long_model_names entries correspond via index. This is an unfortunate burden, since it cannot be enforced automatically, but it's better than the other ways I tried...
 short_model_names: tuple[Short_Model_Name, ...] = aa(Short_Model_Name) 
-long_model_names: tuple[Long_Model_Name, ...] = aa(Long_Model_Name) # We only need .__value__ here because of the type keyword.
+long_model_names: tuple[Long_Model_Name, ...] = aa(Long_Model_Name)
+short_model_name_default = short_model_names[0] #this doesn't have to be the first value, but I find it more convenient to have that line up like that.
 #Could: have a "valid values" dict? And then use that for "I'm feeling lucky"?
 type Selectable_Length = Literal['short', 'medium', 'long']
 type Ask_Type = Literal['Hard Ask', 'Medium Ask', 'Soft Ask', 'Soft Ask Petition', 'Soft Ask Poll', 'Soft Ask Survey']
@@ -95,7 +96,7 @@ class PresetsPayload(TypedDict):
 presets: dict[str, PresetsPayload] = {
   "default": {
     "temperature": 0.7,
-    "model_name": "Llama-3.1-70b-Instruct",
+    "model_name": short_model_name_default,
     "account": None,
     "sender": None,
     "ask_type": "Hard Ask",
@@ -528,7 +529,7 @@ with st.form('query_builder'):
       doc_pool_size = 30
       num_examples = 10
 
-  model_name = typesafe_selectbox("Model (required)", short_model_names, key="model_name") if st.session_state.get("developer_mode") else "Llama-3.1-70b-Instruct"
+  model_name = typesafe_selectbox("Model (required)", short_model_names, key="model_name") if st.session_state.get("developer_mode") else short_model_name_default
   model = short_model_name_to_long_model_name(model_name)
   account = st.selectbox("Account (required)", account_names, key="account") # No typesafe_selectbox here because we actually do want this to possibly be unselected.
   sender = st.text_input("Sender Name", key="sender") if st.session_state.get("sender_access") else None
