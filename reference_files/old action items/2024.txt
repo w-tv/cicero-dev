@@ -1,0 +1,234 @@
+2024:
+
+2024-08-02 and earlier:
+* actually talking with Alisa now, we are going to change the default model for both prompter and CwC to 405B week of 5.
+* Paste in link corp chat "hey write three tweets about this"
+* w: Copy the alex-wyatt Canvas somewhere to clear out the old stuff so that it doesn't take so long to render changes? (a: made a list for us, check it out) (w: ok maybe new stuff will just go into the list) ((they were discussing the asana/kanban style board ("list") in Slack,  https://targetedvictory.slack.com/lists/T02R7BKJF/F07E26N1C2V ))
+* (chang:) i also want to move the user pods table to the ref_tables schema. this will require some changes to the new pod key page but i think i can figure it out ((it'll just be changing the name probably))
+* github branch protection (or possibly hook?) that prevents me from pushing to tv prod during business hours (because I sometimes forget this rule) (ehhhh it's fine, nvm)
+* add the sender name text box in dev mode
+* hook up the sender name text box in dev mode
+* move internal_name_to_external_name (to... a databricks table? I guess? What did I mean by this?)
+* submit invoice for may
+* etc (see git history for many action items that bypassed this list)
+* submit time of
+* Ted says: wanted to flag that it seems like the hook reporting is only showing data when you select the last 30 days or 180 days (this is probably because the table migration is not complete yet) (this was the feature: restore all_hook functionality... MAYBE)
+* prompter and chat ultimately supposed to have separate history stacks
+* Idea: edit initial prompt to be like "do your best to combine all the topics and tones together" to just avoid the whole like splitting out the tones into seperate texts
+* Handle request limit exceeded in chatbot
+* Also, I guess maybe we should filter out ones under a minimum number of characters, huh?
+* have the activity log reflect whether activity is via the prompter chatbot or chatwithcicero chat
+* Shoot the "only one instance" idea into smc (chang did this)
+* remove annoying headroom
+* make tables scrollable (impossible; abandoned)
+* loosen the chat tab
+* ask for voting
+* make the activity looker (wyatt’s idea)
+* “looks like its working in prod for last 7 days just not yesterday“
+* default prompt for the Rag Man in his own tab which needs to be renamed: Here is a conservative fundraising text or email: [" + output + "] Analyze the quality of the text or email based off of these five fundraising elements: the Hook, Urgency, Agency, Stakes, and the Call to Action (CTA). Do not assign scores to the elements. It's possible one or more of these elements is missing from the text provided. If so, please point that out. Then, rewrite the text based off of your analysis. Keep the overall message the same, but feel free to change the sentence structure or tone.
+* display at first blush the rag-only tab.
+* add system_prompt to activity log
+* switch from tabs back to pages for performance reasons. (probably can’t do this reasonably) (but there is a new streamlit pages features so maybe we can..)
+* add frontend url field to activity log
+* "chatbot or prompter" field in activity log
+* merge chatbot activity log and activity log into same table (incl retroactively)
+* add several pods and users
+* REMOVE NEW TYPEVAR SYNTAX
+* Mystery big talk errors. (after using the real dude for a while, an error occurs) (no-longer a mystery)
+* push to prod
+* remove certain people’s access from cicero-dev
+* What times for the later sync meetings?
+* Rag man jailbreak TED mentioned
+* Some datetimes don’t end up as datetimes properly in excel. Fix this. (turn to actual date? Maybe remove decimal places from seconds?)
+*  change the real dude model to dbrx-instruct, also alphabetize the model names, and use shorter names for the real dude models
+* "the page doesn’t exist" mystery error: talk to sean, john, IT? (nah it’s probably just deploys) (Update: it's not deploys) (It's probably just OOM though. Get Alisa to get Sean to up the memory limit.)
+* Move the pod key standalone to dev mode in cicero proper.
+* mysterious auto-reboot when app is idle (load-balancer?) (this is probably just the timeout in the yaml)
+* ted error (probably just need to docker-copy the streamlit file)
+* topic tagging task fail too long
+* read sean's documentation on long request times
+* keep looking in to errors.
+* make the prompter faster?
+* docker copy the hidden files
+* move bios into client_list (nevermind. not needed. whatever.)
+* tag the last commit that touches gpt-2
+* Add Sswanson into users, pod jeff
+* Add Derek Schmidt KS-02 to the internal-external name mapper (chang has to send me this)
+* Wes’s code uses hard-coded versions of data that already out of sync with Cicero?! - "Create Reference Tables" https://dbc-ca8d208b-aaa9.cloud.databricks.com/?o=8188181812650195#notebook/2936451416546423 (ok this is resolved but there are secondary changes this means we have to make)
+* Consolidate lovelytics powers into cicero? (eh, nah)
+* remove the standalone because model perms are no longer real. (actually the standalone is for pods so we still need it)
+* change the doc pool size to uh 30, and then can you test and see how long it takes to prompt and if it takes like too long, like over 20 seconds, drop the doc pool size to uh 20 (or optimize) ((Chang did this))
+* expose this list of variables in CONSUL mode (my new name for dev mode) ((:exploding_head:)): from sample_dissimilar_texts, max_similarity; score_threshold, doc_pool_size, num_examples
+* kill all pandas (replace with st.dataframe?) (update: nah)
+* remove some now-useless devmode sidebar stuff.
+* upgrade everything to python 3.12
+* Creative pod, pull their access.
+* move arvind akrishnan to the pod "arvind"
+* ted cosmetic changes to cicero.
+* for model selection for real dude, make the three different models available like how we do in the form
+* for the model prompt for cicero real dude, can you specify that that is the system prompt?
+* cicero output matches from ted (this is well gone by now; didn’t do it)
+* (prelude to "im feeling lucky"): "I’m feeling unlucky" button.
+* thumbs-up/down outputs (or maybe star) of the real dude to weight those results more? (society has progressed beyond the need for human real-dude grading) (society actually still needs this) (this has been tabled) (also thumbs-up/down / star the initial outputs from the model. Maybe edit the system prompt based on this.)
+* figure out how to report to slackitself the fact that crossed-out hyperlinks should still be link color but greyed instead of completely grey. (they figured this out without me)
+* (for chang:) can you delete models.lovelytics.ref_bios ? I've confirmed it's currently identical to cicero.default.ref_bios, which everyone should be using from now on instead.
+* Retroactively convert all of the timestamps in activity log to true timestamps (also did this for activity log chatbot, altho it’s unclear if that did anything).
+* Time-limited activity log updating
+* thursday, disable keep-alive code (actually, Alisa said to keep this around, at least for now) (this later became irrelevant.)
+* "cicero-stage"? "cicero-unstable"? / "power mode" instead of "developer mode"? (eh, nah)
+* pull request the syntax warnings
+* pull request the syntax warnings 2
+* fix (or rather ignore) type errors
+* correct typos: ann wager, greg abbott
+* insert some new people in the dropdown and rollup from an excel
+* slider for doc pool size and number of examples (5 to 100)
+* log wrong output number error
+* add profiler
+* clean up the activity log of blank outputs, non-text message outputs (just let time do this dirty work 😏) ((no))
+* Something about the real dude:tm: implementations? Presumably: have an option (sidebar) to change the model for The Real Dude (dev or regular...?)
+* some refactors
+* show ted how to add people to pods and streamlit prod
+* change real dude default model back to llama
+* change new pod key to be more self-explanatory, and also move the data listings so that the user doesn't need to manually refresh the page to see new changes
+* I figured out how to grey-out the button during submits. Let's gooooo
+* put brian in touch with wyatt (chang)
+* Later, I will break your history, to restore linear time. But that's a story for another day.
+*  tell Wes to work on the actual codebase...  if he says yes
+*  also it seems that headlines and bio are no longer making it into the prompt? (specifically the "final ask", the ‘question’)
+*  Oh yeah we also want to change the medium char count to 350 (in the part where its like medium: a text that's about n characters long or something like that) (chang did this)
+* Wes new changes (anti-500, & etc)
+* Ted tells me the reference long texts are not getting randomized (he was mistaken)
+* and then we caught another one, instead of "here are..." ted got "Message 1/2/3..." before each message
+* Sync with Brian, give him ideas for his streamlit app for prospecting
+* alisa also wants to remove the quotes around any messages, should they appear
+* And then can you push over the all changes to the tv-cicero repo
+* fix secrets in Cicero GCP Prod
+* Logo: Replace with colorful version (Chang)
+* Favicon: Replace with black-white columns image (Chang)
+* Chat Feature Icon: Replace with columns on an angle (Chang)
+* Okta: Replace with colorful logo: Title with “AI Copywriting” (chang)
+* Tabs: Leave tabs bar off of prod. Only rollout “Prompter” (chang)
+* Login email: Only show “You are logged in as abrady@targetedvictory.com. You have prompted 1 time(s) today.” Remind me what our current daily limit is for CS / OG users? 100? (chang)
+* “News Headlines” / “Copywriting Model” headings (chang)
+* Possible to update to Helvetica Neue font? Lmk if not available
+* News Headlines. Did we intentionally drop the literal search (vs. semantic search) checkbox? (yes) (chang)
+* Copywriting Model (what is this??) (obsolete)
+    * Model dropdown to not be displayed in Prod; displayed in Dev only
+    * Structure Ask Type & Length drop downs to also show “Choose an option” when blank
+    * Should we add “Witch Hunt” to the dropdown since it covers Trump arrests / trials more generally and not as narrowly as “Trump Arrest” or is it all rolled up?
+    * Length dropdown should include approx. character counts as Ted outlined
+        * “Short (<160 characters)”
+        * “Medium (161-399 characters)”
+        * “Long (400+ characters)”
+    * Show # of outputs as dropdown
+        * Rename “# Outputs”
+        * Options 1, 3, 5, 10
+        * Ideally dropdown in shorter width than the other selections
+    * Possible to show Output Variance slider as less wide than the rest of the page? Maybe with a max absolute width?
+    * Make accent color match hex code #FD4844 (accent color currently used for highlighting dropdowns, for dropdown selections) (hath this been done?) (eh probably)
+    * Make submit button hex code #FD4844
+    * Change chat function image to lightning bolt
+    * Change chat function text to “Edit with Cicero” instead of “Send down to Cicero”
+    * Make "NEWS HEADLINES" font size match the "History of Replies" size
+* make the  chatbot conversation disappear after a (main-)prompts
+* simplify secrets situation
+* Wes has a workaround for the vector search bug
+* also we need to get the real dude out of dev mode
+* basically, what we're gonna do is move the headline, and probably the bio portion too, to the final ask, and get it out of the system prompt
+* also I will need your help with the length dropdown thingy and the colors
+* later, change dockerfile etc to use run.bat to see if we can get the deploys faster? (failed attempt)
+* Big UI change https://targetedvictory.slack.com/archives/D067U25855X/p1716320846434699 (chang doing most of this)
+* put full prompt in expander and in dev mode
+* move weights into sidebar
+* figure out weirdness with ValueError: tuple.index(x): x not in tuple
+* fix the write to activity log function (right now it is still writing all of the unvalidated outputs) i think we just need to change this to outputs_validated? responsegiven=json.dumps(outputs) (yes, thank you)
+* OUTPUT VALIDATION: validate the number of texts returned matches the number of texts requested. (what do we do if this is wrong? info box i guess)
+* somehow get the users email (this makes me nervous) ((that’s because we’re gonna kill the user))
+* ah right yes for modelparams we'll just do the temperature and max_tokens
+* and yeah we'll go with just llama 3 for now. although for dev mode it would be nice if the dev user could change between llama 3 70B, Mixtral 8x7B, and DBRX.
+* and also the dev mode user should be able to change the weights (the topic weight, tone weight, etc)
+* Probably will have to do something about auth sometime soon.
+* if the user selects Long length, the output should be capped at 1 (include message to user explaining that its not broken, its just automatically set)
+* keep character counts just below the outputs
+* let end user see and edit number of outputs asked for
+* dev-mode out the side panel because I know you're using that (what does this mean?) (never mind this)
+* put faiss or other vector search back in
+* Heroku Migration (CANCELED)
+* Give Alex demo on how to run streamlit locally
+* Google sign-in
+* google sign-in extend life with cookies (needs additional troubleshooting?)
+* Get rid of google sign in.
+* alisa add the new pods
+* alisa back-extend pods
+* hook reporting page
+* etc
+* (!) Why is our endpoint always getting pinged? REMOVE THE DUMMY
+* (!) remove colors and replace with real image in history
+* Changes here in slack
+* Changes in the ted 3-slack
+* Perform “Betty Boop” maneuver of going and improving other projects’ type signatures.
+* (don’t bother) Different name for developer mode?
+* (!) get rid of the symlink & redeploy on dev and prod
+* add short/medium/long option to dev (does not need to be done 3/19 for zip purposes)
+* Keep cicero alive during business hours?
+* Put dashboard repo contents into cicero repo.
+* Make sure s-m-l names work out.
+* Try doing the whole project with RAG/previous outputs as simply context (kind of done I suppose, maybe, ish, needs Chang’s input on whether to continue experiment)
+* CHANG delete main.default.activity_log and main.default.headline_log
+* Do green checkmarks in dev timeline sheet for done stuff (requires google sign-in)
+* Prod.Business.project_results oh wait no nevermind can’t use that, (so I didn’t)
+* Look over the— oh you’re not in analytics (so I didn’t)
+* Look in RAG stuff notebook maybe do chang’s todos he left around if I know what he was doing (couldn’t decipher thesemypy)
+* (delayed or cancelled) Popover with all the topics and their definitions near the cicero promprter topic picker I guess
+* replace scratchpad with chatsession feature from https://dbc-ca8d208b-aaa9.cloud.databricks.com/?o=8188181812650195#notebook/1620539154772835 
+* Add American Voice and also DMS: American Voice to American Voice mapping.
+* Add model name to activity log
+* The garbage special instructions (jokerized)
+* Text clustering/similarity yet again - Maybe we just make a Cicero tab that does a text similarity operation like Alisa seems to want.
+* Chat bot output always go above chat input box.
+* Fix databricks token lifetime issue for local, dev, and prod.
+* Maybe try live wordcount in scratchpad with raw html insertion?
+* Bug report about chat_input not sticking when not in main (actually this results from a misunderstanding about how tabs work)
+* activity log for chatbot
+* new form of email whitelist in model permissions + pod + array of model permissions (might be empty) (actually we got rid of model perms so this is just user_pods now)
+* fix how rag man eats the prompt sometimes (streamlit)
+* Give ted the "RAG only" test outputs.
+* Possibly talk to Sean about cookies.
+* Fix the most obvious one or two errors with components.streamlit.app
+* Document TableEnsurance idea.
+* Add Jeff.
+* Fix the streamlit redirect uri stuff (also file bug about it https://github.com/streamlit/streamlit/issues/8600) (also, push all these changes)
+* Specify a different source for this cookies dep (my own git repo with the fixes) 
+*  cicero head, but with tv triangle eyes
+* Fix the cloud build that needing git broke. (push pus this everywhere)
+* "Enable RAG implementation in Cicero frontend"
+* google app engine identity function (not available lol) (nor were other things I tried)
+* Help chang get run.bat to work for him (I guess it works now)
+* fix run.bat situation on my own machine (lmao)
+* get rid of some of these dang repos and branches
+* remove faiss from project
+* move the "flagging output" banner down to be by the outputs
+* use different color of red for non-error errors? (decided not to)
+* fpm round to nearest cent in the graph and tooltip
+*  we also need an FPM and a ROAS line graph above the TV Funds graph
+* localhost-related issue
+* Maybe some day actually have the right file modes for everything in git.
+* fix cicero-head symlink
+*  get a past 6 months option in the time period buttons for topic reporting 
+* fix git nonsense
+* Link to Wikipedia page about cryptographic nonce in comment by nonce. (Unnecessary)
+* Are we getting rid of model select / its permissions immediately and for ever?
+* No radio buttons for Cicero the real guy (chang did this)
+* Keep five outputs per input for new Cicero (rag impl)
+* swap cicero heads
+* I want to like hide the very first uh "query" to the chatbot
+* Improve SQL queries.
+* nix the model name box in the UI
+* have some sort of, slider or input thingy, to choose the desired number of texts in the output
+* possibly: char count (short/medium/long?), tone, temp (in dev mode), number of outputs, maybe some other stuff?, submit button
+*  change the model outputs table to be regular text instead of a table
+* text length weight does well with 4
+* Dev mode: See the entire prompt
+* User can see and edit number of outputs they want. minimum 1 maximum 10.
+* Alisa new ui changes (in dev channel)
+

@@ -1,0 +1,171 @@
+These action items were done (or, occasionally, left undone) in 2023. The rich text I'm copying from has indicators of whether things were done or not, and slighty more formatting, but I decided I didn't care about that.
+
+2023:
+
+To-do list (and also permanent record of completed to-dos)
+
+
+Alert us somehow of TOS diffs (email us? maybe this is just the workflow?)
+move blacksite to a dbx workflow?
+presets in per-user databricks table?
+make all the preset/reset ui elements use col1, col2 = st.columns(2) to space it out "inline" (in html parlance). Possibly also put all of that stuff in an st.form because it will be doing form-like stuff, I imagine.
+Automated email of activity log (await info from Alisa)
+fuzzy string matching for "copy" "texts" (to use the industry parlance)
+language scraper, thing...?
+Cicero on Cicero loading screen like DVD screensaver for Dev mode.
+grey-out submit button while processing (using javascript?!)
+
+December: (see git histories)
+2023-11-29:
+
+* (required)
+* New tos to track
+* discuss options for RSS
+
+2023-11-28:
+
+* Tweaks to Cicero from discussion yesterday
+
+2023-11-27:
+
+* Give Alisa and Ted infinite power.
+* Discuss patch notes, versions, prod policy.
+* Take last 7 days of headlines from databricks table for headline-picking
+* Find out streamlit_modal doesn’t work.
+* UI for headlines picking.
+
+2023-11-21:
+
+* Port the log-headlines to blacksite (real)
+
+2023-11-20:
+
+* Port the TOS-tracker to blacksite
+
+2023-11-16:
+
+*  saving the headlines
+* rss refresh every hour instead
+* saving the headlines, but not in the streamlit app (half-accomplish)
+
+2023-11-15:
+Half-write a git manifesto by mistake
+2023-11-14:
+
+* new github for staging cicero
+* use wide mode
+* (abandon the idea of) grey-out the button
+* vector querying
+
+2023-11-13:
+
+* Cicero loading message.
+* Fix how the activity counter was reading from the wrong log.
+* Timeout on activity counter, using threads.
+
+2023-11-07:
+
+* Move the activity_log database to the unity catalog instead of the hive metastore. (I think this is a pure backend operation... so Chang can just do it?)
+* https://moxie.foxnews.com/google-publisher/politics.xml
+
+2023-11-03:
+
+* Try the probabilities option.
+* Add the word whitelist to our documentation.
+* Reënable the history display. Possibly this will remove the entire concept of if’d-out experimental features
+* make main and sidebar forms instead to make the ui more responsive. For more info, see: https://docs.streamlit.io/library/advanced-features/forms
+* Check activity log
+* Fix how the activity counter lags one. And also how 1 times is pluralized, which is wrong.
+* Add params params to SQL
+
+2023-11-01:
+
+* Do not display advanced parameters options (Chang did this)
+* Changing the settings removes the outputs from the screen, is it possible to keep them there until the next time someone hits submit? (yes)
+* Activity logging (use sql paramters, they are in the docs)
+* limit activity using the activity log
+* Submit invoice asking to be paid for nov
+* make minimal repro for streamlit session state key none value bug, and submit the issue under personal github account
+
+2023-10-31:
+
+* Try-except for RSS querying?
+* “if the error message is that the model does not exist, please contact the monitor the serving team to rectify the situation”
+* Put the new secrets in the secrets file again lmao
+* Do the formatting todo list from Alex
+* fix the fact that history would disappear when options were adjusted after sending the prompt (only does anything in experimental features mode, which is still set to false)
+* Use account names from Client_List.csv
+* fix the bug where the account defaults to Andy Barr for some reason (impossible)
+* debug the fact that performance caching doesn’t work
+
+2023-10-24
+
+* Fix the warning
+* RSS parsing
+
+2023-10-20
+
+* rss-forwarding
+
+2023-10-19
+
+* Cicero reset
+
+2023-10-18
+
+* cicero tooltips - summarize whats in the markdown for the advanced options
+* RSS vector db thingy / breaking news headlines (see 10-11)
+* cicero presets & reset
+* (actually, just nailing down the mechanism for presents and resets)
+
+2023-10-17
+
+* advanced features in cicero
+
+2023-10-16
+
+* Connect streamlit to new model serving endpoint (remember to update model uri secret)
+* create new model serving endpoint
+* cicero presets (see prev)
+* RSS vector db thingy (see 10-11)
+* breaking news headlines (see 10-11)
+
+2023-10-12
+
+* GPT_Prompter_DB Cmd 7 (experiments!) (possibly have to DOWNgrade mlflow to version 1.9.1?) (also FAIL AT THIS lmao)
+* Cicero presets
+
+2023-10-11
+
+Streamlit:
+
+* change "value" column to "outputs"
+* presets (incl reset preset) (see prev)
+* Scrape Fox News RSS feed (locally on laptop, upload to dbfs), breaking news and politics,
+* turn rss into vector db/library (try chromadb and FAISS) (if you want to try any others go ahead) (must be free!).
+* Mix and choose headlines in frontend, maximum of three, show the user six. Breaking news topic = then they can search for what breaking news they want to pull in.
+
+Databricks:
+
+* Watch Alex complete system of German idealism (extra complications of registering model)
+
+2023-10-10
+
+streamlit:
+
+*     Add reset button to page to clear all parameters, reset to defaults
+*     allow for creation of presets (does not need to last between sessions) (for now)
+*     make it so the Bio text only shows up (and is passed to prompt) if the user selects the Bio topic
+*     see if you can simplify how you show the history of the outputs
+
+databricks:
+
+* `%rm -r  /dbfs/cache/test/*
+    /dbfs/cache/train/*
+    /dbfs/rithwik-db
+*  register the model found here: dbfs:/FileStore/tv-gpt-xl-v2 within a new code block in Register_Models 
+
+github:
+
+* make the default branch master instead of main, and Chang deals with the fallout of that
+
