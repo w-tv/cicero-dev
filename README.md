@@ -1,5 +1,7 @@
 # Cicero
 
+## Cicero use and infrastructure
+
 > Lorem ipsum dolor sit amet, consectetur
 >
 > —Cicero
@@ -34,6 +36,10 @@ Note that the git history of this project is basically a straight line. As God i
 
 Edit `cicero.py` to customize this app to your heart's desire. However, it should be pretty much entirely as customized as we need it to be, at this point. Maybe a couple features left.
 
+For compatibility reasons, NEVER use \ as a file path delimiter (example: "assets\CiceroChat_800x800.jpg"); ALWAYS use / (example: "assets/CiceroChat_800x800.jpg"). Forward slash ( / ) is supported on more systems, and backslash ( \ ) is also the string escape character in Python, which means if you use it your file paths might get messed up.
+
+## Type signatures and typechecking
+
 This project is typechecked! You can run typecheck.bat to check the types. If you are a novice python programmer or don't like types, don't worry; python is gradually typed so you can just ignore the types and it will be fine (typecheck.bat will probably fail for a while, however, until someone fixes it; but nothing relies on typecheck.bat passing). This project primarily uses mypy, and satisfies mypy --strict. This project also uses and passes pyright (also found in pylance and many configurations of VS Code), which provides slightly different coverage and thus is also good to have. This project also almost satisfies ultrastrict, a typechecking mode I made up where you aren't allowed to use typing.cast, type:ignore comments, nor the no_type_check and no_type_check_decorator decorators — the idea is that your types are then entirely statically verified, with a guarantee that your types are correct at runtime. There are a few places where we violate ultrastrict mode, but they are all bugs in something else that we are working around... sometimes the typechecker (sometimes our deps' type signatures).
 
 Addendum on typing: the project has now adopted python-3.12-standard parameter type syntax, but in mypy "PEP 695 generics are not yet supported". So there will be type errors for a while. 😩. Addendum on addendum: we have reverted to the old typevar syntax for an interim period.
@@ -42,22 +48,36 @@ When a typechecker works for our purposes, we add it to typecheck.bat, and have 
 
 A lot of static typing in this project is, as it were, lost, on the barrier between us and our database (sql_call). But it's probably ultimately fine.
 
+Typechecking serves two, related purposes:
+1. Code quality (in the present). Typechecking prevents type errors from occurring at runtime, and bothering our users.
+2. Maintainability (in the future). Type annotations are one of the best tools we have, currently, against the degradation of code quality. It is the hope of this author that Cicero will be easy to maintain and extend in the future — as easy as possible (but no easier). The main way we achieve this is by cleverly writing less code, so there is less to go wrong later. But type annotations are another way. Now, unfortunately, the type annotations themselves are going to require maintenance, and this will be especially difficult if you are a novice python programmer — as most python programmers are. (Although maybe in an absolute sense it will remain easy.) So, if you find yourself unable to maintain the type annotations, you can let them go. This will decrease the future maintainability of the project, but can be a calculated sacrifice.
+
+About 50% of the type errors we find are spurious and busywork and 50% are legitimate weird edge cases that it was good to alter the code to protect against. So, that's a pretty good ratio.
+
+The python type system is relatively recent and not entirely complete, so sometimes it's impossible or very convenient to do something with the type signatures that we would like to do. Oh well.
+
+## Labels of irksomeness
+
 Various ridiculous workarounds in the code have been labeled FOO-BUG-WORKAROUND, where FOO is the name of the dependency to blame, in comments in the code. Eventually you may have the pleasure of removing these! You can grep for these.
 
-Various things in this project have been labelled TODO, to eventually be dealt with. You can also grep for this. There is something weaker than a TODO, which is a Could, which just notes the possibility of developing in a different direction in the future. The idea is that all TODOs must be dealt with (even the ones that are just "figure out if we need to do this" and the sooner the better; Coulds can hang around indefinitely.
+Various things in this project have been labeled TODO, to eventually be dealt with. You can also grep for this. There is something weaker than a TODO, which is a Could, which just notes the possibility of developing in a different direction in the future. The idea is that all TODOs must be dealt with (even the ones that are just "figure out if we need to do this" and the sooner the better; Coulds can hang around indefinitely.
+
+## Additional information about streamlit
 
 If you have any questions about streamlit, checkout its [documentation](https://docs.streamlit.io) and [community forums](https://discuss.streamlit.io). If you have any questions about Cicero, he wrote some books you can read.
 
 On an architectural note, we probably should not have used streamlit. It's a fine library, but it just abstracts over, and therefore repackages, html. This means using streamlit does not reduce the final complexity of our project. It also means that as we desire features that would be somewhat trivial in html+js, we have to wait for streamlit to provide those features to us (sometimes you can embed html+js into the streamlit page, but sometimes something about how streamlit works breaks this). The streamlit ImGui flow is also not trivial to reason about, which means that, to some extent, you have to "learn streamlit", much as you might "learn html". In the famous words of somebody or other, "Any problem can be solved with another layer of indirection. Except of course for the problem of too many layers of indirection."
 
-For compatibility reasons, NEVER use \ as a file path delimiter (example: "assets\CiceroChat_800x800.jpg"); ALWAYS use / (example: "assets/CiceroChat_800x800.jpg"). Forward slash ( / ) is supported on more systems, and backslash ( \ ) is also the string escape character in Python, which means if you use it your file paths might get messed up.
+## On variables
 
 Regular variables are to be preferred over st.session_state variables, because static analysis tools work better with the former than the latter. That said, sometimes you need to use st.session_state variables; that's why it's even a feature.
 
 Additionally, the use of fewer variables is preferred over the use of a greater number of variables — but not as strongly as the use of fewer magic values or computations is preferred over the use of a greater number of magic values or computations!
 
+## Signoff
+
 And remember: the first thing to do is get the best of both worlds. You can!
 
-―
+## Footnotes
 
 ¹ Scholars debate whether the i in Cicero's name would have been pronounced like the i in igloo or the ee in eek. Personally, I find the ee idea more plausible. However, all scholars agree that the Cs in Cicero's name are pronounced like Ks. In contrast, the conventional english name for Cicero is pronounced as though they were Ss. All of these variations may acceptably be used to refer to this project.
