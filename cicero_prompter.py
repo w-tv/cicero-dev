@@ -6,7 +6,7 @@ import streamlit as st
 import pandas as pd
 import json
 from typing import Any, Literal, TypedDict, TypeVar
-from cicero_shared import assert_always, consul_show, ensure_existence_of_activity_log, exit_error, get, get_base_url, load_account_names, sql_call, sql_call_cacheless, topics_big, typesafe_selectbox
+from cicero_shared import assert_always, consul_show, ensure_existence_of_activity_log, exit_error, get, get_base_url, load_account_names, sql_call, sql_call_cacheless, st_print, topics_big, typesafe_selectbox
 from cicero_types import aa, Short_Model_Name, Long_Model_Name, short_model_names, short_model_name_default, short_model_name_to_long_model_name
 import cicero_chat
 
@@ -311,8 +311,7 @@ def execute_prompting(model: Long_Model_Name, account: str, sender: str|None, as
     except Exception as _e:
       used_similarity_search_backup = "faiss"
       if st.session_state.get("developer_mode"):
-        st.write("developer mode message: error was encountered in the main similarity search library (or perhaps you induced a fake error there for testing purposes) so we are using the backup option")
-        print("developer mode message: error was encountered in the main similarity search library (or perhaps you induced a fake error there for testing purposes) so we are using the backup option")
+        st_print("developer mode message: error was encountered in the main similarity search library (or perhaps you induced a fake error there for testing purposes) so we are using the backup option")
       search_results = []
       lowest_score = 0.0 # This value is a hack. Our original score_threshold value (which we set this variable to the value of) was too high, so we never found any results, so the score_threshold was never updated. (Although, I think it can only ever update up, that's the whole point of updating it in our code later, I guess. So in reality that part of the process was irrelevant and the real problems was that the score_threshold was simply too high.) This is probably because instead of values between 0 and 1, like it's supposed to, the FAISS thing is giving us back all sorts of numbers, some of them negative. And I guess very few of those are >0.5 or whatever the score_threshold is. This caused the code to run approximately forever, eat up enormous amounts of RAM, and then (exceeding the RAM limit) die. I think this method will still exceed the RAM limit and die on Streamlit, even with this fix! (Although sometimes Streamlit seems to allow you to exceed the RAM limit, maybe if you only do it for a second, without crashing you, so we'll see.)
       start = batch_bounds[0]

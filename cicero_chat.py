@@ -21,7 +21,11 @@ def content_from_url(url: str) -> str:
     return "" # there is no content on the page, I guess, so the correct thing to return is the empty string.
 
 def content_from_url_regex_match(m: re.Match[str]) -> str:
-  return content_from_url(m.group(0))
+  x = content_from_url(m.group(0))
+  if st.session_state.get("developer_mode"):
+    with st.expander("Developer Mode Message: url content"): # Note that, because this is triggered during a callback, this box currently appears at the top of the page, almost completely hidden.
+      st.caption(x.replace("$", r"\$"))
+  return x
 
 def expand_url_content(s: str) -> str:
   """Expand the urls in a string to the content of their contents (placing said contents back into the same containing string."""
