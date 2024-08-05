@@ -12,7 +12,7 @@ If you are the DEVELOPER, implement the dashboard in streamlit. (`streamlit run 
 
 ## Client
 
-Here is a [link](https://dbc-ca8d208b-aaa9.cloud.databricks.com/explore/data/main/hook_reporting/hook_data_prod?o=8188181812650195) to the specific table that the data is in. The goal is to replicate a currently existing dashboard that is currently hosted in Tableau Online. There are certain Tableau features that I am not sure are possible to implement in Streamlit, but there are also new features that may be possible to implement in Streamlit that are impossible in Tableau. 
+Here is a [link](https://dbc-ca8d208b-aaa9.cloud.databricks.com/explore/data/main/hook_reporting/hook_data_prod?o=8188181812650195) to the specific table that the data is in. The goal is to replicate a currently existing dashboard that is currently hosted in Tableau Online. There are certain Tableau features that I am not sure are possible to implement in Streamlit, but there are also new features that may be possible to implement in Streamlit that are impossible in Tableau.
 
 List of graphs, top to bottom:
 1. TV Funds - SUM of TV Funds
@@ -37,4 +37,3 @@ Day vs week vs month bucketing is currently 3 different tabs in the old dashboar
 
 ## The Right Black Graph
 The right black graph is all_hooks, but controlled by the search filtering as well. It should ideally be combined into the left graph.
-

@@ -180,7 +180,7 @@
 * Look over the— oh you’re not in analytics (so I didn’t)
 * Look in RAG stuff notebook maybe do chang’s todos he left around if I know what he was doing (couldn’t decipher thesemypy)
 * (delayed or cancelled) Popover with all the topics and their definitions near the cicero promprter topic picker I guess
-* replace scratchpad with chatsession feature from https://dbc-ca8d208b-aaa9.cloud.databricks.com/?o=8188181812650195#notebook/1620539154772835 
+* replace scratchpad with chatsession feature from https://dbc-ca8d208b-aaa9.cloud.databricks.com/?o=8188181812650195#notebook/1620539154772835
 * Add American Voice and also DMS: American Voice to American Voice mapping.
 * Add model name to activity log
 * The garbage special instructions (jokerized)
@@ -198,7 +198,7 @@
 * Document TableEnsurance idea.
 * Add Jeff.
 * Fix the streamlit redirect uri stuff (also file bug about it https://github.com/streamlit/streamlit/issues/8600) (also, push all these changes)
-* Specify a different source for this cookies dep (my own git repo with the fixes) 
+* Specify a different source for this cookies dep (my own git repo with the fixes)
 *  cicero head, but with tv triangle eyes
 * Fix the cloud build that needing git broke. (push pus this everywhere)
 * "Enable RAG implementation in Cicero frontend"
@@ -214,7 +214,7 @@
 * localhost-related issue
 * Maybe some day actually have the right file modes for everything in git.
 * fix cicero-head symlink
-*  get a past 6 months option in the time period buttons for topic reporting 
+*  get a past 6 months option in the time period buttons for topic reporting
 * fix git nonsense
 * Link to Wikipedia page about cryptographic nonce in comment by nonce. (Unnecessary)
 * Are we getting rid of model select / its permissions immediately and for ever?
@@ -231,4 +231,3 @@
 * Dev mode: See the entire prompt
 * User can see and edit number of outputs they want. minimum 1 maximum 10.
 * Alisa new ui changes (in dev channel)
-

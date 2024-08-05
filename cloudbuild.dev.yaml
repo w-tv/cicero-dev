@@ -4,13 +4,13 @@ steps:
     id: Build
     entrypoint: 'bash'
     args: ['-c' , 'docker build -t ${_REGISTRY}/${_APP}:$COMMIT_SHA --no-cache .']
-  
+
   # _TAG the built image.
   - name: 'gcr.io/cloud-builders/docker'
     id: Tag
     entrypoint: 'bash'
     args: ['-c', 'docker tag ${_REGISTRY}/${_APP}:$COMMIT_SHA ${_REGISTRY}/${_APP}:${_TAG}']
-  
+
   # Push the _TAG to the _REGISTRY.
   - name: 'gcr.io/cloud-builders/docker'
     id: Push
@@ -20,7 +20,7 @@ steps:
   # Deploy the new _TAG version to Cloud Run.
   - name: 'gcr.io/google.com/cloudsdktool/cloud-sdk:slim'
     id: Deploy
-    entrypoint: bash 
+    entrypoint: bash
     args: ['-c', 'gcloud run services update ${_APP} --project ${_CR_PROJECT} --image ${_REGISTRY}/${_APP}:${_TAG} --region ${_CR_REGION}']
 
 options:

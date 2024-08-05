@@ -163,9 +163,8 @@ databricks:
 * `%rm -r  /dbfs/cache/test/*
     /dbfs/cache/train/*
     /dbfs/rithwik-db
-*  register the model found here: dbfs:/FileStore/tv-gpt-xl-v2 within a new code block in Register_Models 
+*  register the model found here: dbfs:/FileStore/tv-gpt-xl-v2 within a new code block in Register_Models
 
 github:
 
 * make the default branch master instead of main, and Chang deals with the fallout of that
-

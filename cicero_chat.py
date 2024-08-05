@@ -15,7 +15,7 @@ def content_from_url(url: str) -> str:
   if b := soup.body:
     text = b.get_text(' ', strip=True)
     if len(text) > 4000:
-      text = text[:4000] 
+      text = text[:4000]
     return text
   else:
     return "" # there is no content on the page, I guess, so the correct thing to return is the empty string.
@@ -122,9 +122,9 @@ def aa(t: TypeAliasType) -> Any:
   "“aa”, “alias' args”: get the type arguments of the type within a TypeAlias. (Usually, we have a lot of Literal types, that are aliased, and this gets you the values from those types.) Pronounced like a quiet startled yelp."
   return get_args(t.__value__) # We only need .__value__ here because of the type keyword.
 
-type Short_Model_Name = Literal["Llama-3.1-405b-Instruct", "DBRX-Instruct", "Llama-3.1-70b-Instruct", "Mixtral-8x7b-Instruct"] 
+type Short_Model_Name = Literal["Llama-3.1-405b-Instruct", "DBRX-Instruct", "Llama-3.1-70b-Instruct", "Mixtral-8x7b-Instruct"]
 type Long_Model_Name = Literal["databricks-meta-llama-3-1-405b-instruct", "databricks-dbrx-instruct", "databricks-meta-llama-3-1-70b-instruct", "databricks-mixtral-8x7b-instruct"] #IMPORTANT: the cleanest way of implementing this REQUIRES that short_model_names and long_model_names entries correspond via index. This is an unfortunate burden, since it cannot be enforced automatically, but it's better than the other ways I tried...
-short_model_names: tuple[Short_Model_Name, ...] = aa(Short_Model_Name) 
+short_model_names: tuple[Short_Model_Name, ...] = aa(Short_Model_Name)
 long_model_names: tuple[Long_Model_Name, ...] = aa(Long_Model_Name)
 short_model_name_default = short_model_names[0] #this doesn't have to be the first value, but I find it more convenient to have that line up like that.
 
