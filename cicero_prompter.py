@@ -5,8 +5,9 @@
 import streamlit as st
 import pandas as pd
 import json
-from typing import Any, Literal, TypeAliasType, TypedDict, TypeVar, get_args
+from typing import Any, Literal, TypedDict, TypeVar
 from cicero_shared import assert_always, consul_show, ensure_existence_of_activity_log, exit_error, get, get_base_url, load_account_names, sql_call, sql_call_cacheless, topics_big, typesafe_selectbox
+from cicero_types import aa, Short_Model_Name, Long_Model_Name, short_model_names, short_model_name_default, short_model_name_to_long_model_name
 import cicero_chat
 
 from num2words import num2words
@@ -54,18 +55,6 @@ def load_headlines(get_all: bool = False, past_days: int = 7) -> list[str]:
   )
   return [result[0] for result in results]
 
-def aa(t: TypeAliasType) -> Any:
-  "“aa”, “alias' args”: get the type arguments of the type within a TypeAlias. (Usually, we have a lot of Literal types, that are aliased, and this gets you the values from those types.) Pronounced like a quiet startled yelp."
-  return get_args(t.__value__) # We only need .__value__ here because of the type keyword.
-
-# The `type` keyword here, used for defining type alias, is completely optional, but seems like a good idea. (Note: the resulting types are TypeAlias objects now, instead of their original types, so some indirection may be required, like using `aa` instead of `get_args`.) It was added to python in 3.12, so it's quite recent. It's also rather hard to check for the neccessity of adding a `type` keyword, although it's theoretically automatically detectable. I think you need to do `ruff check --select PYI026`, and even then it only works on .pyi files. So, we might not have complete strictness on marking every type alias as `type` yet. See also, https://github.com/astral-sh/ruff/issues/8704 " Add rule to encourage using type aliases (generalize PYI026) #8704 "
-#See https://stackoverflow.com/questions/64522040/dynamically-create-literal-alias-from-list-of-valid-values for an explanation of what we're doing here with the Literal types and get_args (here, `aa`).
-type Short_Model_Name = Literal["Llama-3.1-405b-Instruct", "DBRX-Instruct", "Llama-3.1-70b-Instruct", "Mixtral-8x7b-Instruct"]
-type Long_Model_Name = Literal["databricks-meta-llama-3-1-405b-instruct", "databricks-dbrx-instruct", "databricks-meta-llama-3-1-70b-instruct", "databricks-mixtral-8x7b-instruct"] #IMPORTANT: the cleanest way of implementing this REQUIRES that short_model_names and long_model_names entries correspond via index. This is an unfortunate burden, since it cannot be enforced automatically, but it's better than the other ways I tried...
-short_model_names: tuple[Short_Model_Name, ...] = aa(Short_Model_Name)
-long_model_names: tuple[Long_Model_Name, ...] = aa(Long_Model_Name)
-short_model_name_default = short_model_names[0] #this doesn't have to be the first value, but I find it more convenient to have that line up like that.
-#Could: have a "valid values" dict? And then use that for "I'm feeling lucky"?
 type Selectable_Length = Literal['short', 'medium', 'long']
 type Ask_Type = Literal['Hard Ask', 'Medium Ask', 'Soft Ask', 'Soft Ask Petition', 'Soft Ask Poll', 'Soft Ask Survey']
 type Tone = Literal['Agency', 'Apologetic', 'Candid', 'Exclusivity', 'Fiesty', 'Grateful', 'Not Asking For Money', 'Pleading', 'Quick Request', 'Secretive', 'Time Sensitive', 'Urgency'] #Could: , 'Swear Jar' will probably be in here some day, but we don't have "we need more swear jar data to make this tone better"
@@ -125,9 +114,6 @@ def list_lower(l: list[str]) -> list[str]:
 
 def only_those_strings_of_the_list_that_contain_the_given_substring_case_insensitively(l: list[str], s: str) -> list[str]:
   return [x for x in l if s.lower() in x.lower()]
-
-def short_model_name_to_long_model_name(short_model_name: Short_Model_Name) -> Long_Model_Name:
-  return long_model_names[short_model_names.index(short_model_name)]
 
 # This looks like it should take a `type` keyword, but apparently it does not (pyright complains). For more on TypedDicts and this call, see https://typing.readthedocs.io/en/latest/spec/typeddict.html#alternative-syntax. Note that we use the alt syntax here simply because it is much shorter!
 ReferenceTextElement = TypedDict('ReferenceTextElement', {'prompt': str, 'text': str, 'score': float})

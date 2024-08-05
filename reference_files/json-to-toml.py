@@ -7,7 +7,8 @@ import json
 import sys
 import toml
 
-if len(sys.argv) != 3: raise Exception('Usage is `json_to_toml.py input.json output.toml`')
+if len(sys.argv) != 3:
+  raise Exception('Usage is `json_to_toml.py input.json output.toml`')
 json_file = sys.argv[1]
 output_file = sys.argv[2]
 
