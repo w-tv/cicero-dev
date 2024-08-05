@@ -105,11 +105,11 @@ def display_chat(streamlit_key_suffix: str = "", account: str|None = None) -> No
     with emptyable.container():
       c1, c2 = st.columns([.06,.96], gap='small', vertical_alignment="center")
       with c1:
-        user_feedback: int = st.feedback("thumbs")
+        st_feedback: int|None = st.feedback("thumbs")
       c2.write("***Did Cicero understand your request? Let us know to continue chatting.***")
-    if user_feedback:
+    if st_feedback is not None:
       emptyable.empty()
-      if user_feedback == 0:
+      if st_feedback == 0:
         user_feedback = "bad"
       else:
         user_feedback = "good"
