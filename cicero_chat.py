@@ -4,8 +4,9 @@
 
 import streamlit as st
 from databricks_genai_inference import ChatSession, FoundationModelAPIException
-from cicero_shared import consul_show, get, get_base_url, popup
+from cicero_shared import consul_show, get, get_base_url, popup, typesafe_selectbox
 import bs4, requests, re # for some reason bs4 is how you import beautifulsoup smh smh
+from typing import Any, Literal, get_args, TypeAliasType
 
 def content_from_url(url: str) -> str:
   # from https://stackoverflow.com/questions/69593352/how-to-get-all-copyable-text-from-a-web-page-python/69594284#69594284
@@ -27,12 +28,12 @@ def expand_url_content(s: str) -> str:
   url_regex = r"""(?i)\b((?:[a-z][\w-]+:(?:/{1,3}|[a-z0-9%])|www\d{0,3}[.]|[a-z0-9.\-]+[.][a-z]{2,4}/)(?:[^\s()<>]+|\(([^\s()<>]+|(\([^\s()<>]+\)))*\))+(?:\(([^\s()<>]+|(\([^\s()<>]+\)))*\)|[^\s`!()\[\]{};:'".,<>?«»“”‘’]))""" # from https://gist.github.com/gruber/249502
   return re.sub(pattern=url_regex, repl=content_from_url_regex_match, string=s)
 
-def grow_chat(streamlit_key_suffix: str = "", alternate_content: str|None = None, account: str|None = None) -> None:
+def grow_chat(streamlit_key_suffix: str = "", alternate_content: str|None = None, account: str|None = None, short_model_name: str = "Llama-3.1-405b-Instruct", long_model_name: str = "databricks-meta-llama-3-1-405b-instruct") -> None:
   """Note that this function will do something special to the prompt if alternate_content is supplied.
   Also, the streamlit_key_suffix is only necessary because we use this code in two places. If streamlit_key_suffix is "", we infer we're in the chat page, and if otherwise we infer we're being used on a different page (so far, the only thing that does this is prompter).
   Random fyi: chat.history is an alias for chat.chat_history (you can mutate chat.chat_history but not chat.history, btw). Internally, it's, like: [{'role': 'system', 'content': 'You are a helpful assistant.'}, {'role': 'user', 'content': 'Knock, knock.'}, {'role': 'assistant', 'content': "Hello! Who's there?"}, {'role': 'user', 'content': 'Guess who!'}, {'role': 'assistant', 'content': "Okay, I'll play along! Is it a person, a place, or a thing?"}]"""
-  short_model_name = "Llama-3.1-405b-Instruct"
-  long_model_name = "databricks-meta-llama-3-1-405b-instruct"
+  short_model_name = short_model_name
+  long_model_name = long_model_name
   if streamlit_key_suffix=="_prompter":
     sys_prompt = "You are a helpful, expert copywriter who specializes in writing fundraising text messages and emails for conservative candidates and causes. Be direct with your responses, and avoid extraneous messages like 'Hello!' and 'I hope this helps!'. These text messages and emails tend to be more punchy and engaging than normal marketing material. Do not mention that you are a helpful, expert copywriter."
   elif streamlit_key_suffix=="_corporate":
@@ -116,9 +117,21 @@ def display_chat(streamlit_key_suffix: str = "", account: str|None = None) -> No
   else:
     st.container().chat_input(on_submit=grow_chat, key="user_input_for_chatbot_this_frame"+streamlit_key_suffix, args=(streamlit_key_suffix, None, account) ) #Note that because it's a callback, the profiler will not catch grow_chat here. However, it takes about a second. (Update: maybe it's about 4 seconds, now? That's in the happy path, as well.)
 
+
+def aa(t: TypeAliasType) -> Any:
+  "“aa”, “alias' args”: get the type arguments of the type within a TypeAlias. (Usually, we have a lot of Literal types, that are aliased, and this gets you the values from those types.) Pronounced like a quiet startled yelp."
+  return get_args(t.__value__) # We only need .__value__ here because of the type keyword.
+
+type Short_Model_Name = Literal["Llama-3.1-405b-Instruct", "DBRX-Instruct", "Llama-3.1-70b-Instruct", "Mixtral-8x7b-Instruct"] 
+type Long_Model_Name = Literal["databricks-meta-llama-3-1-405b-instruct", "databricks-dbrx-instruct", "databricks-meta-llama-3-1-70b-instruct", "databricks-mixtral-8x7b-instruct"] #IMPORTANT: the cleanest way of implementing this REQUIRES that short_model_names and long_model_names entries correspond via index. This is an unfortunate burden, since it cannot be enforced automatically, but it's better than the other ways I tried...
+short_model_names: tuple[Short_Model_Name, ...] = aa(Short_Model_Name) 
+long_model_names: tuple[Long_Model_Name, ...] = aa(Long_Model_Name)
+short_model_name_default = short_model_names[0] #this doesn't have to be the first value, but I find it more convenient to have that line up like that.
+
 def main(streamlit_key_suffix: str = "") -> None: # It's convenient to import cicero_chat in other files, to use its function in them, so we do a main() here so we don't run this code on startup.
   st.write('''**Chat freeform with Cicero directly ChatGPT-style!**  \nHere are some ideas: rewrite copy, make copy longer, convert a text into an email, or write copy based off a starter phrase/quote.''')
   account = st.text_input("Account") if streamlit_key_suffix=="_corporate" else None
+  model_name = typesafe_selectbox("Model", short_model_names, key="model_name") if st.session_state.get("developer_mode") else short_model_name_default
   if st.button("Reset"):
     reset_chat(streamlit_key_suffix)
   display_chat(streamlit_key_suffix, account=account)
