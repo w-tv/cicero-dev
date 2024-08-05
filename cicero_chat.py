@@ -105,12 +105,16 @@ def display_chat(streamlit_key_suffix: str = "", account: str|None = None) -> No
   if st.session_state.get("outstanding_activity_log_payload") and not streamlit_key_suffix:
     emptyable = st.empty()
     with emptyable.container():
-      c1, c2, c3, c4 = st.columns([.04,.04,.01,.92], gap='small', vertical_alignment="center")
-      user_feedback = "good" if c1.button("👍︎", key="👍"+streamlit_key_suffix) else "bad" if c2.button("👎︎", key="👎"+streamlit_key_suffix) else None
-      c3.write('')
-      c4.write("***Did Cicero understand your request? Let us know to continue chatting.***")
+      c1, c2 = st.columns([.06,.96], gap='small', vertical_alignment="center")
+      with c1:
+        user_feedback: int = st.feedback("thumbs")
+      c2.write("***Did Cicero understand your request? Let us know to continue chatting.***")
     if user_feedback:
       emptyable.empty()
+      if user_feedback == 0:
+        user_feedback = "bad"
+      else:
+        user_feedback = "good"
       st.container().chat_input(on_submit=grow_chat, key="user_input_for_chatbot_this_frame"+streamlit_key_suffix, args=(streamlit_key_suffix,) ) #Note that because it's a callback, the profiler will not catch grow_chat here. However, it takes about a second. (Update: maybe it's about 4 seconds, now? That's in the happy path, as well.) #Without the container, this UI element floats BELOW the pyinstrument profiler now, which is inconvenient. But also we might want it to float down later, if we start using streaming text...
       st.session_state["outstanding_activity_log_payload_fulfilled"] = st.session_state["outstanding_activity_log_payload"] | {"user_feedback": user_feedback}
       st.session_state["outstanding_activity_log_payload"] = None
