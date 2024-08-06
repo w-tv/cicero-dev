@@ -8,6 +8,48 @@ from cicero_shared import consul_show, get, get_base_url, popup, typesafe_select
 from cicero_types import Short_Model_Name, short_model_names, short_model_name_default, short_model_name_to_long_model_name
 import bs4, requests, re # for some reason bs4 is how you import beautifulsoup smh smh
 
+st.session_state.pii_continue_anyway = False
+if 'prompt_in_progress' not in st.session_state:
+  st.session_state.prompt_in_progress = ''
+
+def pii_detector(input: str) -> tuple[str, list]:
+  phone: list = re.findall(
+    r"""((?:(?<![\d-])(?:\+?\d{1,3}[-.\s*]?)?(?:\(?\d{3}\)?[-.\s*]?)?\d{3}[-.\s*]?\d{4}(?![\d-]))|(?:(?<![\d-])(?:(?:\(\+?\d{2}\))|(?:\+?\d{2}))\s*\d{2}\s*\d{3}\s*\d{4}(?![\d-])))"""
+  , input)
+  email: list = re.findall(
+    r"([a-z0-9!#$%&'*+\/=?^_`{|.}~-]+@(?:[a-z0-9](?:[a-z0-9-]*[a-z0-9])?\.)+[a-z0-9](?:[a-z0-9-]*[a-z0-9])?)",
+    input,
+    re.IGNORECASE,
+  )
+  credit_card: list = re.findall(r"((?:(?:\\d{4}[- ]?){3}\\d{4}|\\d{15,16}))(?![\\d])", input)
+  street_address: list = re.findall(
+    r"\d{1,4} [\w\s]{1,20}(?:street|st|avenue|ave|road|rd|highway|hwy|square|sq|trail|trl|drive|dr|court|ct|park|parkway|pkwy|circle|cir|boulevard|blvd)\W?(?=\s|$)",
+    input,
+    re.IGNORECASE,
+  )
+  pii_list: list = phone + email + credit_card + street_address
+  return input, pii_list
+  
+@st.dialog(title='PII detected!', width="large")
+def pii_dialog(input:str, pii_list: list):
+  st.write("Cicero noticed that there might be PII in your message! ***Copy your text if you want to keep editing it!***")
+  st.markdown(body=f'''Message:
+              
+              {input}''')
+  st.markdown(body=f'''PII:
+              
+              {pii_list[::-1]}''')
+  st.write('Would you still like to submit the prompt?')
+  col1, col2, _col3, _col4 = st.columns(spec=[.17, .23, .30, .30], gap='small', vertical_alignment='center')
+  with col1:
+    if st.button("Yes, submit"):
+      st.session_state.pii_continue_anyway = True
+      st.rerun()
+  with col2:
+    if st.button("No, keep editing"):
+      st.session_state.pii_continue_anyway = False
+      st.rerun()
+  
 def content_from_url(url: str) -> str:
   # from https://stackoverflow.com/questions/69593352/how-to-get-all-copyable-text-from-a-web-page-python/69594284#69594284
   response = requests.get(url,headers={'User-Agent': 'Mozilla/5.0'})
@@ -59,11 +101,22 @@ def grow_chat(streamlit_key_suffix: str = "", alternate_content: str|None = None
   else:
     p = st.session_state["user_input_for_chatbot_this_frame"+streamlit_key_suffix]
     display_p = p
+  possible_pii: list = pii_detector(p)[1]
+  if possible_pii:
+    pii_dialog(p, possible_pii)
+    if st.session_state.get('pii_continue_anyway') == False:
+      global continue_prompt 
+      continue_prompt = False
+      st.session_state.prompt_in_progress = p
+    if st.session_state.get('pii_continue_anyway') == True:
+      continue_prompt = True
+  else:
+    continue_prompt = True
   if streamlit_key_suffix=="_corporate": #implement url content expansion, at this point only for the corp chat
     p = expand_url_content(p)
 
   old_chat = chat.chat_history.copy()
-  while True: #databricks_genai_inference-BUG-WORKAROUND: it prompts with the entire chat history every time, without truncating history to fit the token limit even though this makes it ultimately useless as a chat session manager. Since I now have to manually manage the chat session as well! So, we just try removing messages until it works
+  while continue_prompt: #databricks_genai_inference-BUG-WORKAROUND: it prompts with the entire chat history every time, without truncating history to fit the token limit even though this makes it ultimately useless as a chat session manager. Since I now have to manually manage the chat session as well! So, we just try removing messages until it works
     try:
       chat.reply(p)
       messages.append({"role": "user", "content": display_p})
