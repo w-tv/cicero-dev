@@ -108,9 +108,32 @@ if "all_hook" in topics: #This special case is just copy-pasted from above, with
 key_of_rows = ("Topic", "TV Funds ($)", "FPM ($)", "ROAS (%)", "Project count")
 dicted_rows = {key_of_rows[i]: [row[i] for row in summary_data_per_topic] for i, key in enumerate(key_of_rows)} #various formats probably work for this; this is just one of them.
 dicted_rows["color"] = [tb["color"] for t in dicted_rows["Topic"] for _, tb in topics_big.items() if tb["internal name"] == t.removesuffix("_hook")] #COULD: one day revise the assumptions that necessitate this logic, which is really grody. #TODO: in some cases we get a "All arrays must be of the same length" error on this, but I'm pretty sure that's just a result of us being mid- topic-pivot.
+# TODO: ensure all arrays are the same length here, because i keep getting an error on pd.DataFrame(dicted_rows)
 if len(summary_data_per_topic):
-  chart = alt.Chart(pd.DataFrame(dicted_rows)).mark_circle(size=90).encode(alt.X("ROAS (%)"), alt.Y("FPM ($)"), alt.Color("Topic", scale=alt.Scale(domain=dicted_rows["Topic"], range=dicted_rows["color"]), legend=None), tooltip=key_of_rows) #type: ignore[no-untyped-call] #ALTAIR-BUG-WORKAROUND https://github.com/vega/altair/issues/3408 — Fixed, waiting for next release. The current (buggy) release is 5.3.0 and I'm watching https://github.com/vega/altair/releases like a hawk for a new release (GitHub has a Watch>Custom>Releases option) but based on that page their release cadence is slow, although it will probably be this year (2024).
-  st.altair_chart(chart, use_container_width=True)
+  point_selector = alt.selection_point("point_selection")
+  interval_selector = alt.selection_interval("interval_selection")
+  chart = alt.Chart(
+    pd.DataFrame(dicted_rows)) \
+    .mark_circle(size=90) \
+    .encode(
+      alt.X("ROAS (%)"), 
+      alt.Y("FPM ($)"), 
+      alt.Color("Topic", 
+                scale=alt.Scale(domain=dicted_rows["Topic"], 
+                                range=dicted_rows["color"]
+                                ), 
+                legend=None
+                ),
+      alt.FillOpacity(condition={"param": "point_selection", "value": 1}), #TODO: with this i am trying to highlight the selected values, but right now it doesn't do that
+      tooltip=key_of_rows
+      ) \
+    .add_params(point_selector, interval_selector) #type: ignore[no-untyped-call] #ALTAIR-BUG-WORKAROUND https://github.com/vega/altair/issues/3408 — Fixed, waiting for next release. The current (buggy) release is 5.3.0 and I'm watching https://github.com/vega/altair/releases like a hawk for a new release (GitHub has a Watch>Custom>Releases option) but based on that page their release cadence is slow, although it will probably be this year (2024).
+  event = st.altair_chart(chart, use_container_width=True, on_select="rerun")
+  selected_topics = event['selection']['point_selection'][0]['Topic']
+  st.write(selected_topics)
+  # TODO: put in a well formatted table underneath the scatterplot that shows the rows that comprise the selected data point(s). Unless we load in all the rows in the initial SQL call, which will balloon our memory usage, let's just use another SQL call here that grabs the rows for the selected topic(s). 
+  selected_topics_rows = sql_call(f"""SELECT * FROM hook_reporting.default.gold_topic_data_array WHERE {project_types_string} and {accounts_string} and {askgoal_string} and SEND_DATE >= CURRENT_DATE() - INTERVAL {past_days} DAY and SEND_DATE <= CURRENT_DATE() and array_contains(topics_array, '{selected_topics}')""")
+  st.dataframe(selected_topics_rows)
 else:
   st.info("No data points are selected by the values indicated by the controls. Therefore, there is nothing to graph. Please broaden your criteria.")
 
