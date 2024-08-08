@@ -6,7 +6,7 @@ import streamlit as st
 import pandas as pd
 import json
 from typing import Any, Literal, TypedDict, TypeVar
-from cicero_shared import assert_always, consul_show, ensure_existence_of_activity_log, exit_error, get, get_base_url, load_account_names, sql_call, sql_call_cacheless, st_print, topics_big, typesafe_selectbox
+from cicero_shared import assert_always, consul_show, ensure_existence_of_activity_log, exit_error, ssget, get_base_url, load_account_names, sql_call, sql_call_cacheless, st_print, topics_big, typesafe_selectbox
 from cicero_types import aa, Short_Model_Name, Long_Model_Name, short_model_names, short_model_name_default, short_model_name_to_long_model_name
 import cicero_chat
 
@@ -584,7 +584,7 @@ if 'outputs' in st.session_state:
         cicero_chat.grow_chat(streamlit_key_suffix="_prompter", alternate_content=output)
       key_collision_preventer += 1
   st.caption(st.session_state.get('character_counts_caption'))
-  if get("messages", "_prompter"):
+  if ssget("messages", "_prompter"):
     cicero_chat.display_chat(streamlit_key_suffix="_prompter")
 st.error('**REMINDER!** Please tag all projects with "**optimization**" in the LABELS field in Salesforce.')
 

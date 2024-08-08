@@ -9,7 +9,7 @@ from streamlit import runtime
 from typing import Any, NoReturn, TypedDict, TypeVar, Sequence
 import urllib.parse
 
-def get(string_to_get_from_streamlit_session_state: str, *args: Any) -> Any | None:
+def ssget(string_to_get_from_streamlit_session_state: str, *args: Any) -> Any | None:
   """ .get() all Y-combinatorally. This function repeatedly retrieves things from things using `.get()` . Starting with the first argument from st.session_state, and then all the subsequent args from the first. This loses type-safety, in a way, since it just returns Any, but st.session_state already didn't have type-safety (TODO: figure out how to TypedDict the session_state? Seems impossible.) because it always just returns `Any | None`. This function also returns `Any | None`. However, long get chains on things taken from session_state like `st.session_state.get("chat").get(streamlit_key_suffix)` get you errors like `error: Item "None" of "Any | None" has no attribute "get"  [union-attr]` — and quite likely so, because that could give you a type error at runtime! You also can't do the ol' `if st.session_state.get("messages") and st.session_state.get("messages").get(streamlit_key_suffix)` "shortcut"-`and` trick, because there might be side-effects between the first and second call of the function. So you'd have to do something crazy like `if m := st.session_state.get("messages") and m.get(streamlit_key_suffix)` (actually, that leads to a type error `error: Name "m" is used before definition  [used-before-def]`). Or break up the clauses or use a variable. Or, you can simply call `get("messages", streamlit_key_suffix)` for the same effect.
 
   Much like .get(), which is better than . and [], this function will never throw an error (unless you make it visit an object that has no .get() method but is not None), only ever return None if something is not found. Note that there is no indication of where in the chain the None is coming from.
@@ -30,6 +30,22 @@ def get(string_to_get_from_streamlit_session_state: str, *args: Any) -> Any | No
       if x is None:
         return None
   return x
+
+def ssset(string_to_get_from_streamlit_session_state: str, *additional_args_ending_with_payload: Any) -> None:
+  """Like ssget, but setting a value. Note that this means that if a None is encountered along the way, it will be replaced with a {}; much like the behavior of a defaultdict, in a way. Also note that payload must be given as a keyword argument, like payload=whatever, because of how variadic arguments work in python."""
+  a = list(additional_args_ending_with_payload)
+  if len(a) == 1: # I'm fairly certain this is redundant given the general case handled below. But it's nice to spell things out sometimes.
+    st.session_state[string_to_get_from_streamlit_session_state] = a[0]
+  else:
+    x = st.session_state
+    s = string_to_get_from_streamlit_session_state
+    while len(a) >= 2:
+      if x[s] is None:
+        x[s] = {}
+      # Set up the arguments for the next iteraton of the loop:
+      x = x[s]
+      s = a.pop(0)
+    x[s] = a.pop(0)
 
 def st_print(*args: Any) -> None:
   print(*args)
