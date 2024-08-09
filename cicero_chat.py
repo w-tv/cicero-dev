@@ -150,6 +150,7 @@ def display_chat(streamlit_key_suffix: str = "", account: str|None = None, short
   The streamlit_key_suffix is only necessary because we use this code in two places. But that does make it necessary, for every widget in this function. If streamlit_key_suffix is "", we infer we're in the chat page, and if otherwise we infer we're being used on a different page (so far, the only thing that does this is prompter).
 
   *A computer can never be held accountable. Therefore a computer must never make a management decision.*[꙳](https://twitter.com/bumblebike/status/832394003492564993)"""
+  st.write(st.session_state)
   if ssget("messages", streamlit_key_suffix):
     for message in st.session_state.messages[streamlit_key_suffix]:
       with st.chat_message(message["role"], avatar=message.get("avatar")):
@@ -176,6 +177,8 @@ def display_chat(streamlit_key_suffix: str = "", account: str|None = None, short
     elif pii_state and pii_state[0] is True:
       grow_chat(**pii_state[2])
     st.container().chat_input(on_submit=grow_chat, key="user_input_for_chatbot_this_frame"+streamlit_key_suffix, args=(streamlit_key_suffix, None, account, short_model_name_default) ) #Note that because it's a callback, the profiler will not catch grow_chat here. However, it takes about a second. (Update: maybe it's about 4 seconds, now? That's in the happy path, as well.)
+  st.write(st.session_state)
+
 
 def main(streamlit_key_suffix: str = "") -> None: # It's convenient to import cicero_chat in other files, to use its function in them, so we do a main() here so we don't run this code on startup.
   st.write('''**Chat freeform with Cicero directly ChatGPT-style!**  \nHere are some ideas: rewrite copy, make copy longer, convert a text into an email, or write copy based off a starter phrase/quote.''')

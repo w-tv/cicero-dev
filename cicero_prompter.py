@@ -39,10 +39,9 @@ def count_from_activity_log_times_used_today(user_email: str) -> int:
   ensure_existence_of_activity_log()
   return int( sql_call("SELECT COUNT(*) FROM cicero.default.activity_log WHERE user_email = :user_email AND DATE(timestamp) == current_date() AND prompter_or_chatbot = 'prompter'", keyword_arguments)[0][0] )
 
-# TODO: replace table with cicero.ref_tables.ref_bios
 @st.cache_data(show_spinner=False)
 def load_bios() -> dict[str, str]:
-  return {row["candidate"]:row["bio"] for row in sql_call("SELECT candidate, bio FROM cicero.default.ref_bios")}
+  return {row["candidate"]:row["bio"] for row in sql_call("SELECT candidate, bio FROM cicero.ref_tables.ref_bios")}
 
 @st.cache_data(show_spinner=False)
 def load_headlines(get_all: bool = False, past_days: int = 7) -> list[str]:
