@@ -12,7 +12,7 @@ from cicero_chat import main as cicero_chat
 from cicero_shared import ensure_existence_of_activity_log, exit_error, get_base_url, sql_call_cacheless, st_print
 from google.auth.transport import requests
 from google.oauth2 import id_token
-from streamlit_profiler import Profiler
+from wfork_streamlit_profiler import Profiler
 from datetime import datetime
 
 with Profiler():
