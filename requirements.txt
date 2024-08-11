@@ -17,7 +17,7 @@ langchain-community
 sentence-transformers == 3.0.1 # Needed for HuggingFaceEmbeddings(model_name="sentence-transformers/all-MiniLM-L12-v2") call, apparently. # Previous patch version of this seems to cause a weird error in the backup similarity search, so we avoid that ¯\_(ツ)_/¯
 faiss-cpu # needed for faiss. There's also a faiss-gpu but that seems like more of a gamble
 jellyfish # Needed for cross-document similarity comparisons
-streamlit-profiler @ git+https://github.com/wyattscarpenter/streamlit-profiler@patch-1
+wfork-streamlit-profiler # This is a fork of streamlit-profiler 0.2.4 that works on later streamlits. Some day we may move back to the original streamlit-profiler once it incorporates https://github.com/jrieke/streamlit-profiler/pull/4
 beautifulsoup4
 
 # Dev-only requirements (tooling)
