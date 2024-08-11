@@ -125,7 +125,7 @@ if len(summary_data_per_topic):
       alt.FillOpacity(condition={"param": "point_selection", "value": 1}), #TODO: with this i am trying to highlight the selected values, but right now it doesn't do that
       tooltip=key_of_rows
       ) \
-    .add_params(point_selector) #type: ignore[no-untyped-call] #ALTAIR-BUG-WORKAROUND https://github.com/vega/altair/issues/3408 — Fixed, waiting for next release. The current (buggy) release is 5.3.0 and I'm watching https://github.com/vega/altair/releases like a hawk for a new release (GitHub has a Watch>Custom>Releases option) but based on that page their release cadence is slow, although it will probably be this year (2024).
+    .add_params(point_selector)
   event = st.altair_chart(chart, use_container_width=True, on_select="rerun")
   if len(event['selection']['point_selection']) > 0:
     selected_topics = event['selection']['point_selection'][0]['Topic']
