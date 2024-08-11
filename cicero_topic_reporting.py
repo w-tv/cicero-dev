@@ -127,12 +127,13 @@ if len(summary_data_per_topic):
       ) \
     .add_params(point_selector)
   event = st.altair_chart(chart, use_container_width=True, on_select="rerun")
-  if len(event['selection']['point_selection']) > 0:
-    selected_topics = event['selection']['point_selection'][0]['Topic']
-    st.header(selected_topics.title())
-    selected_topics_rows = sql_call(f"""SELECT project_name, send_date , project_type, sum(tv_funds) as tv_funds, clean_text FROM hook_reporting.default.gold_topic_data_array WHERE {project_types_string} and {accounts_string} and {askgoal_string} and SEND_DATE >= CURRENT_DATE() - INTERVAL {past_days} DAY and SEND_DATE <= CURRENT_DATE() and array_contains(topics_array, '{selected_topics}') GROUP BY project_name, send_date, project_type, clean_text""")
-    column_names = {str(i): k for i, k in enumerate(selected_topics_rows[0].asDict())}
-    st.dataframe(selected_topics_rows, column_config=column_names, use_container_width=True)
+  if "selection" in event: #on click we "drill down"
+    if len(event['selection']['point_selection']) > 0:
+      selected_topics = event['selection']['point_selection'][0]['Topic']
+      st.header(selected_topics.title())
+      selected_topics_rows = sql_call(f"""SELECT project_name, send_date , project_type, sum(tv_funds) as tv_funds, clean_text FROM hook_reporting.default.gold_topic_data_array WHERE {project_types_string} and {accounts_string} and {askgoal_string} and SEND_DATE >= CURRENT_DATE() - INTERVAL {past_days} DAY and SEND_DATE <= CURRENT_DATE() and array_contains(topics_array, '{selected_topics}') GROUP BY project_name, send_date, project_type, clean_text""")
+      column_names = {str(i): k for i, k in enumerate(selected_topics_rows[0].asDict())}
+      st.dataframe(selected_topics_rows, column_config=column_names, use_container_width=True)
 else:
   st.info("No data points are selected by the values indicated by the controls. Therefore, there is nothing to graph. Please broaden your criteria.")
 
