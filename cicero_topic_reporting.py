@@ -85,7 +85,7 @@ with st.expander("Topics..."):
 
 col1, col2, col3, col4 = st.columns(4) #possibly refactor this into non-unpacking for-loop type thing if I need to keep editing it.
 with col1:
-  past_days = st.radio("Date range", [1, 7, 14, 30, 30*6], index=1, format_func=lambda x: "Yesterday" if x == 1 else f"Last {x} days", help="The date range from which to display data. This will display data from any calendar day greater than or equal to (the present day minus the number of days specified). That is, 'Yesterday' will display data from both yesterday and today (and possibly, in rare circumstances, from the future).\n\nUnlike the rest of the controls in this row, this control only controls the top graph, and is never applied to the bottom graph.")
+  past_days = st.radio("Date range", [1, 7, 14, 30, 30*6], index=1, format_func=lambda x: "Yesterday" if x == 1 else f"Last {x} days", horizontal=True, help="The date range from which to display data. This will display data from any calendar day greater than or equal to (the present day minus the number of days specified). That is, 'Yesterday' will display data from both yesterday and today (and possibly, in rare circumstances, from the future).\n\nUnlike the rest of the controls in this row, this control only controls the top graph, and is never applied to the bottom graph.")
 with col2:
   permitted_accounts = load_account_names() if "everything" in permissible_account_names(st.session_state["email"]) else [ x for x in load_account_names() if lowalph(x) in map(lowalph, permissible_account_names(st.session_state["email"])) ]
   accounts = st.multiselect("Account", permitted_accounts, help="This control allows you to filter on the account name. If nothing is selected in this control all of the accounts will be presented. Also, you must be individually permissioned for access to account names, so you may not have the ability to select additional ones.")
@@ -108,20 +108,24 @@ if "all_hook" in topics: #This special case is just copy-pasted from above, with
 key_of_rows = ("Topic", "TV Funds ($)", "FPM ($)", "ROAS (%)", "Project count")
 dicted_rows = {key_of_rows[i]: [row[i] for row in summary_data_per_topic] for i, key in enumerate(key_of_rows)} #various formats probably work for this; this is just one of them.
 dicted_rows["color"] = [tb["color"] for t in dicted_rows["Topic"] for _, tb in topics_big.items() if tb["internal name"] == t.removesuffix("_hook")] #COULD: one day revise the assumptions that necessitate this logic, which is really grody. #TODO: in some cases we get a "All arrays must be of the same length" error on this, but I'm pretty sure that's just a result of us being mid- topic-pivot.
+#COULD: set up some kind of function for these that decreases the multiplier as the max gets bigger
+fpm_max = max(dicted_rows['FPM ($)']) * 1.1
+roas_max = max(dicted_rows['ROAS (%)']) * 1.05
 if len(summary_data_per_topic):
   point_selector = alt.selection_point("point_selection")
   chart = alt.Chart(
     pd.DataFrame({ key:pd.Series(value) for key, value in dicted_rows.items() })) \
-    .mark_circle(size=90) \
+    .mark_circle(size=400) \
     .encode(
-      alt.X("ROAS (%)"), 
-      alt.Y("FPM ($)"), 
+      alt.X("ROAS (%)", scale=alt.Scale(domain=(0, roas_max))), 
+      alt.Y("FPM ($)", scale=alt.Scale(domain=(0, fpm_max))), 
       alt.Color("Topic", 
                 scale=alt.Scale(domain=dicted_rows["Topic"], 
                                 range=dicted_rows["color"]
                                 ), 
                 legend=None
                 ),
+      # alt.Size(field="Project count", scale=alt.Scale(range=[150, 500])), #TODO: make a useable legend for this that works with both dark mode and light mode. 
       alt.FillOpacity(condition={"param": "point_selection", "value": 1}), #TODO: with this i am trying to highlight the selected values, but right now it doesn't do that
       tooltip=key_of_rows
       ) \
