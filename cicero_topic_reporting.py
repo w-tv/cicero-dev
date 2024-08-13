@@ -109,8 +109,8 @@ key_of_rows = ("Topic", "TV Funds ($)", "FPM ($)", "ROAS (%)", "Project count")
 dicted_rows = {key_of_rows[i]: [row[i] for row in summary_data_per_topic] for i, key in enumerate(key_of_rows)} #various formats probably work for this; this is just one of them.
 dicted_rows["color"] = [tb["color"] for t in dicted_rows["Topic"] for _, tb in topics_big.items() if tb["internal name"] == t.removesuffix("_hook")] #COULD: one day revise the assumptions that necessitate this logic, which is really grody. #TODO: in some cases we get a "All arrays must be of the same length" error on this, but I'm pretty sure that's just a result of us being mid- topic-pivot.
 #COULD: set up some kind of function for these that decreases the multiplier as the max gets bigger
-fpm_max = max(dicted_rows['FPM ($)']) * 1.1
-roas_max = max(dicted_rows['ROAS (%)']) * 1.05
+fpm_max = max(dicted_rows['FPM ($)'] or [0]) * 1.1 # The `or [0]` clauses prevent a crash when fpm (for example) is empty. #TODO: are the lower graphs correct in this case? Probably not, since they show... any data at all? Honestly when we change this graphing code to not use dicted_rows it will probably be clearer what's going on.
+roas_max = max(dicted_rows['ROAS (%)'] or [0]) * 1.05
 if len(summary_data_per_topic):
   point_selector = alt.selection_point("point_selection")
   chart = alt.Chart(
