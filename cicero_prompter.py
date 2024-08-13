@@ -6,7 +6,7 @@ import streamlit as st
 import pandas as pd
 import json
 from typing import Any, Literal, TypedDict
-from cicero_shared import assert_always, consul_show, ensure_existence_of_activity_log, exit_error, ssget, get_base_url, load_account_names, sql_call, sql_call_cacheless, st_print, topics_big, typesafe_selectbox
+from cicero_shared import assert_always, consul_show, ensure_existence_of_activity_log, exit_error, is_dev, ssget, get_base_url, load_account_names, sql_call, sql_call_cacheless, st_print, topics_big, typesafe_selectbox
 from cicero_types import aa, Short_Model_Name, Long_Model_Name, short_model_names, short_model_name_default, short_model_name_to_long_model_name
 import cicero_chat
 
@@ -308,7 +308,7 @@ def execute_prompting(model: Long_Model_Name, account: str, sender: str|None, as
       reference_texts.extend(search_results)
     except Exception as _e:
       used_similarity_search_backup = "faiss"
-      if st.session_state.get("developer_mode"):
+      if is_dev():
         st_print("developer mode message: error was encountered in the main similarity search library (or perhaps you induced a fake error there for testing purposes) so we are using the backup option")
       search_results = []
       lowest_score = 0.0 # This value is a hack. Our original score_threshold value (which we set this variable to the value of) was too high, so we never found any results, so the score_threshold was never updated. (Although, I think it can only ever update up, that's the whole point of updating it in our code later, I guess. So in reality that part of the process was irrelevant and the real problems was that the score_threshold was simply too high.) This is probably because instead of values between 0 and 1, like it's supposed to, the FAISS thing is giving us back all sorts of numbers, some of them negative. And I guess very few of those are >0.5 or whatever the score_threshold is. This caused the code to run approximately forever, eat up enormous amounts of RAM, and then (exceeding the RAM limit) die. I think this method will still exceed the RAM limit and die on Streamlit, even with this fix! (Although sometimes Streamlit seems to allow you to exceed the RAM limit, maybe if you only do it for a second, without crashing you, so we'll see.)
@@ -495,7 +495,7 @@ st.text("") # Just for vertical spacing.
 
 with st.form('query_builder'):
   with st.sidebar:
-    if st.session_state.get("developer_mode"):
+    if is_dev():
       topic_weight: float = st.slider("Topic Weight", min_value=0.0, max_value=10.0, key="topic_weight")
       tone_weight: float = st.slider("Tone Weight", min_value=0.0, max_value=10.0, key="tone_weight")
       client_weight: float = st.slider("Client Weight", min_value=0.0, max_value=10.0, key="client_weight")
@@ -512,7 +512,7 @@ with st.form('query_builder'):
       doc_pool_size = 30
       num_examples = 10
 
-  model_name = typesafe_selectbox("Model (required)", short_model_names, key="model_name") if st.session_state.get("developer_mode") else short_model_name_default
+  model_name = typesafe_selectbox("Model (required)", short_model_names, key="model_name") if is_dev() else short_model_name_default
   model = short_model_name_to_long_model_name(model_name)
   account = st.selectbox("Account (required)", account_names, key="account") # No typesafe_selectbox here because we actually do want this to possibly be unselected.
   sender = st.text_input("Sender Name", key="sender") if st.session_state.get("sender_access") else None
@@ -523,16 +523,16 @@ with st.form('query_builder'):
   additional_topics = [x.strip().lower() for x in st.text_input("Additional Topics (examples: Biden, survey, deadline)", key="additional_topics" ).split(",") if x.strip()] # The list comprehension is to filter out empty strings on split, because otherwise this fails to make a truly empty list in the default case, instead having a list with an empty string in, because split changes its behavior when you give it arguments. Anyway, this also filters out trailing comma edge-cases and such.
   tones = st.multiselect("Tones", aa(Tone), key="tones")
   num_outputs = typesafe_selectbox(r"\# Outputs", aa(Num_Outputs), key='num_outputs')
-  temperature: float = st.slider("Output Variance:", min_value=0.0, max_value=1.0, key="temperature") if st.session_state.get("developer_mode") else 0.7
+  temperature: float = st.slider("Output Variance:", min_value=0.0, max_value=1.0, key="temperature") if is_dev() else 0.7
   buttonhole = st.empty()
   with buttonhole:
     if st.session_state.get("submit_button_disabled"):
       st.form_submit_button("Processing...", type="primary", disabled=True)
     else:
       st.form_submit_button("Submit", type="primary", on_click=disable_submit_button_til_complete)
-  if st.session_state.get("developer_mode"):
+  if is_dev():
     st.session_state["use_backup_similarity_search_library"] = typesafe_selectbox("(developer mode option) trigger a fake error in the appropriate place in this run to use backup similarity search library", [False, True])
-if st.session_state.get("developer_mode"):
+if is_dev():
   if st.button("Developer mode special button for testing: “***I'm feeling (un)lucky***”"):
     st.session_state["submit_button_disabled"] = True
     account = "AAF" # Just a testing value.
@@ -565,7 +565,7 @@ if st.session_state.get("submit_button_disabled"):
 
 # The idea is for these output elements to persist after one query button, until overwritten by the results of the next query.
 
-if 'entire_prompt' in st.session_state and st.session_state.get("developer_mode"):
+if 'entire_prompt' in st.session_state and is_dev():
   with st.expander("Developer Mode Message: the prompt passed to the model"):
     st.caption(st.session_state['entire_prompt'].replace("$", r"\$"))
 
@@ -593,7 +593,7 @@ with st.sidebar: #The history display includes a result of the logic of the scri
   st.dataframe( pd.DataFrame(reversed( st.session_state['history'] ),columns=(["Outputs"])), hide_index=True, use_container_width=True)
 
 login_activity_counter_container.write(
-  f"""You are logged in as {st.session_state['email']}{" (internally, "+str(st.experimental_user['email'])+")" if st.session_state.get("developer_mode") else ""}. You have prompted {st.session_state['use_count']} time{'s' if st.session_state['use_count'] != 1 else ''} today, out of a limit of {use_count_limit}. {"You are in developer mode." if st.session_state.get("developer_mode") else ""}"""
+  f"""You are logged in as {st.session_state['email']}{" (internally, "+str(st.experimental_user['email'])+")" if is_dev() else ""}. You have prompted {st.session_state['use_count']} time{'s' if st.session_state['use_count'] != 1 else ''} today, out of a limit of {use_count_limit}. {"You are in developer mode." if is_dev() else ""}"""
 )
 
 st.session_state["submit_button_disabled"] = False

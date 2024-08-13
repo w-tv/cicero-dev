@@ -9,7 +9,7 @@ nanoseconds_base : int = perf_counter_ns()
 import streamlit as st
 import os, psutil, platform
 from cicero_chat import main as cicero_chat
-from cicero_shared import ensure_existence_of_activity_log, exit_error, get_base_url, sql_call_cacheless, st_print
+from cicero_shared import ensure_existence_of_activity_log, exit_error, get_base_url, is_dev, sql_call_cacheless, st_print
 from google.auth.transport import requests
 from google.oauth2 import id_token
 from wfork_streamlit_profiler import Profiler
@@ -80,7 +80,7 @@ with Profiler():
     pages += [
       st.Page("cicero_topic_reporting.py", title="📈 Topic Reporting", url_path='Topic_Reporting')
     ]
-  if st.session_state.get('developer_mode'):
+  if is_dev():
     pages += [
       # st.Page("cicero_topic_reporting_refactor.py", title="📈 Topic Reporting (Under Construction)", url_path='Topic_Reporting_Refactor'),
       # st.Page("cicero_response_lookup.py", title="🔍 Response Lookup", url_path="Response_Lookup"),
@@ -91,7 +91,7 @@ with Profiler():
   st.navigation(pages).run()
   loading_message.empty() # At this point, we no longer need to display a loading message, once we've gotten here and displayed everything above.
 
-  if st.session_state.get('developer_mode'): # Developer information about the app (performance, etc).
+  if is_dev(): # Developer information about the app (performance, etc).
     with st.sidebar:
       st.caption(f"""Streamlit app memory usage: {psutil.Process(os.getpid()).memory_info().rss // 1024 ** 2} MiB.<br>
         Time to display: {(perf_counter_ns()-nanoseconds_base)/1000/1000/1000} seconds.<br>

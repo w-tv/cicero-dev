@@ -77,7 +77,7 @@ def get_base_url() -> str:
 
 def consul_show(x: object) -> None:
   """Show some debug-like information in the sidebar. Often best used with f"{foo=}" in the calling code, which will become the name and also the value of the variable, such as foo=2 (naturally, this must be done at the calling site (I assume))."""
-  if st.session_state.get("developer_mode"):
+  if is_dev():
     st.sidebar.caption(f"Developer (“Consul”) mode diagnostic: {x}")
 
 def exit_error(exit_code: int) -> NoReturn:
