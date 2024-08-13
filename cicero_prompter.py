@@ -6,7 +6,7 @@ import streamlit as st
 import pandas as pd
 import json
 from typing import Any, Literal, TypedDict
-from cicero_shared import assert_always, consul_show, ensure_existence_of_activity_log, exit_error, is_dev, ssget, get_base_url, load_account_names, sql_call, sql_call_cacheless, st_print, topics_big, typesafe_selectbox
+from cicero_shared import assert_always, consul_show, dev_str, ensure_existence_of_activity_log, exit_error, is_dev, ssget, get_base_url, load_account_names, sql_call, sql_call_cacheless, st_print, topics_big, typesafe_selectbox
 from cicero_types import aa, Short_Model_Name, Long_Model_Name, short_model_names, short_model_name_default, short_model_name_to_long_model_name
 import cicero_chat
 
@@ -593,7 +593,7 @@ with st.sidebar: #The history display includes a result of the logic of the scri
   st.dataframe( pd.DataFrame(reversed( st.session_state['history'] ),columns=(["Outputs"])), hide_index=True, use_container_width=True)
 
 login_activity_counter_container.write(
-  f"""You are logged in as {st.session_state['email']}{" (internally, "+str(st.experimental_user['email'])+")" if is_dev() else ""}. You have prompted {st.session_state['use_count']} time{'s' if st.session_state['use_count'] != 1 else ''} today, out of a limit of {use_count_limit}. {"You are in developer mode." if is_dev() else ""}"""
+  f"""You are logged in as {st.session_state['email']}{ dev_str( f" (internally, {st.experimental_user.email})" ) }. You have prompted {st.session_state['use_count']} time{'s' if st.session_state['use_count'] != 1 else ''} today, out of a limit of {use_count_limit}. {dev_str("You are in developer mode.")}"""
 )
 
 st.session_state["submit_button_disabled"] = False
