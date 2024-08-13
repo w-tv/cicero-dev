@@ -119,7 +119,7 @@ def grow_chat(streamlit_key_suffix: str = "", alternate_content: str|None = None
       time_difference = st.session_state.get("read_link_time_end") - st.session_state.get("read_link_time_start")
       remaining_seconds = 30 - time_difference.total_seconds()
       remaining_seconds = round(remaining_seconds)
-      # print('Festina lente! Waiting', remaining_seconds, 'seconds...') #TODO: somehow show this to the user... tried an st.write but it didn't show up anywhere
+      # print('Festina lente! Waiting', remaining_seconds, 'seconds...') #TODO: somehow show this to the user... tried an st.write but it didn't show up anywhere #That's because it happens during a callback, probably.
       time.sleep(remaining_seconds)
       p = expand_url_content(p)
       st.session_state["read_link_time_end"] = datetime.now()

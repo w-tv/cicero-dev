@@ -26,6 +26,8 @@ https://commons.wikimedia.org/wiki/File:Cicero-head.png extracted from Cicero.PN
 
 when you beat the cicero was just programmed wrong allegations.jpg Meme (the filled-in-blank text) by Wyatt S Carpenter, source meme by someone unknown. The photograph is of Snoop Dogg, and is credited by https://www.cnn.com/2013/11/19/justice/high-profile-acquittals-after/ to Terri THUENTE/Pool/AFP/Getty Images
 
-cicero sigma male rome.png Screenshot of YouTube search results, by Jason Gray. Used without permission.
+cicero sigma male rome.png Screenshot of YouTube search results, by Jason Gray. Used without permission
 
 cicero head with tv triangle eyes.png Edit of Cicero-head.png and the old favicon by Wyatt S Carpenter
+
+lenna.png https://en.wikipedia.org/wiki/File:Lenna_(test_image).png photographed by Dwight Hooker / Fair Use
