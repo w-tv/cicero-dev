@@ -12,7 +12,7 @@ List of derived quantities, left to right (does not include "topic", which is al
 """
 import streamlit as st
 from typing import Any, Sequence
-from cicero_shared import load_account_names, sql_call, ssget, topics_big
+from cicero_shared import consul_show, dev_str, load_account_names, sql_call, ssget, topics_big
 
 import pandas as pd
 import altair as alt
@@ -88,7 +88,7 @@ with col1:
   past_days = st.radio("Date range", [1, 7, 14, 30, 180], index=1, format_func=lambda x: "Yesterday" if x == 1 else f"Last {x} days", horizontal=True, help="The date range from which to display data. This will display data from any calendar day greater than or equal to (the present day minus the number of days specified). That is, 'Yesterday' will display data from both yesterday and today (and possibly, in rare circumstances, from the future).")
 with col2:
   permitted_accounts = load_account_names() if "everything" in permissible_account_names(st.session_state["email"]) else [ x for x in load_account_names() if lowalph(x) in map(lowalph, permissible_account_names(st.session_state["email"])) ]
-  accounts = st.multiselect("Account", permitted_accounts, help="This control allows you to filter on the account name. If nothing is selected in this control all of the accounts will be presented. Also, you must be individually permissioned for access to account names, so you may not have the ability to select additional ones.")
+  accounts = st.multiselect("Account", permitted_accounts, help=f"This control allows you to filter on the account name. If nothing is selected in this control all of the accounts will be presented (however, you will not be able to drill down on a topic without first selecting an account {dev_str('; unless you are in developer mode, which you are')}). Also, you must be individually permissioned for access to account names, so you may not have the ability to select additional ones.")
   accounts_string = "true" if not accounts else f"account_name in {to_sql_tuple_string(external_account_names_to_internal_account_names_list_mapping(accounts))}"
 with col3:
   project_types = st.multiselect("Project Type", ["Text Message: P2P External", "Text Message: P2P Internal", "Text Message: SMS"], help="This control allows you to filter on the project type. If nothing is selected in this control, no filtering will be done.")
@@ -132,6 +132,7 @@ if len(summary_data_per_topic):
     .add_params(point_selector)
   event = st.altair_chart(chart, use_container_width=True, on_select="rerun")
   if "selection" in event and (ssget("developer_mode") or len(accounts) == 1): #on click we "drill down"
+    consul_show("Drilling down...")
     if len(event['selection']['point_selection']) > 0:
       selected_topics = event['selection']['point_selection'][0]['Topic']
       st.header(selected_topics.title())
