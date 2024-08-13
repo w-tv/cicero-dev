@@ -130,8 +130,7 @@ def assert_always(x: Any, message_to_assert: str|None = None) -> None | NoReturn
     raise AssertionError(message_to_assert or x)
   return None
 
-T = TypeVar('T')
-def typesafe_selectbox(label: str, options: Sequence[T], default: T|None = None, **kwargs: Any) -> T:
+def typesafe_selectbox[T](label: str, options: Sequence[T], default: T|None = None, **kwargs: Any) -> T:
   """Call `st.selectbox` but don't pollute your type with `None` in the process;
   if the selectbox would return `None`, return the value passed in as `default`.
   If `default` is `None` (eg: not passed in), the value of `options[0]` is used.

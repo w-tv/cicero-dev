@@ -5,7 +5,7 @@
 import streamlit as st
 import pandas as pd
 import json
-from typing import Any, Literal, TypedDict, TypeVar
+from typing import Any, Literal, TypedDict
 from cicero_shared import assert_always, consul_show, ensure_existence_of_activity_log, exit_error, ssget, get_base_url, load_account_names, sql_call, sql_call_cacheless, st_print, topics_big, typesafe_selectbox
 from cicero_types import aa, Short_Model_Name, Long_Model_Name, short_model_names, short_model_name_default, short_model_name_to_long_model_name
 import cicero_chat
@@ -183,8 +183,7 @@ def execute_prompting(model: Long_Model_Name, account: str, sender: str|None, as
   # Tp, C, To
   # Tp, C, L
   # Tp, C
-  T = TypeVar('T')
-  def powerset(l: list[T], start: int = 0) -> list[tuple[T, ...]]:
+  def powerset[T](l: list[T], start: int = 0) -> list[tuple[T, ...]]:
     """powerset([1,2,3]) → () (1,) (2,) (3,) (1,2) (1,3) (2,3) (1,2,3)
     Used to generate powersets of filters."""
     return [x for r in range(start, len(l)+1) for x in combinations(l, r)]
