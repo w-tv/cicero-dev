@@ -3,6 +3,8 @@
 """Cicero (the actual, historical man (it's really him))."""
 
 import streamlit as st
+from datetime import datetime, timedelta
+import time
 from databricks_genai_inference import ChatSession, FoundationModelAPIException
 from cicero_shared import consul_show, is_dev, ssget, ssset, get_base_url, popup, typesafe_selectbox
 from cicero_types import Short_Model_Name, short_model_names, short_model_name_default, short_model_name_to_long_model_name
@@ -109,7 +111,18 @@ def grow_chat(streamlit_key_suffix: str = "", alternate_content: str|None = None
       continue_prompt = False
 
   if streamlit_key_suffix=="_corporate": #implement url content expansion, at this point only for the corp chat
-    p = expand_url_content(p)
+    if "read_link_time_start" not in st.session_state or (st.session_state.get("read_link_time_end") - st.session_state.get("read_link_time_start")) > timedelta(seconds=30):
+      st.session_state["read_link_time_start"] = datetime.now()
+      p = expand_url_content(p)
+      st.session_state["read_link_time_end"] = datetime.now()
+    else:
+      time_difference = st.session_state.get("read_link_time_end") - st.session_state.get("read_link_time_start")
+      remaining_seconds = 30 - time_difference.total_seconds()
+      remaining_seconds = round(remaining_seconds)
+      # print('Festina lente! Waiting', remaining_seconds, 'seconds...') #TODO: somehow show this to the user... tried an st.write but it didn't show up anywhere
+      time.sleep(remaining_seconds)
+      p = expand_url_content(p)
+      st.session_state["read_link_time_end"] = datetime.now()
 
   if continue_prompt:
     old_chat = chat.chat_history.copy()
