@@ -12,7 +12,7 @@ List of derived quantities, left to right (does not include "topic", which is al
 """
 import streamlit as st
 from typing import Any, Sequence
-from cicero_shared import load_account_names, sql_call, topics_big
+from cicero_shared import load_account_names, sql_call, ssget, topics_big
 
 import pandas as pd
 import altair as alt
@@ -131,7 +131,7 @@ if len(summary_data_per_topic):
       ) \
     .add_params(point_selector)
   event = st.altair_chart(chart, use_container_width=True, on_select="rerun")
-  if "selection" in event: #on click we "drill down"
+  if "selection" in event and (ssget("developer_mode") or len(accounts) == 1): #on click we "drill down"
     if len(event['selection']['point_selection']) > 0:
       selected_topics = event['selection']['point_selection'][0]['Topic']
       st.header(selected_topics.title())
