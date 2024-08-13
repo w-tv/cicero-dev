@@ -11,7 +11,7 @@ List of derived quantities, left to right (does not include "topic", which is al
   (Since FPM is Funds per mille, I think the symbol should be $‰, but Alex nixed this idea.)
 """
 import streamlit as st
-from typing import Any, Sequence
+from typing import Sequence
 from cicero_shared import consul_show, dev_str, load_account_names, sql_call, ssget, topics_big
 
 import pandas as pd
@@ -29,7 +29,7 @@ def to_sql_tuple_string(x: Sequence[str]) -> str:
 def bool_dict_to_string_list(dict_of_strings_to_bool: dict[str, bool]) -> list[str]:
   return [s for s, value in dict_of_strings_to_bool.items() if value]
 
-def to_graphable_dict(values: Sequence[Sequence[Any]], x:str='x', y:str='y', color:str='color') -> list[dict[str, Any]]:
+def to_graphable_dict[T](values: Sequence[Sequence[T]], x:str='x', y:str='y', color:str='color') -> list[dict[str, T]]:
   if len(values) == 3: #it's a 3-list of n-lists
     return [{x: values[0][i], y:values[1][i], color:values[2][i]} for i, _ in enumerate(values[0])]
   else:

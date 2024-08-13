@@ -3,14 +3,15 @@
 It's useless to run this stand-alone. But I guess I won't stop you."""
 
 from databricks import sql # Spooky that this is not the same name as the pypi package databricks-sql-connector, but is the way to refer to the same thing.
-from databricks.sql.types import Row as Row
+from databricks.sql.types import Row
+from databricks.sql.parameters.native import TParameterCollection
 import streamlit as st
 from streamlit import runtime
-from typing import Any, NoReturn, TypedDict, TypeVar, Sequence
+from typing import Any, NoReturn, TypedDict, Sequence
 import urllib.parse
 
-def ssget(string_to_get_from_streamlit_session_state: str, *args: Any) -> Any | None:
-  """ .get() all Y-combinatorally. This function repeatedly retrieves things from things using `.get()` . Starting with the first argument from st.session_state, and then all the subsequent args from the first. This loses type-safety, in a way, since it just returns Any, but st.session_state already didn't have type-safety (TODO: figure out how to TypedDict the session_state? Seems impossible.) because it always just returns `Any | None`. This function also returns `Any | None`. However, long get chains on things taken from session_state like `st.session_state.get("chat").get(streamlit_key_suffix)` get you errors like `error: Item "None" of "Any | None" has no attribute "get"  [union-attr]` — and quite likely so, because that could give you a type error at runtime! You also can't do the ol' `if st.session_state.get("messages") and st.session_state.get("messages").get(streamlit_key_suffix)` "shortcut"-`and` trick, because there might be side-effects between the first and second call of the function. So you'd have to do something crazy like `if m := st.session_state.get("messages") and m.get(streamlit_key_suffix)` (actually, that leads to a type error `error: Name "m" is used before definition  [used-before-def]`). Or break up the clauses or use a variable. Or, you can simply call `get("messages", streamlit_key_suffix)` for the same effect.
+def ssget(string_to_get_from_streamlit_session_state: str, *args: object) -> Any | None:
+  """ .get() all Y-combinatorally. This function repeatedly retrieves things from things using `.get()` . Starting with the first argument from st.session_state, and then all the subsequent args from the first. This loses type-safety, in a way, since it just returns Any, but st.session_state already didn't have type-safety (Could: figure out how to TypedDict the session_state? Doesn't seem worth it.) because it always just returns `Any | None`. This function also returns `Any | None`. However, long get chains on things taken from session_state like `st.session_state.get("chat").get(streamlit_key_suffix)` get you errors like `error: Item "None" of "Any | None" has no attribute "get"  [union-attr]` — and quite likely so, because that could give you a type error at runtime! You also can't do the ol' `if st.session_state.get("messages") and st.session_state.get("messages").get(streamlit_key_suffix)` "shortcut"-`and` trick, because there might be side-effects between the first and second call of the function. So you'd have to do something crazy like `if m := st.session_state.get("messages") and m.get(streamlit_key_suffix)` (actually, that leads to a type error `error: Name "m" is used before definition  [used-before-def]`). Or break up the clauses or use a variable. Or, you can simply call `get("messages", streamlit_key_suffix)` for the same effect.
 
   Much like .get(), which is better than . and [], this function will never throw an error (unless you make it visit an object that has no .get() method but is not None), only ever return None if something is not found. Note that there is no indication of where in the chain the None is coming from.
 
@@ -53,11 +54,11 @@ def is_dev() -> bool:
 
 def dev_str(value: object) -> str:
   """Return a value, converted to a string, if developer_mode is active. Otherwise return an empty string.
-  This function would ideally return any type of value, and None if dev mode is false, but the fact that str(`None`) becomes "None" in python makes that a footgun waiting to happen :(.
+  This function would ideally return the value untouched (of the input type), and None if dev mode is false, but the fact that str(`None`) becomes "None" in python makes that a footgun waiting to happen :(.
     (You see, you would obviously want to write dev_str("some string") and expect it to not appear if dev mode is off. But instead the word "None" would appear!) """
   return str(value) if is_dev() else ""
 
-def st_print(*args: Any) -> None:
+def st_print(*args: object) -> None:
   print(*args)
   st.write(*args)
 
@@ -74,7 +75,7 @@ def get_base_url() -> str:
   except IndexError as e:
     return str(e)
 
-def consul_show(x: Any) -> None:
+def consul_show(x: object) -> None:
   """Show some debug-like information in the sidebar. Often best used with f"{foo=}" in the calling code, which will become the name and also the value of the variable, such as foo=2 (naturally, this must be done at the calling site (I assume))."""
   if st.session_state.get("developer_mode"):
     st.sidebar.caption(f"Developer (“Consul”) mode diagnostic: {x}")
@@ -84,7 +85,7 @@ def exit_error(exit_code: int) -> NoReturn:
   exit(exit_code)
 
 @st.dialog("Database error")
-def die_with_database_error_popup(e_args: tuple[Any, ...]) -> NoReturn:
+def die_with_database_error_popup(e_args: tuple[object, ...]) -> NoReturn:
   print("Database error", e_args)
   st.write("There was a database error, and the application could not continue. Sorry.")
   st.code(e_args)
@@ -106,13 +107,13 @@ def ensure_existence_of_activity_log() -> None:
   sql_call("CREATE TABLE IF NOT EXISTS cicero.default.activity_log (timestamp timestamp, user_email string, user_pod string, prompter_or_chatbot string, prompt_sent string, response_given string, model_name string, model_url string, model_parameters string, system_prompt string, base_url string, user_feedback string)")
 
 @st.cache_data(show_spinner=False)
-def sql_call(query: str, sql_params_dict:dict[str, Any]|None=None) -> list[Row]:
+def sql_call(query: str, sql_params_dict: TParameterCollection|None = None) -> list[Row]:
   """This is a wrapper function for sql_call_cacheless that *is* cached. See that other function for more information about the actual functionality."""
   return sql_call_cacheless(query, sql_params_dict)
 
-def sql_call_cacheless(query: str, sql_params_dict:dict[str, Any]|None=None) -> list[Row]:
+def sql_call_cacheless(query: str, sql_params_dict: TParameterCollection|None = None) -> list[Row]:
   """Make a call to the database, returning a list of Rows. The returned values within the Rows are usually str, but occasionally might be int (as when getting the count) or float or perhaps any of these https://docs.databricks.com/en/dev-tools/python-sql-connector.html#type-conversions"""
-  # COULD: (but probably won't) there is a minor problem where we'd like to ensure that a query to a table x only occurs after a call to CREATE TABLE IF NOT EXISTS x (parameters of x). Technically, we could ensure this by creating a new function ensure_table(table_name, table_types) which then returns an TableEnsurance object, which then must be passed in as a parameter to SQL call. However, then we would want to check if it were the correct table (and possibly the right parameter types) which would greatly complicate the function signature of sql_call, because we'd have to pass the table name(s) in too, and then string-replace them into the query(?). So, doesn't seem worth it.
+  # COULD: (but probably won't) there is a minor problem where we'd like to ensure that a query to a table x only occurs after a call to CREATE TABLE IF NOT EXISTS x (parameters of x). Technically, we could ensure this by creating a new function ensure_table(table_name, table_types) which then returns an TableEnsurance object, which then must be passed in as a parameter to SQL call. However, then we would want to check if it were the correct table (and possibly the right parameter types) which would greatly complicate the function signature of sql_call, because we'd have to pass the table name(s) in too, and then string-replace them into the query(?). So, doesn't seem worth it. ALSO: sometimes we don't have the code to create the table. Some tables have to be created and populated by the team in other ways.
   try:
     with sql.connect(server_hostname=st.secrets["DATABRICKS_HOST"], http_path=st.secrets["DATABRICKS_HTTP_PATH"], access_token=st.secrets["DATABRICKS_TOKEN"]) as connection: #These secrets should be in the root level of the .streamlit/secrets.toml
       with connection.cursor() as cursor:
@@ -124,7 +125,7 @@ def sql_call_cacheless(query: str, sql_params_dict:dict[str, Any]|None=None) -> 
 def load_account_names() -> list[str]:
   return [row[0] for row in sql_call("SELECT DISTINCT rollup_name FROM cicero.ref_tables.ref_account_rollup WHERE visible_frontend ORDER BY rollup_name ASC")]
 
-def assert_always(x: Any, message_to_assert: str|None = None) -> None | NoReturn: #COULD: currently this enjoys no type-narrowing properties, alas.
+def assert_always(x: object, message_to_assert: str|None = None) -> None | NoReturn: #COULD: currently this enjoys no type-narrowing properties, alas. #TODO: actually the whole point of this is to try to provide an assert() that can be used for static typing that won't fail at runtime if python optimization is ever turned on. But this seems like something to take up with the python community and possibly the typing guy (make them add an assert_always, basically).
   """This function is equivalent to assert, but cannot be disabled by -O"""
   if not x:
     raise AssertionError(message_to_assert or x)
@@ -147,7 +148,9 @@ def typesafe_selectbox[T](label: str, options: Sequence[T], default: T|None = No
   It's not clear to me if there's a better & concise way to do the type signature of kwargs here.
 
   Note that if you use st.session_state to set the value of the key of the selectbox, that takes priority over the `default` argument.
-  However, if you set the value of said key to `None`, this function will still return `options[0]`."""
+  However, if you set the value of said key to `None`, this function will still return `options[0]`.
+  
+  The parameter kwargs is expanded and passed to selectbox; it is not to be confused with the kwargs of selectbox itself, which is a dict passed to the callback."""
   #STREAMLIT-BUG-WORKAROUND: every time I use this instead of st.selectbox I think this is technically working around a bug in streamlit, although it's a typing bug and might be impossible for them to fix: https://github.com/streamlit/streamlit/issues/8717
   i = 0 if default is None else options.index(default)
   x = st.selectbox(label, options, index=i, **kwargs)

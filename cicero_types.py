@@ -3,7 +3,7 @@
 
 from typing import Any, Literal, get_args, TypeAliasType
 
-def aa(t: TypeAliasType) -> Any:
+def aa(t: TypeAliasType) -> tuple[Any, ...]:
   "“aa”, “alias' args”: get the type arguments of the type within a TypeAlias. (Usually, we have a lot of Literal types, that are aliased, and this gets you the values from those types.) Pronounced like a quiet startled yelp."
   return get_args(t.__value__) # We only need .__value__ here because of the type keyword.
 
