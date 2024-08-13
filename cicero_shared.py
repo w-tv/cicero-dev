@@ -49,17 +49,13 @@ def ssset(string_to_get_from_streamlit_session_state: str, *additional_args_endi
 
 def is_dev() -> bool:
   """Return true if developer mode is active and false if it is inactive."""
-  #Could: refactor everything to use this, as that would technically be more DRY-y and more impervious to future refactors.
-  return ssget("developer_mode")
+  return bool(ssget("developer_mode"))
 
-def dev_str[T](value: T) -> str:
+def dev_str(value: object) -> str:
   """Return a value, converted to a string, if developer_mode is active. Otherwise return an empty string.
   This function would ideally return any type of value, and None if dev mode is false, but the fact that str(`None`) becomes "None" in python makes that a footgun waiting to happen :(.
     (You see, you would obviously want to write dev_str("some string") and expect it to not appear if dev mode is off. But instead the word "None" would appear!) """
-  if ssget("developer_mode"):
-    return str(value)
-  else:
-    return ""
+  return str(value) if is_dev() else ""
 
 def st_print(*args: Any) -> None:
   print(*args)
