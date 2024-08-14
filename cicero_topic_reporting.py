@@ -111,36 +111,30 @@ dicted_rows["color"] = [tb["color"] for t in dicted_rows["Topic"] for _, tb in t
 #COULD: set up some kind of function for these that decreases the multiplier as the max gets bigger
 fpm_max = max(dicted_rows['FPM ($)'] or [0]) * 1.1 # The `or [0]` clauses prevent a crash when fpm (for example) is empty. #TODO: are the lower graphs correct in this case? Probably not, since they show... any data at all? Honestly when we change this graphing code to not use dicted_rows it will probably be clearer what's going on.
 roas_max = max(dicted_rows['ROAS (%)'] or [0]) * 1.05
-if len(summary_data_per_topic):
-  point_selector = alt.selection_point("point_selection")
-  chart = alt.Chart(
-    pd.DataFrame({ key:pd.Series(value) for key, value in dicted_rows.items() })) \
-    .mark_circle(size=400) \
-    .encode(
-      alt.X("ROAS (%)", scale=alt.Scale(domain=(0, roas_max))), 
-      alt.Y("FPM ($)", scale=alt.Scale(domain=(0, fpm_max))), 
-      alt.Color("Topic", 
-                scale=alt.Scale(domain=dicted_rows["Topic"], 
-                                range=dicted_rows["color"]
-                                ), 
-                legend=None
-                ),
-      # alt.Size(field="Project count", scale=alt.Scale(range=[150, 500])), #TODO: make a useable legend for this that works with both dark mode and light mode. 
-      alt.FillOpacity(condition={"param": "point_selection", "value": 1}), #TODO: with this i am trying to highlight the selected values, but right now it doesn't do that
-      tooltip=key_of_rows
-      ) \
-    .add_params(point_selector)
-  event = st.altair_chart(chart, use_container_width=True, on_select="rerun")
-  if "selection" in event and (is_dev() or len(accounts) == 1): #on click we "drill down"
-    consul_show("Drilling down...")
-    if len(event['selection']['point_selection']) > 0:
-      selected_topics = event['selection']['point_selection'][0]['Topic']
-      st.header(selected_topics.title())
-      selected_topics_rows = sql_call(f"""SELECT {dev_str("account_name,")} project_name, send_date , project_type, sum(tv_funds) as tv_funds, clean_text FROM hook_reporting.default.gold_topic_data_array WHERE {project_types_string} and {accounts_string} and {askgoal_string} and SEND_DATE >= CURRENT_DATE() - INTERVAL {past_days} DAY and SEND_DATE <= CURRENT_DATE() and array_contains(topics_array, '{selected_topics}') GROUP BY {dev_str("account_name,")} project_name, send_date, project_type, clean_text""")
-      column_names = {str(i): k for i, k in enumerate(selected_topics_rows[0].asDict())}
-      st.dataframe(selected_topics_rows, column_config=column_names, use_container_width=True)
-else:
-  st.info("No data points are selected by the values indicated by the controls. Therefore, there is nothing to graph. Please broaden your criteria.")
+@st.fragment
+def malarky() -> None:
+  """This code displays a graph and lets the user select a point to drill down on its values. However, selecting the point reruns the page (this is unavoidable due to streamlit), and it seems like the way we get the points that go into this graph is a little unstable, so a rerun would often change the data slightly (order?) and change the colors of the graph and prevent the drilldown from appearing. So, we have to wrap it in a fragment. This is just another thing I hope to sort out in a refactor once the topic reporting is all moved over."""
+  if len(summary_data_per_topic):
+    chart = alt.Chart( pd.DataFrame( { key:pd.Series(value) for key, value in dicted_rows.items() } ) )\
+      .mark_circle(size=400)\
+      .encode(
+        alt.X("ROAS (%)", scale=alt.Scale(domain=(0, roas_max))), 
+        alt.Y("FPM ($)", scale=alt.Scale(domain=(0, fpm_max))), 
+        alt.Color("Topic", scale=alt.Scale(domain=dicted_rows["Topic"], range=dicted_rows["color"])), #todo: I don't think the current legend displays all the values, because the text box for it is too small ¯\_(ツ)_/¯
+        alt.Size(field="Project count", scale=alt.Scale(range=[150, 500])),
+        tooltip=key_of_rows
+      ).add_selection( alt.selection_single() )
+    event = st.altair_chart(chart, use_container_width=True, on_select="rerun")
+    if "selection" in event and (is_dev() or len(accounts) == 1): #on click we "drill down"
+      if len(event['selection']['param_1']) > 0:
+        selected_topics = event['selection']['param_1'][0]['Topic']
+        st.header(selected_topics.title())
+        selected_topics_rows = sql_call(f"""SELECT {dev_str("account_name,")} project_name, send_date , project_type, sum(tv_funds) as tv_funds, clean_text FROM hook_reporting.default.gold_topic_data_array WHERE {project_types_string} and {accounts_string} and {askgoal_string} and SEND_DATE >= CURRENT_DATE() - INTERVAL {past_days} DAY and SEND_DATE <= CURRENT_DATE() and array_contains(topics_array, '{selected_topics}') GROUP BY {dev_str("account_name,")} project_name, send_date, project_type, clean_text""")
+        column_names = {str(i): k for i, k in enumerate(selected_topics_rows[0].asDict())}
+        st.dataframe(selected_topics_rows, column_config=column_names, use_container_width=True)
+  else:
+    st.info("No data points are selected by the values indicated by the controls. Therefore, there is nothing to graph. Please broaden your criteria.")
+malarky()
 
 # Behold! Day (x) vs TV funds (y) line graph, per selected topic, which is what we decided was the only other important graph to keep from the old topic reporting application.
 topics = st.multiselect("Topics", topics_big, default="All", help="This control filters the below graph to only include results that have the selected topic.  If 'All' is one of the selected values, an aggregate sum of all the topics will be presented, as well.")
