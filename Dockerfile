@@ -17,7 +17,9 @@ RUN adduser -u 5678 --disabled-password --gecos "" app && chown -R app /app && a
 
 # Install pip requirements
 COPY requirements.txt .
-RUN python -m pip install --no-cache-dir -r requirements.txt
+RUN python -m pip install uv
+RUN uv venv
+RUN uv pip install --no-cache-dir -r requirements.txt
 
 USER app
 EXPOSE 8501
