@@ -67,27 +67,26 @@ with Profiler():
     st.session_state["topic_reporting_disabled"] = True
 
   # Since we use st.navigation explicitly, the default page detection is disabled, even though we may use a pages folder later (although we shouldn't name that folder pages/, purely in order to suppress a warning message about how we shouldn't do that). This is good, because we want to hide some of the pages from non-dev-mode users.
+  # There is an icon parameter to st.Page, so we could write eg icon="🗣️", but including the emoji in the titles makes them slightly larger and thus nicer-looking.
   pages = [ #pages visible to everyone
-    st.Page("cicero_prompter.py", title="🗣️ Prompter", default=True), # There is an icon parameter to st.Page, so we could write eg icon="🗣️", but including the emoji in the title makes it slightly larger and thus nicer-looking.
+    st.Page("cicero_prompter.py", title="🗣️ Prompter", default=True)
   ]
+
+  # These next two pages need a url_path because otherwise they have dumb names for implementation reasons.
   if st.session_state.get('chat_with_cicero_access'):
-    pages += [
-      st.Page(cicero_chat, title="💬 Chat with Cicero", url_path="Chat_With_Cicero")
-    ]
+    pages += [ st.Page(cicero_chat, title="💬 Chat with Cicero", url_path="chat_with_cicero") ]
   if st.session_state.get('chat_with_corpo_access'):
-    pages += [
-      st.Page(lambda: cicero_chat("_corporate"), title="💼 Chat with Cicero", url_path="Chat_With_Cicero_Corporate")
-    ]
+    pages += [ st.Page(lambda: cicero_chat("_corporate"), title="💼 Chat with Cicero", url_path="chat_with_cicero_corporate") ]
+
   if st.session_state.get('topic_reporting_access'):
-    pages += [
-      st.Page("cicero_topic_reporting.py", title="📈 Topic Reporting", url_path='Topic_Reporting')
-    ]
+    pages += [ st.Page("cicero_topic_reporting.py", title="📈 Topic Reporting") ]
+
   if is_dev():
     pages += [
-      # st.Page("cicero_response_lookup.py", title="🔍 Response Lookup", url_path="Response_Lookup"),
-      st.Page("cicero_new_pod_key.py", title="🆕 New Pod Key", url_path="New_Pod_Key"),
-      # st.Page("cicero_activity_looker.py", title="👁️ Activity Looker", url_path="Activity_Looker"),
-      st.Page("cicero_meddler.py", title="✍️ Meddler", url_path="Meddler")
+      st.Page("cicero_response_lookup.py", title="🔍 Response Lookup"),
+      st.Page("cicero_new_pod_key.py", title="🆕 New Pod Key"),
+      st.Page("cicero_activity_looker.py", title="👁️ Activity Looker"),
+      st.Page("cicero_meddler.py", title="✍️ Meddler")
     ]
   st.navigation(pages).run()
   loading_message.empty() # At this point, we no longer need to display a loading message, once we've gotten here and displayed everything above.
