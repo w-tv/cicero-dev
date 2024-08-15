@@ -52,6 +52,22 @@ with Profiler():
   #This is the way you set developer_mode. However, for the sake of brevity, the preferred way to *check* developer mode is is_dev() from cicero_shared.
   st.session_state['developer_mode'] = st.session_state['email'] in ["achang@targetedvictory.com", "abrady@targetedvictory.com", "thall@targetedvictory.com", "wcarpenter@targetedvictory.com", "cmahon@targetedvictory.com", "rtauscher@targetedvictory.com", "cmajor@targetedvictory.com", "test@example.com"] and not st.session_state.get("developer_mode_disabled")
 
+  # should this be sql_call or sql_call_cacheless?
+  # topic_reporting_access = []
+  # chat_with_cicero_access = []
+  # chat_with_corpo_access = []
+  # page_access = sql_call_cacheless(f"""select user_email, page_access from cicero.ref_tables.user_pods where page_access is not null""")
+  # for row in page_access:
+  #   if 'topic_reporting' in row[1]:
+  #     topic_reporting_access.append(row[0])
+  #   if 'chat_with_cicero' in row[1]:
+  #     chat_with_cicero_access.append(row[0])
+  #   if 'chat_with_corpo' in row[1]:
+  #     chat_with_corpo_access.append(row[0])
+  # print(topic_reporting_access)
+  # print(chat_with_cicero_access)
+  # print(chat_with_corpo_access)
+
   st.session_state['topic_reporting_access'] = st.session_state['email'] in ["achang@targetedvictory.com", "abrady@targetedvictory.com", "thall@targetedvictory.com", "wcarpenter@targetedvictory.com", "test@example.com", "akrishnan@targetedvictory.com"] and not st.session_state.get("topic_reporting_disabled")
   st.session_state['chat_with_cicero_access'] = st.session_state['email'] in ["achang@targetedvictory.com", "abrady@targetedvictory.com", "thall@targetedvictory.com", "wcarpenter@targetedvictory.com", "test@example.com", "sgoh@targetedvictory.com", "cmahon@targetedvictory.com", "akrishnan@targetedvictory.com", "aisaac@targetedvictory.com", "czelazny@targetedvictory.com", "akhamma@targetedvictory.com", "bgulick@targetedvictory.com", "cabrams@targetedvictory.com", "tveach@targetedvictory.com", "srowan@targetedvictory.com", "kbonini@targetedvictory.com", "sspooner@targetedvictory.com", "kdamato@targetedvictory.com", "zspringer@targetedvictory.com", "tdacey@targetedvictory.com", "mwilkins@targetedvictory.com", 'rsewell@targetedvictory.com', 'lmunschauer@targetedvictory.com', 'smorrow@targetedvictory.com'] and not st.session_state.get("CwC_access_disabled")
   st.session_state['chat_with_corpo_access'] = st.session_state['email'] in ["achang@targetedvictory.com", "abrady@targetedvictory.com", "thall@targetedvictory.com", "wcarpenter@targetedvictory.com", "test@example.com"] and not st.session_state.get("CwCorpo_access_disabled")
