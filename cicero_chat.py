@@ -112,10 +112,11 @@ def grow_chat(streamlit_key_suffix: str = "", alternate_content: str|None = None
 
   if streamlit_key_suffix=="_corporate": #implement url content expansion, at this point only for the corp chat
     if "last_link_time" in st.session_state:
-      time_difference = datetime.now() - st.session_state.get("last_link_time")
+      time_difference = datetime.now() - st.session_state["last_link_time"]
       if time_difference < timedelta(seconds=27): # It's 27 because we don't want to alert the user if they just have to wait another second or two. The query already takes that long, probably.
         remaining_seconds = round( 30 - time_difference.total_seconds() )
-        popup("Throttled!", f"Out of an abundance of caution, link reading is throttled to once every thirty seconds per user. Therefore your request has been delayed by {remaining_seconds} seconds. Sorry for the inconvenience. Please let Optimization know if this is a big problem.") # Festina lente!
+        print("Hey!", remaining_seconds)
+        popup("Throttled!", f"Out of an abundance of caution, link reading is throttled to once every thirty seconds per user. Therefore your request has been delayed by {remaining_seconds} seconds. Sorry for the inconvenience. Please let Optimization know if this is a big problem.") # Festina lente! #Unfortunately I think an unreported bug in streamlit means this dialog only ever shows once per session. But that's ok in this case.
         time.sleep(remaining_seconds)
     p = expand_url_content(p)
     st.session_state["last_link_time"] = datetime.now()
