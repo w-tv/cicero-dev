@@ -111,18 +111,14 @@ def grow_chat(streamlit_key_suffix: str = "", alternate_content: str|None = None
       continue_prompt = False
 
   if streamlit_key_suffix=="_corporate": #implement url content expansion, at this point only for the corp chat
-    if "read_link_time_start" not in st.session_state or (st.session_state.get("read_link_time_end") - st.session_state.get("read_link_time_start")) > timedelta(seconds=30):
-      st.session_state["read_link_time_start"] = datetime.now()
-      p = expand_url_content(p)
-      st.session_state["read_link_time_end"] = datetime.now()
-    else:
-      time_difference = st.session_state.get("read_link_time_end") - st.session_state.get("read_link_time_start")
-      remaining_seconds = 30 - time_difference.total_seconds()
-      remaining_seconds = round(remaining_seconds)
-      popup("Throttled!", f"Out of an abundance of caution, link reading is throttled to once every thirty seconds per user. Therefore your request has been delayed by {remaining_seconds} seconds. Sorry for the inconvenience. Please let Optimization know if this is a big problem.") # Festina lente!
-      time.sleep(remaining_seconds)
-      p = expand_url_content(p)
-      st.session_state["read_link_time_end"] = datetime.now()
+    if "last_link_time" in st.session_state:
+      time_difference = datetime.now() - st.session_state.get("last_link_time")
+      if time_difference < timedelta(seconds=27): # It's 27 because we don't want to alert the user if they just have to wait another second or two. The query already takes that long, probably.
+        remaining_seconds = round( 30 - time_difference.total_seconds() )
+        popup("Throttled!", f"Out of an abundance of caution, link reading is throttled to once every thirty seconds per user. Therefore your request has been delayed by {remaining_seconds} seconds. Sorry for the inconvenience. Please let Optimization know if this is a big problem.") # Festina lente!
+        time.sleep(remaining_seconds)
+    p = expand_url_content(p)
+    st.session_state["last_link_time"] = datetime.now()
 
   if continue_prompt:
     old_chat = chat.chat_history.copy()
