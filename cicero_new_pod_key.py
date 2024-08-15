@@ -22,7 +22,7 @@ def do_one(email: str, pod: str) -> None:
     locals()
   )
 
-def to_sql_string_array_literal(x) -> str:
+def to_sql_string_array_literal(x: list[str]) -> str:
   # databricks-sql-python-BUG-WORKAROUND: https://github.com/databricks/databricks-sql-python/issues/377 https://github.com/databricks/databricks-sql-python/issues/290
   quoted = [f"'{x}'" for x in x if x]
   return f"array({', '.join(quoted)})"
