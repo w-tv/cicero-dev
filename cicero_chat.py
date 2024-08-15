@@ -70,10 +70,11 @@ def expand_url_content(s: str) -> str:
   return re.sub(pattern=url_regex, repl=content_from_url_regex_match, string=s)
 
 def grow_chat(streamlit_key_suffix: str = "", alternate_content: str|None = None, account: str|None = None, short_model_name: Short_Model_Name = short_model_name_default) -> None:
-  keyword_arguments = locals()
   """Note that this function will do something special to the prompt if alternate_content is supplied.
   Also, the streamlit_key_suffix is only necessary because we use this code in two places. If streamlit_key_suffix is "", we infer we're in the chat page, and if otherwise we infer we're being used on a different page (so far, the only thing that does this is prompter).
   Random fyi: chat.history is an alias for chat.chat_history (you can mutate chat.chat_history but not chat.history, btw). Internally, it's, like: [{'role': 'system', 'content': 'You are a helpful assistant.'}, {'role': 'user', 'content': 'Knock, knock.'}, {'role': 'assistant', 'content': "Hello! Who's there?"}, {'role': 'user', 'content': 'Guess who!'}, {'role': 'assistant', 'content': "Okay, I'll play along! Is it a person, a place, or a thing?"}]"""
+  keyword_arguments = locals()
+  pii = ssget("pii_interrupt_state", streamlit_key_suffix)
   if streamlit_key_suffix=="_prompter":
     sys_prompt = "You are a helpful, expert copywriter who specializes in writing fundraising text messages and emails for conservative candidates and causes. Be direct with your responses, and avoid extraneous messages like 'Hello!' and 'I hope this helps!'. These text messages and emails tend to be more punchy and engaging than normal marketing material. Do not mention that you are a helpful, expert copywriter."
   elif streamlit_key_suffix=="_corporate":
@@ -94,6 +95,9 @@ def grow_chat(streamlit_key_suffix: str = "", alternate_content: str|None = None
   if alternate_content:
     p = "Here is a conservative fundraising text: [" + alternate_content + "] Analyze the quality of the text based off of these five fundraising elements: the Hook, Urgency, Agency, Stakes, and the Call to Action (CTA). Do not assign scores to the elements. It's possible one or more of these elements is missing from the text provided. If so, please point that out. Then, directly ask the user what assistance they need with the text. Additionally, mention that you can also help edit the text to be shorter or longer, and convert the text into an email. Only provide analysis once, unless the user asks for analysis again."
     display_p = "« " + alternate_content + " »"
+  elif pii and pii[0]: #there was pii, and we are continuing
+    p = pii[1]
+    display_p = p
   else:
     p = st.session_state["user_input_for_chatbot_this_frame"+streamlit_key_suffix]
     display_p = p
@@ -160,7 +164,10 @@ def display_chat(streamlit_key_suffix: str = "", account: str|None = None, short
   The streamlit_key_suffix is only necessary because we use this code in two places. But that does make it necessary, for every widget in this function. If streamlit_key_suffix is "", we infer we're in the chat page, and if otherwise we infer we're being used on a different page (so far, the only thing that does this is prompter).
 
   *A computer can never be held accountable. Therefore a computer must never make a management decision.*[꙳](https://twitter.com/bumblebike/status/832394003492564993)"""
-  consul_show(st.session_state)
+  pii = ssget("pii_interrupt_state", streamlit_key_suffix)
+  if pii and pii[0] is True: # We're in a pii situation and the user has chosen to press on. So we have to send that chat message before we display the chat history.
+    grow_chat(**pii[2])
+    ssset( "pii_interrupt_state", streamlit_key_suffix, [None, ""] )
   if ssget("messages", streamlit_key_suffix):
     for message in st.session_state.messages[streamlit_key_suffix]:
       with st.chat_message(message["role"], avatar=message.get("avatar")):
@@ -179,16 +186,11 @@ def display_chat(streamlit_key_suffix: str = "", account: str|None = None, short
       st.session_state["outstanding_activity_log_payload_fulfilled"] = st.session_state["outstanding_activity_log_payload"] | {"user_feedback": user_feedback}
       st.session_state["outstanding_activity_log_payload"] = None
   else:
-    pii_state = ssget("pii_interrupt_state", "streamlit_key_suffix")
-    if pii_state and pii_state[0] is False:
-      st.write(f"previous message rejected for pii:\n{pii_state[1]}")
-      st.session_state["user_input_for_chatbot_this_frame"+streamlit_key_suffix] = pii_state[1]
+    if pii and pii[0] is False: # We're in a pii situation and the user has chosen to press on. So we have to show them the message they just had.
+      st.info("Message you were editing (may contain PII):")
+      st.code(pii[1])
       ssset( "pii_interrupt_state", streamlit_key_suffix, [None, ""] )
-    elif pii_state and pii_state[0] is True:
-      grow_chat(**pii_state[2])
     st.container().chat_input(on_submit=grow_chat, key="user_input_for_chatbot_this_frame"+streamlit_key_suffix, args=(streamlit_key_suffix, None, account, short_model_name_default) ) #Note that because it's a callback, the profiler will not catch grow_chat here. However, it takes about a second. (Update: maybe it's about 4 seconds, now? That's in the happy path, as well.)
-  consul_show(st.session_state)
-
 
 def main(streamlit_key_suffix: str = "") -> None: # It's convenient to import cicero_chat in other files, to use its function in them, so we do a main() here so we don't run this code on startup.
   st.write('''**Chat freeform with Cicero directly ChatGPT-style!**  \nHere are some ideas: rewrite copy, make copy longer, convert a text into an email, or write copy based off a starter phrase/quote.''')
