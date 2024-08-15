@@ -123,7 +123,7 @@ def malarky() -> None:
         alt.Y("FPM ($)", scale=alt.Scale(domain=(0, fpm_max))), 
         alt.Color("Topic", scale=alt.Scale(domain=dicted_rows["Topic"], range=dicted_rows["color"])), #todo: I don't think the current legend displays all the values, if more than about 13, because the text box for it is too small ¯\_(ツ)_/¯
         alt.Size(field="Project count", scale=alt.Scale(range=[150, 500])),
-        opacity = alt.condition(single, alt.value(1.0), alt.value(0.4), empty=False),
+        opacity = alt.condition(single, alt.value(1.0), alt.value(0.4)),
         tooltip=key_of_rows
       ).add_selection( single )
     event = st.altair_chart(chart, use_container_width=True, on_select="rerun")
