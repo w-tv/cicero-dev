@@ -6,7 +6,7 @@ import streamlit as st
 from datetime import datetime, timedelta
 import time
 from databricks_genai_inference import ChatSession, FoundationModelAPIException
-from cicero_shared import consul_show, is_dev, ssget, ssset, get_base_url, popup, typesafe_selectbox
+from cicero_shared import consul_show, is_dev, ssget, ssset, ssmut, get_base_url, popup, typesafe_selectbox
 from cicero_types import Short_Model_Name, short_model_names, short_model_name_default, short_model_name_to_long_model_name
 import bs4, requests, re # for some reason bs4 is how you import beautifulsoup smh smh
 
@@ -175,12 +175,14 @@ def display_chat(streamlit_key_suffix: str = "", account: str|None = None, short
   if st.session_state.get("outstanding_activity_log_payload") and not streamlit_key_suffix:
     emptyable = st.empty()
     with emptyable.container():
-      c1, c2, c3, c4 = st.columns([.04,.04,.01,.92], gap='small', vertical_alignment="center")
-      user_feedback = "good" if c1.button("👍︎", key="👍"+streamlit_key_suffix) else "bad" if c2.button("👎︎", key="👎"+streamlit_key_suffix) else None
-      c3.write('')
-      c4.write("***Did Cicero understand your request? Let us know to continue chatting.***")
-    if user_feedback:
+      _c1, c2, c3 = st.columns([.05, .06, .89], gap='small', vertical_alignment="center")
+      with c2:
+        st_feedback: int|None = st.feedback("thumbs", key=ssget("feedback", streamlit_key_suffix))
+      c3.write("***Did Cicero understand your request? Let us know to continue chatting.***")
+    if st_feedback is not None:
       emptyable.empty()
+      user_feedback = "bad" if st_feedback == 0 else "good"
+      ssmut(lambda x: x+1 if x else 1, "feedback", streamlit_key_suffix)
       st.container().chat_input(on_submit=grow_chat, key="user_input_for_chatbot_this_frame"+streamlit_key_suffix, args=(streamlit_key_suffix, None, account, short_model_name_default) ) #Note that because it's a callback, the profiler will not catch grow_chat here. However, it takes about a second. (Update: maybe it's about 4 seconds, now? That's in the happy path, as well.) #Without the container, this UI element floats BELOW the pyinstrument profiler now, which is inconvenient. But also we might want it to float down later, if we start using streaming text...
       st.session_state["outstanding_activity_log_payload_fulfilled"] = st.session_state["outstanding_activity_log_payload"] | {"user_feedback": user_feedback}
       st.session_state["outstanding_activity_log_payload"] = None

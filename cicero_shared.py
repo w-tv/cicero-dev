@@ -7,7 +7,7 @@ from databricks.sql.types import Row
 from databricks.sql.parameters.native import TParameterCollection
 import streamlit as st
 from streamlit import runtime
-from typing import Any, NoReturn, TypedDict, Sequence
+from typing import Any, Callable, NoReturn, TypedDict, Sequence
 import urllib.parse
 
 def ssget(string_to_get_from_streamlit_session_state: str, *args: object) -> Any | None:
@@ -41,12 +41,25 @@ def ssset(string_to_get_from_streamlit_session_state: str, *additional_args_endi
     x = st.session_state
     s = string_to_get_from_streamlit_session_state
     while len(a) >= 2:
-      if x[s] is None:
+      if x.get(s) is None:
         x[s] = {}
       # Set up the arguments for the next iteraton of the loop:
       x = x[s]
       s = a.pop(0)
     x[s] = a.pop(0)
+
+def ssmut[T](f: Callable[[Any], T], string_to_get_from_streamlit_session_state: str, *additional_args: Any) -> None:
+  """Like ssset, but the value is set to the value of f(current value). Note that the current value may be None. (Hence, it is Session State MUTate.) This also means the *additional_args does not end in the payload; instead, it's just all the accessor arguments."""
+  a = list(additional_args)
+  x = st.session_state
+  s = string_to_get_from_streamlit_session_state
+  while len(a) >= 1:
+    if x.get(s) is None:
+      x[s] = {}
+    # Set up the arguments for the next iteraton of the loop:
+    x = x[s]
+    s = a.pop(0)
+  x[s] = f(x.get(s))
 
 def is_dev() -> bool:
   """Return true if developer mode is active and false if it is inactive."""
