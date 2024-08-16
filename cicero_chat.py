@@ -62,16 +62,29 @@ def content_from_url(url: str) -> str:
   else:
     return "" # there is no content on the page, I guess, so the correct thing to return is the empty string.
 
+urls_we_have_expanded_right_now = 0 # Due to the streamlit state model, this global variable will be here for each run of the script, for all executions of content_from_url_regex_match, and due to something like a bug, it will not get reset each time the page is done running. So it has to be reset elsewhere. Grep for this variable to see usages :/
 def content_from_url_regex_match(m: re.Match[str]) -> str:
-  x = content_from_url(m.group(0))
-  if is_dev():
-    with st.expander("Developer Mode Message: url content"): # Note that, because this is triggered during a callback, this box currently appears at the top of the page, almost completely hidden.
-      st.caption(x.replace("$", r"\$"))
-  return x
+  global urls_we_have_expanded_right_now
+  urls_we_have_expanded_right_now += 1
+  if urls_we_have_expanded_right_now == 1:
+    x = content_from_url(m.group(0))
+    if is_dev():
+      with st.expander("\n\nDeveloper Mode Message: url content"): # Note that, because this is triggered during a callback, this box currently appears at the top of the page, almost completely hidden.
+        st.caption(x.replace("$", r"\$"))
+    return x
+  elif urls_we_have_expanded_right_now == 2:
+    st.toast("1 website at a time please")
+    return ""
+  else:
+    return ""
+
+url_regex = r"""(?i)\b((?:[a-z][\w-]+:(?:/{1,3}|[a-z0-9%])|www\d{0,3}[.]|[a-z0-9.\-]+[.][a-z]{2,4}/)(?:[^\s()<>]+|\(([^\s()<>]+|(\([^\s()<>]+\)))*\))+(?:\(([^\s()<>]+|(\([^\s()<>]+\)))*\)|[^\s`!()\[\]{};:'".,<>?«»“”‘’]))""" # from https://gist.github.com/gruber/249502
+
+def detect_url_content(s: str) -> bool:
+  return False if re.search(pattern=url_regex, string=s) is None else True
 
 def expand_url_content(s: str) -> str:
   """Expand the urls in a string to the content of their contents (placing said contents back into the same containing string."""
-  url_regex = r"""(?i)\b((?:[a-z][\w-]+:(?:/{1,3}|[a-z0-9%])|www\d{0,3}[.]|[a-z0-9.\-]+[.][a-z]{2,4}/)(?:[^\s()<>]+|\(([^\s()<>]+|(\([^\s()<>]+\)))*\))+(?:\(([^\s()<>]+|(\([^\s()<>]+\)))*\)|[^\s`!()\[\]{};:'".,<>?«»“”‘’]))""" # from https://gist.github.com/gruber/249502
   return re.sub(pattern=url_regex, repl=content_from_url_regex_match, string=s)
 
 def grow_chat(streamlit_key_suffix: str = "", alternate_content: str|None = None, account: str|None = None, short_model_name: Short_Model_Name = short_model_name_default) -> None:
@@ -120,15 +133,18 @@ def grow_chat(streamlit_key_suffix: str = "", alternate_content: str|None = None
       continue_prompt = False
 
   if streamlit_key_suffix=="_corporate": #implement url content expansion, at this point only for the corp chat
-    if "last_link_time" in st.session_state:
-      time_difference = datetime.now() - st.session_state["last_link_time"]
-      if time_difference < timedelta(seconds=27): # It's 27 because we don't want to alert the user if they just have to wait another second or two. The query already takes that long, probably.
-        remaining_seconds = round( 30 - time_difference.total_seconds() )
-        print("Hey!", remaining_seconds)
-        popup("Throttled!", f"Out of an abundance of caution, link reading is throttled to once every thirty seconds per user. Therefore your request has been delayed by {remaining_seconds} seconds. Sorry for the inconvenience. Please let Optimization know if this is a big problem.") # Festina lente! #Unfortunately I think an unreported bug in streamlit means this dialog only ever shows once per session. But that's ok in this case.
-        time.sleep(remaining_seconds)
+    if detect_url_content(p):
+      if "last_link_time" in st.session_state:
+        time_difference = datetime.now() - st.session_state["last_link_time"]
+        if time_difference < timedelta(seconds=27): # It's 27 because we don't want to alert the user if they just have to wait another second or two. The query already takes that long, probably.
+          remaining_seconds = round( 30 - time_difference.total_seconds() )
+          popup("Throttled!", f"Out of an abundance of caution, link reading is throttled to once every thirty seconds per user. Therefore your request has been delayed by {remaining_seconds} seconds. Sorry for the inconvenience. Please let Optimization know if this is a big problem.") # Festina lente! #Unfortunately I think an unreported bug in streamlit means this dialog only ever shows once per session. But that's ok in this case.
+          time.sleep(remaining_seconds)
+      st.session_state["last_link_time"] = datetime.now()
     p = expand_url_content(p)
-    st.session_state["last_link_time"] = datetime.now()
+    global urls_we_have_expanded_right_now #have to reset these here for implementation reasons :/
+    urls_we_have_expanded_right_now = 0
+    
 
   if continue_prompt:
     old_chat = chat.chat_history.copy()
