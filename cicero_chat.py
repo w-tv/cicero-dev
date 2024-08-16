@@ -63,7 +63,7 @@ def content_from_url(url: str) -> str:
     return "" # there is no content on the page, I guess, so the correct thing to return is the empty string.
 
 def content_from_url_regex_match(m: re.Match[str]) -> str:
-  count = 1 if not ( x := ssget("urls_we_have_expanded_right_now") ) else x+1
+  count = ssmut(lambda x: (x or 0) + 1, "urls_we_have_expanded_right_now")
   if count == 1:
     new_str = content_from_url(m.group(0))
     if is_dev(): #Note: appears at top of page, since we're in a callback and thus run first thing in the run.
