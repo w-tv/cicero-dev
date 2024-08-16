@@ -48,7 +48,7 @@ def ssset(string_to_get_from_streamlit_session_state: str, *additional_args_endi
       s = a.pop(0)
     x[s] = a.pop(0)
 
-def ssmut[T](f: Callable[[Any], T], string_to_get_from_streamlit_session_state: str, *additional_args: Any) -> None:
+def ssmut[T](f: Callable[[Any], T], string_to_get_from_streamlit_session_state: str, *additional_args: Any) -> T:
   """Like ssset, but the value is set to the value of f(current value). Note that the current value may be None. (Hence, it is Session State MUTate.) This also means the *additional_args does not end in the payload; instead, it's just all the accessor arguments."""
   a = list(additional_args)
   x = st.session_state
@@ -59,7 +59,9 @@ def ssmut[T](f: Callable[[Any], T], string_to_get_from_streamlit_session_state: 
     # Set up the arguments for the next iteraton of the loop:
     x = x[s]
     s = a.pop(0)
-  x[s] = f(x.get(s))
+  value = f(x.get(s)) #this is purposefully evaluated only once, so the user doesn't have to worry about making f a pure function.
+  x[s] = value
+  return value
 
 def is_dev() -> bool:
   """Return true if developer mode is active and false if it is inactive."""

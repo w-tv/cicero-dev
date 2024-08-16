@@ -62,21 +62,19 @@ def content_from_url(url: str) -> str:
   else:
     return "" # there is no content on the page, I guess, so the correct thing to return is the empty string.
 
-urls_we_have_expanded_right_now = 0 # Due to the streamlit state model, this global variable will be here for each run of the script, for all executions of content_from_url_regex_match, and due to something like a bug, it will not get reset each time the page is done running. So it has to be reset elsewhere. Grep for this variable to see usages :/
 def content_from_url_regex_match(m: re.Match[str]) -> str:
-  global urls_we_have_expanded_right_now
-  urls_we_have_expanded_right_now += 1
-  if urls_we_have_expanded_right_now == 1:
-    x = content_from_url(m.group(0))
-    if is_dev():
-      with st.expander("\n\nDeveloper Mode Message: url content"): # Note that, because this is triggered during a callback, this box currently appears at the top of the page, almost completely hidden.
-        st.caption(x.replace("$", r"\$"))
-    return x
-  elif urls_we_have_expanded_right_now == 2:
-    st.toast("1 website at a time please")
-    return ""
-  else:
-    return ""
+  match ssmut(lambda x: 1 if not x else x+1, "urls_we_have_expanded_right_now"):
+    case 1:
+      x = content_from_url(m.group(0))
+      if is_dev():
+        with st.expander("\n\nDeveloper Mode Message: url content"): # Note that, because this is triggered during a callback, this box currently appears at the top of the page, almost completely hidden.
+          st.caption(x.replace("$", r"\$"))
+      return x
+    case 2:
+      st.toast("1 website at a time please")
+      return ""
+    case _:
+      return ""
 
 url_regex = r"""(?i)\b((?:[a-z][\w-]+:(?:/{1,3}|[a-z0-9%])|www\d{0,3}[.]|[a-z0-9.\-]+[.][a-z]{2,4}/)(?:[^\s()<>]+|\(([^\s()<>]+|(\([^\s()<>]+\)))*\))+(?:\(([^\s()<>]+|(\([^\s()<>]+\)))*\)|[^\s`!()\[\]{};:'".,<>?«»“”‘’]))""" # from https://gist.github.com/gruber/249502
 
@@ -142,9 +140,7 @@ def grow_chat(streamlit_key_suffix: str = "", alternate_content: str|None = None
           time.sleep(remaining_seconds)
       st.session_state["last_link_time"] = datetime.now()
     p = expand_url_content(p)
-    global urls_we_have_expanded_right_now #have to reset these here for implementation reasons :/
-    urls_we_have_expanded_right_now = 0
-    
+    ssset("urls_we_have_expanded_right_now", 0) # Have to reset this value in this remote place for flow-control reasons :/
 
   if continue_prompt:
     old_chat = chat.chat_history.copy()
