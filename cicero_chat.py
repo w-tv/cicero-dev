@@ -63,18 +63,16 @@ def content_from_url(url: str) -> str:
     return "" # there is no content on the page, I guess, so the correct thing to return is the empty string.
 
 def content_from_url_regex_match(m: re.Match[str]) -> str:
-  match ssmut(lambda x: 1 if not x else x+1, "urls_we_have_expanded_right_now"):
-    case 1:
-      x = content_from_url(m.group(0))
-      if is_dev():
-        with st.expander("\n\nDeveloper Mode Message: url content"): # Note that, because this is triggered during a callback, this box currently appears at the top of the page, almost completely hidden.
-          st.caption(x.replace("$", r"\$"))
-      return x
-    case 2:
+  count = 1 if not ( x := ssget("urls_we_have_expanded_right_now") ) else x+1
+  if count == 1:
+    new_str = content_from_url(m.group(0))
+    if is_dev(): #Note: appears at top of page, since we're in a callback and thus run first thing in the run.
+      st.expander("\n\nDeveloper Mode Message: url content").caption(new_str.replace("$", r"\$"))
+  else:
+    new_str = ""
+    if count == 2:
       st.toast("1 website at a time please")
-      return ""
-    case _:
-      return ""
+  return new_str
 
 url_regex = r"""(?i)\b((?:[a-z][\w-]+:(?:/{1,3}|[a-z0-9%])|www\d{0,3}[.]|[a-z0-9.\-]+[.][a-z]{2,4}/)(?:[^\s()<>]+|\(([^\s()<>]+|(\([^\s()<>]+\)))*\))+(?:\(([^\s()<>]+|(\([^\s()<>]+\)))*\)|[^\s`!()\[\]{};:'".,<>?«»“”‘’]))""" # from https://gist.github.com/gruber/249502
 
