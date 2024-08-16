@@ -46,6 +46,11 @@ def pii_dialog(input: str, pii_list: list[str], streamlit_key_suffix: str, keywo
       st.rerun()
 
 def content_from_url(url: str) -> str:
+  forbiddens = ["winred.com", "fed.gov", "example.com/bad"] #example.com/bad is supposed to let you test this code without the risk of going to an actual forbidden website if the forbidding code fails.
+  for forbade in forbiddens:
+    if forbade in url.lower():
+      popup("Forbad!", f"Unfortunately, urls containing {forbade} are not allowed to be accessed at this time. The chat has continued with the url removed from the message.")
+      return "" #early out, return nothing (not even the url).
   # from https://stackoverflow.com/questions/69593352/how-to-get-all-copyable-text-from-a-web-page-python/69594284#69594284
   response = requests.get(url,headers={'User-Agent': 'Mozilla/5.0'})
   soup = bs4.BeautifulSoup(response.text, 'html.parser')
