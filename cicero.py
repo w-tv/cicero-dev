@@ -9,7 +9,7 @@ nanoseconds_base : int = perf_counter_ns()
 import streamlit as st
 import os, psutil, platform
 from cicero_chat import main as cicero_chat
-from cicero_shared import ensure_existence_of_activity_log, exit_error, get_base_url, is_dev, sql_call_cacheless, st_print
+from cicero_shared import ensure_existence_of_activity_log, exit_error, get_base_url, is_dev, sql_call, sql_call_cacheless, st_print
 from google.auth.transport import requests
 from google.oauth2 import id_token
 from wfork_streamlit_profiler import Profiler
@@ -51,52 +51,23 @@ with Profiler():
 
   #This is the way you set developer_mode. However, for the sake of brevity, the preferred way to *check* developer mode is is_dev() from cicero_shared.
   st.session_state['developer_mode'] = st.session_state['email'] in ["achang@targetedvictory.com", "abrady@targetedvictory.com", "thall@targetedvictory.com", "wcarpenter@targetedvictory.com", "cmahon@targetedvictory.com", "rtauscher@targetedvictory.com", "cmajor@targetedvictory.com", "test@example.com"] and not st.session_state.get("developer_mode_disabled")
-
-  # should this be sql_call or sql_call_cacheless?
-  # topic_reporting_access = []
-  # chat_with_cicero_access = []
-  # chat_with_corpo_access = []
-  # page_access = sql_call_cacheless(f"""select user_email, page_access from cicero.ref_tables.user_pods where page_access is not null""")
-  # for row in page_access:
-  #   if 'topic_reporting' in row[1]:
-  #     topic_reporting_access.append(row[0])
-  #   if 'chat_with_cicero' in row[1]:
-  #     chat_with_cicero_access.append(row[0])
-  #   if 'chat_with_corpo' in row[1]:
-  #     chat_with_corpo_access.append(row[0])
-  # print(topic_reporting_access)
-  # print(chat_with_cicero_access)
-  # print(chat_with_corpo_access)
-
-  st.session_state['topic_reporting_access'] = st.session_state['email'] in ["achang@targetedvictory.com", "abrady@targetedvictory.com", "thall@targetedvictory.com", "wcarpenter@targetedvictory.com", "test@example.com", "akrishnan@targetedvictory.com"] and not st.session_state.get("topic_reporting_disabled")
-  st.session_state['chat_with_cicero_access'] = st.session_state['email'] in ["achang@targetedvictory.com", "abrady@targetedvictory.com", "thall@targetedvictory.com", "wcarpenter@targetedvictory.com", "test@example.com", "sgoh@targetedvictory.com", "cmahon@targetedvictory.com", "akrishnan@targetedvictory.com", "aisaac@targetedvictory.com", "czelazny@targetedvictory.com", "akhamma@targetedvictory.com", "bgulick@targetedvictory.com", "cabrams@targetedvictory.com", "tveach@targetedvictory.com", "srowan@targetedvictory.com", "kbonini@targetedvictory.com", "sspooner@targetedvictory.com", "kdamato@targetedvictory.com", "zspringer@targetedvictory.com", "tdacey@targetedvictory.com", "mwilkins@targetedvictory.com", 'rsewell@targetedvictory.com', 'lmunschauer@targetedvictory.com', 'smorrow@targetedvictory.com'] and not st.session_state.get("CwC_access_disabled")
-  st.session_state['chat_with_corpo_access'] = st.session_state['email'] in ["achang@targetedvictory.com", "abrady@targetedvictory.com", "thall@targetedvictory.com", "wcarpenter@targetedvictory.com", "test@example.com"] and not st.session_state.get("CwCorpo_access_disabled")
-  st.session_state['sender_access'] = st.session_state['email'] in ["achang@targetedvictory.com", "abrady@targetedvictory.com", "thall@targetedvictory.com", "wcarpenter@targetedvictory.com", "test@example.com", "sgoh@targetedvictory.com", "cmahon@targetedvictory.com", "akrishnan@targetedvictory.com", "aisaac@targetedvictory.com", "czelazny@targetedvictory.com", "akhamma@targetedvictory.com", "bgulick@targetedvictory.com", "cabrams@targetedvictory.com", "tveach@targetedvictory.com", "srowan@targetedvictory.com", "kbonini@targetedvictory.com", "sspooner@targetedvictory.com", "kdamato@targetedvictory.com", "zspringer@targetedvictory.com", "tdacey@targetedvictory.com"]
-
   def disable_developer_mode() -> None:
     st.session_state["developer_mode_disabled"] = True
-  def disable_CwC() -> None:
-    st.session_state["CwC_access_disabled"] = True
-  def disable_CwCorpo() -> None:
-    st.session_state["CwCorpo_access_disabled"] = True
-  def disable_topic_reporting() -> None:
-    st.session_state["topic_reporting_disabled"] = True
 
   # Since we use st.navigation explicitly, the default page detection is disabled, even though we may use a pages folder later (although we shouldn't name that folder pages/, purely in order to suppress a warning message about how we shouldn't do that). This is good, because we want to hide some of the pages from non-dev-mode users.
   # There is an icon parameter to st.Page, so we could write eg icon="🗣️", but including the emoji in the titles makes them slightly larger and thus nicer-looking.
   pages = [ #pages visible to everyone
     st.Page("cicero_prompter.py", title="🗣️ Prompter", default=True)
   ]
-
-  # These next two pages need a url_path because otherwise they have dumb names for implementation reasons.
-  if st.session_state.get('chat_with_cicero_access'):
-    pages += [ st.Page(cicero_chat, title="💬 Chat with Cicero", url_path="chat_with_cicero") ]
-  if st.session_state.get('chat_with_corpo_access'):
-    pages += [ st.Page(lambda: cicero_chat("_corporate"), title="💼 Chat with Cicero", url_path="chat_with_cicero_corporate") ]
-
-  if st.session_state.get('topic_reporting_access'):
-    pages += [ st.Page("cicero_topic_reporting.py", title="📈 Topic Reporting") ]
-
+  page_access: list[str] | None = sql_call("select page_access from cicero.ref_tables.user_pods where user_email == :user_email", {"user_email": st.session_state['email']})[0][0]
+  if page_access is not None:
+    if 'topic_reporting' in page_access:
+      pages += [ st.Page("cicero_topic_reporting.py", title="📈 Topic Reporting") ]
+    # These next two pages need a url_path because otherwise they have dumb names for implementation reasons.
+    if 'chat_with_cicero' in page_access:
+      pages += [ st.Page(cicero_chat, title="💬 Chat with Cicero", url_path="chat_with_cicero") ]
+    if 'chat_with_corpo' in page_access:
+      pages += [ st.Page(lambda: cicero_chat("_corporate"), title="💼 Chat with Cicero", url_path="chat_with_cicero_corporate") ]
   if is_dev():
     pages += [
       st.Page("cicero_response_lookup.py", title="🔍 Response Lookup"),
@@ -117,8 +88,6 @@ with Profiler():
         Base url: {get_base_url()}
       """, unsafe_allow_html=True)
       st.button("disable Developer Mode", on_click=disable_developer_mode, help="Click this button to disable developer mode, allowing you to see and interact with the app as a basic user would. You can refresh the page in your browser to re-enable developer mode.") #this is a callback for streamlit ui update-flow reasons.
-      st.button("disable Chat with Cicero", on_click=disable_CwC, help="Click this button to disable the Chat With Cicero page. You can refresh the page in your browser to re-enable Chat with Cicero.")
-      st.button("disable Chat with Cicero-Corporate", on_click=disable_CwCorpo, help="Click this button to disable the Chat With Cicero Corporate page. You can refresh the page in your browser to re-enable Chat with Cicero Corporate.")
   else: # Disable the profiler element visually, using css, if not in dev mode.
     st.markdown("""<style> [allow="accelerometer; ambient-light-sensor; autoplay; battery; camera; clipboard-write; document-domain; encrypted-media; fullscreen; geolocation; gyroscope; layout-animations; legacy-image-formats; magnetometer; microphone; midi; oversized-images; payment; picture-in-picture; publickey-credentials-get; sync-xhr; usb; vr ; wake-lock; xr-spatial-tracking"] { /*this is an arbitrary way to target the profiler element*/ display: none; } </style>""", unsafe_allow_html=True)
 
@@ -128,7 +97,7 @@ with Profiler():
     ensure_existence_of_activity_log()
     sql_call_cacheless(
       # The WTIH clause here basically just does a left join; I just happened to write it in this way.
-      # Note that this will implicitly null the user_feedback. Which simplifies the deployment of that as a new feature, at least...!
+      # Note that this will implicitly null the user_feedback, as that field is not specified here.
       "WITH tmp(user_pod) AS (SELECT user_pod FROM cicero.ref_tables.user_pods WHERE user_email ilike :user_email) INSERT INTO cicero.default.activity_log\
       (timestamp,           user_email, user_pod,  prompter_or_chatbot,  prompt_sent,  response_given,  model_name,  model_url,  model_parameters,  system_prompt,  base_url, used_similarity_search_backup) SELECT\
       current_timestamp(), :user_email, user_pod, :prompter_or_chatbot, :prompt_sent, :response_given, :model_name, :model_url, :model_parameters, :system_prompt, :base_url, :used_similarity_search_backup FROM tmp",
