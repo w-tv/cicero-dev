@@ -1,5 +1,24 @@
 2024:
 
+2024-08-16 and earlier:
+
+* st feedback bug report or fix.
+* ((urgent)) fix feedback on CwC
+* ((medium)) In TR, currently all the dots start off washed out, but I want them to be nice and vibrant, and when a user clicks on one, the rest get washed out and the one they clicked on stays nice and vibrant.
+* Share details on streamlit on our hackiest workflows - current and also live character count (retired as the time has passed)
+
+2024-08-14 and earlier:
+
+* Use the new [T] syntax for the typevars.
+* the drill down table is not accessible to normal users when viewing the TR scatterplot for everyone, only when they are viewing a singular account. BUT, the table should still work for dev mode users for everyone.
+* refactor code to get rid of Any in signatures where we can and use object (the python top type) or [T] style generics instead.
+* refactor everything related to use is_dev, as that would technically be more DRY-y and more impervious to future refactors.
+* refactor: use dev_str where appropriate"
+* spare time: fix streamlit number input number type annotations: https://github.com/streamlit/streamlit/issues/8717#issuecomment-2205441895 (fixed by another guy)
+* use https://github.com/Poogles/piiregex (see issue in board)  (I guess we decided not to use this. Or, possibly, we took their regexes.)
+* fix this bug: on first click, the drill down does not display. Possibly a streamlit control flow mistake?
+* link time limit alerting the user maybe I have to do this
+
 2024-08-02 and earlier:
 * actually talking with Alisa now, we are going to change the default model for both prompter and CwC to 405B week of 5.
 * Paste in link corp chat "hey write three tweets about this"
