@@ -12,7 +12,7 @@ List of derived quantities, left to right (does not include "topic", which is al
 """
 import streamlit as st
 from typing import Sequence
-from cicero_shared import consul_show, dev_str, is_dev, load_account_names, sql_call, ssget, topics_big
+from cicero_shared import dev_str, is_dev, load_account_names, sql_call, topics_big
 
 import pandas as pd
 import altair as alt

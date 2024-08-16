@@ -195,7 +195,7 @@ def main(streamlit_key_suffix: str = "") -> None: # It's convenient to import ci
   st.write('''**Chat freeform with Cicero directly ChatGPT-style!**  \nHere are some ideas: rewrite copy, make copy longer, convert a text into an email, or write copy based off a starter phrase/quote.''')
   account = st.text_input("Account") if streamlit_key_suffix=="_corporate" else None
   if is_dev():
-    uploaded_file = st.file_uploader(label="(CURRENTLY DOES NOTHING) Upload a file", type=['csv', 'xlsx', 'xls', 'txt', 'html'], accept_multiple_files=False, help='You can upload a file here for Cicero to analyze. Cicero currently supports these file types: csv, xlsx, xls, txt, and html.') #TODO: test out these files to make sure they actually work.
+    _uploaded_file = st.file_uploader(label="(CURRENTLY DOES NOTHING) Upload a file", type=['csv', 'xlsx', 'xls', 'txt', 'html'], accept_multiple_files=False, help='You can upload a file here for Cicero to analyze. Cicero currently supports these file types: csv, xlsx, xls, txt, and html.') #TODO: test out these files to make sure they actually work.
   model_name = typesafe_selectbox("Model", short_model_names, key="model_name") if is_dev() else short_model_name_default
   if st.button("Reset"):
     reset_chat(streamlit_key_suffix)
