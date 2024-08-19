@@ -83,7 +83,7 @@ with st.expander("Topics..."):
       with col2:
         topics_gigaselect[t] = st.checkbox(t, value=st.session_state["topics_gigaselect_opinion"][t])
 
-col1, col2, col3, col4 = st.columns(4) #possibly refactor this into non-unpacking for-loop type thing if I need to keep editing it.
+col1, col2, col3, col4 = st.columns(4)
 with col1:
   past_days = st.radio("Date range", [1, 7, 14, 30, 180], index=1, format_func=lambda x: "Yesterday" if x == 1 else f"Last {x} days", horizontal=True, help="The date range from which to display data. This will display data from any calendar day greater than or equal to (the present day minus the number of days specified). That is, 'Yesterday' will display data from both yesterday and today (and possibly, in rare circumstances, from the future).")
 with col2:
@@ -113,14 +113,14 @@ fpm_max = max(dicted_rows['FPM ($)'] or [0]) * 1.1 # The `or [0]` clauses preven
 roas_max = max(dicted_rows['ROAS (%)'] or [0]) * 1.05
 @st.fragment
 def malarky() -> None:
-  """This code displays a graph and lets the user select a point to drill down on its values. However, selecting the point reruns the page (this is unavoidable due to streamlit), and it seems like the way we get the points that go into this graph is a little unstable, so a rerun would often change the data slightly (order?) and change the colors of the graph and prevent the drilldown from appearing. So, we have to wrap it in a fragment. This is just another thing I hope to sort out in a refactor once the topic reporting is all moved over."""
+  """This code displays a graph and lets the user select a point to drill down on its values. However, selecting the point reruns the page (this is unavoidable due to streamlit), and it seems like the way we get the points that go into this graph is a little unstable, so a rerun would often change the data slightly (order?) and change the colors of the graph and prevent the drilldown from appearing. So, we have to wrap it in a fragment. This is just another thing I hope to sort out in a refactor once the topic reporting is all moved over. TODO."""
   if len(summary_data_per_topic):
     single = alt.selection_single()
     chart = alt.Chart( pd.DataFrame( { key:pd.Series(value) for key, value in dicted_rows.items() } ) )\
       .mark_circle(size=400)\
       .encode(
-        alt.X("ROAS (%)", scale=alt.Scale(domain=(0, roas_max))), 
-        alt.Y("FPM ($)", scale=alt.Scale(domain=(0, fpm_max))), 
+        alt.X("ROAS (%)", scale=alt.Scale(domain=(0, roas_max))),
+        alt.Y("FPM ($)", scale=alt.Scale(domain=(0, fpm_max))),
         alt.Color("Topic", scale=alt.Scale(domain=dicted_rows["Topic"], range=dicted_rows["color"]), legend=None), #todo: I don't think the current legend displays all the values, if more than about 13, because the text box for it is too small ¯\_(ツ)_/¯
         alt.Size(field="Project count", scale=alt.Scale(range=[150, 500]), legend=alt.Legend(title='Project Count', symbolFillColor='red', symbolStrokeColor='red')), #TODO: add a new column to dicted_rows to generate this legend, the thing is i want this to be dynamic, so we'll talk.
         opacity = alt.condition(single, alt.value(1.0), alt.value(0.4)),

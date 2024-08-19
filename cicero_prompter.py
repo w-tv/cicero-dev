@@ -465,8 +465,6 @@ if st.session_state['use_count'] >= use_count_limit:
 
 bios: dict[str, str] = load_bios()
 
-account_names = load_account_names()
-
 if not st.session_state.get("initted"):
   set_ui_to_preset("default")
   st.session_state["initted"] = True
@@ -514,7 +512,7 @@ with st.form('query_builder'):
 
   model_name = typesafe_selectbox("Model (required)", short_model_names, key="model_name") if is_dev() else short_model_name_default
   model = short_model_name_to_long_model_name(model_name)
-  account = st.selectbox("Account (required)", account_names, key="account") # No typesafe_selectbox here because we actually do want this to possibly be unselected.
+  account = st.selectbox("Account (required)", load_account_names(), key="account") # No typesafe_selectbox here because we actually do want this to possibly be unselected.
   sender = st.text_input("Sender Name", key="sender")
   ask_type = typesafe_selectbox("Ask Type", aa(Ask_Type), key="ask_type").lower()
   topics = st.multiselect("Topics", sorted([t for t, d in topics_big.items() if d["show in prompter?"]]), key="topics" )
