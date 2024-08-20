@@ -549,8 +549,19 @@ if st.session_state.get("submit_button_disabled"):
     cicero_chat.reset_chat(streamlit_key_suffix="_prompter")
     st.session_state['use_count']+=1 #this is just an optimization for the front-end display of the query count
     bio = bios.get(account) if ("bio" in topics and account in bios) else None
-    prompt_sent, st.session_state['outputs'], st.session_state['entire_prompt'], prompter_system_prompt, used_similarity_search_backup = execute_prompting(model, account, sender, ask_type, topics, additional_topics, tones, length_select, headline, num_outputs, temperature, bio, max_tokens, topic_weight, tone_weight, client_weight, ask_weight, text_len_weight, doc_pool_size, num_examples)
-    # Activity logging takes a bit, so I've put it last (in cicero.py, not this file) to preserve immediate-feeling performance and responses for the user making a query. But we set it up here.
+    prompt_tries = 5
+    while True: #this is written in a slightly-more-complicated way so that the typechecker can infer that the variables are never unbound.
+      prompt_sent, output_array, st.session_state['entire_prompt'], prompter_system_prompt, used_similarity_search_backup = execute_prompting(model, account, sender, ask_type, topics, additional_topics, tones, length_select, headline, num_outputs, temperature, bio, max_tokens, topic_weight, tone_weight, client_weight, ask_weight, text_len_weight, doc_pool_size, num_examples)
+      # Heuristic detection of if the text model has refused to answer. (Eg "As an AI model, I can't say anything hateful blah blah blah".) Might false-positive on "I can't believe the" etc etc.
+      if len(output_array) == 1 and len(output_array[0]) < 100 and (output_array[0].startswith("I'm sorry") or output_array[0].startswith("I can't") or output_array[0].startswith("As a large language model")):
+        prompt_tries -= 1
+        st.info("Cicero has detected its generated output may have been insubordinate; retrying up to {prompt_tries} more times...")
+        if not prompt_tries:
+          break
+      else:
+        break
+    st.session_state['outputs'] = output_array
+    # Activity logging takes a bit, so I've put it last (in cicero.py, not this file) to preserve immediate-feeling performance and responses for the user making a query. We set it up here.
     # prompt_sent is only illustrative. But maybe that's enough. Maybe we should be using a different prompt?
     st.session_state["activity_log_payload"] = {"user_email": st.session_state['email'], "prompter_or_chatbot": "prompter", "prompt_sent": prompt_sent, "response_given": json.dumps(st.session_state['outputs']), "model_name": model_name, "model_url": model, "model_parameters": str({"max_tokens": max_tokens, "temperature": temperature}), "system_prompt": prompter_system_prompt, "base_url": get_base_url(), "used_similarity_search_backup": used_similarity_search_backup}
 
