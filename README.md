@@ -74,6 +74,14 @@ Regular variables are to be preferred over st.session_state variables, because s
 
 Additionally, the use of fewer variables is preferred over the use of a greater number of variables — but not as strongly as the use of fewer magic values or computations is preferred over the use of a greater number of magic values or computations!
 
+## Certain points of code style.
+
+This codebase almost never uses Exceptions. Python has multiple-return so we would just return error codes if need be (which is a rare need, anyway). This is because Exceptions are bad and make control-flow confusing. The two places we do use Exceptions are (1) code we depend on uses it, in which case we just handle and deal with the exception and (2) we intend to just crash the program (ie: end the page run) with an informative error message (the control flow is not complicated here, because it's just: over). Note that technically any line of code in python could throw an Exception at any time, because the host machine could run out of memory. But, you know, that's fine I guess. It's not like there's any computer system that's immune to running out of memory on arbitrary tasks.
+
+## Random little problem
+
+Occasionally, about 1 in 20 times or so, this project will fail to launch because an internal component of a dependency throws an indecipherable error. This is from pytz and probably a fault of the databrick python sql connector. BUG-WORKAROUND: just reboot the process.
+
 ## Signoff
 
 And remember: the first thing to do is get the best of both worlds. You can!
