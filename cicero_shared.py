@@ -81,7 +81,7 @@ def get_base_url() -> str:
   """Gets the url where the streamlit app is currently running, not including any page paths underneath. In testing, for example, this value is probably http://localhost:8501 . This function is from BramVanroy https://github.com/streamlit/streamlit/issues/798#issuecomment-1647759949 , with modifications. “WARNING: I found that in multi-page apps, this will always only return the base url and not the sub-page URL with the page appended to the end.”"""
   try:
     session = runtime.get_instance()._session_mgr.list_active_sessions()[0] # There's occasionally a harmless IndexError: list index out of range from this line of code on Streamlit Community Cloud, which I'd like to suppress via this try-catch for the convenience of the reader of the logs.
-    r = session.client.request #type: ignore[attr-defined] #MYPY-BUG-WORKAROUND mypy has various bugs about abstract classes and dataclasses, possibly this one: https://github.com/python/mypy/issues/16613
+    r = session.client.request #type: ignore[attr-defined] #MYPY-BUG-WORKAROUND mypy has various bugs about abstract classes and dataclasses, possibly this one: https://github.com/python/mypy/issues/16613 # To be fair to mypy, I also have no idea what's going on here, class-wise.
     if r.protocol == "http" and not r.host.startswith("localhost:"): # STREAMLIT-BUG-WORKAROUND (?) for some reason even when we're in an https connection the r.protocol is http. https://github.com/streamlit/streamlit/issues/8600
       r.protocol = "https"
     return str(
@@ -117,7 +117,7 @@ def popup(title: str, body: str) -> None:
 
 def ensure_existence_of_activity_log() -> None:
   """Run this code before accessing the activity log. If the activity log doesn't exist, this function call will create it.
-  Note that if the table exists, this sql call will not check if it has the right columns (names or types), unfortunately."
+  Note that if the table exists, this sql call will not check if it has the right columns (names or types), unfortunately.
   Note that this table uses a real timestamp datatype. You can `SET TIME ZONE "US/Eastern";` in sql to get them to output as strings in US Eastern time, instead of the default UTC."""
   sql_call("CREATE TABLE IF NOT EXISTS cicero.default.activity_log (timestamp timestamp, user_email string, user_pod string, prompter_or_chatbot string, prompt_sent string, response_given string, model_name string, model_url string, model_parameters string, system_prompt string, base_url string, user_feedback string)")
 
@@ -127,7 +127,8 @@ def sql_call(query: str, sql_params_dict: TParameterCollection|None = None) -> l
   return sql_call_cacheless(query, sql_params_dict)
 
 def sql_call_cacheless(query: str, sql_params_dict: TParameterCollection|None = None) -> list[Row]:
-  """Make a call to the database, returning a list of Rows. The returned values within the Rows are usually str, but occasionally might be int (as when getting the count) or float or perhaps any of these https://docs.databricks.com/en/dev-tools/python-sql-connector.html#type-conversions"""
+  """Make a call to the database, returning a list of Rows. The returned values within the Rows are usually str, but occasionally might be int (as when getting the count) or float or perhaps any of these https://docs.databricks.com/en/dev-tools/python-sql-connector.html#type-conversions .
+  TParameterCollect is dict[str,Any], basically, although it's a bit more complicated, limited, and flexible than that."""
   # COULD: (but probably won't) there is a minor problem where we'd like to ensure that a query to a table x only occurs after a call to CREATE TABLE IF NOT EXISTS x (parameters of x). Technically, we could ensure this by creating a new function ensure_table(table_name, table_types) which then returns an TableEnsurance object, which then must be passed in as a parameter to SQL call. However, then we would want to check if it were the correct table (and possibly the right parameter types) which would greatly complicate the function signature of sql_call, because we'd have to pass the table name(s) in too, and then string-replace them into the query(?). So, doesn't seem worth it. ALSO: sometimes we don't have the code to create the table. Some tables have to be created and populated by the team in other ways.
   try:
     with sql.connect(server_hostname=st.secrets["DATABRICKS_HOST"], http_path=st.secrets["DATABRICKS_HTTP_PATH"], access_token=st.secrets["DATABRICKS_TOKEN"]) as connection: #These secrets should be in the root level of the .streamlit/secrets.toml
