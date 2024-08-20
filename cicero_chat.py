@@ -12,7 +12,7 @@ import bs4, requests, re # for some reason bs4 is how you import beautifulsoup s
 
 def pii_detector(input: str) -> list[str]:
   phone = re.findall(
-    r"""((?:(?<![\d-])(?:\+?\d{1,3}[-.\s*]?)?(?:\(?\d{3}\)?[-.\s*]?)?\d{3}[-.\s*]?\d{4}(?![\d-]))|(?:(?<![\d-])(?:(?:\(\+?\d{2}\))|(?:\+?\d{2}))\s*\d{2}\s*\d{3}\s*\d{4}(?![\d-])))"""
+    r"""\d?[- ]?\(?\d{3}\)?[- ]?\d{3}[- ]?\d{4}"""
   , input)
   email = re.findall(
     r"([a-z0-9!#$%&'*+\/=?^_`{|.}~-]+@(?:[a-z0-9](?:[a-z0-9-]*[a-z0-9])?\.)+[a-z0-9](?:[a-z0-9-]*[a-z0-9])?)",
@@ -21,7 +21,7 @@ def pii_detector(input: str) -> list[str]:
   )
   credit_card = re.findall(r"((?:(?:\\d{4}[- ]?){3}\\d{4}|\\d{15,16}))(?![\\d])", input)
   street_address = re.findall(
-    r"\d{1,4} [\w\s]{1,20}(?:street|st|avenue|ave|road|rd|highway|hwy|square|sq|trail|trl|drive|dr|court|ct|park|parkway|pkwy|circle|cir|boulevard|blvd)\W?(?=\s|$)",
+    r"\d{1,4} (?:\w+ ){0,4}(?:street|st|avenue|ave|road|rd|highway|hwy|square|sq|trail|trl|drive|dr|court|ct|park|parkway|pkwy|circle|cir|boulevard|blvd)\b",
     input,
     re.IGNORECASE,
   )

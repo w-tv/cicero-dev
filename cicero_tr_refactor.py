@@ -62,7 +62,7 @@ with col4:
   askgoal = "Both" if len(askgoals)!=1 else askgoals[0] #We take a little shortcut here because both is the same as none in this one case.
   askgoal_string = {"Both": "true", "Hard/Medium Ask": "GOAL = 'Fundraising' and FUNDRAISING_TYPE != 'Soft Ask'", "Soft Ask/Listbuilding": "GOAL = 'Fundraising' and FUNDRAISING_TYPE = 'Soft Ask' or GOAL = 'List Building'"}[askgoal]
 
-
+# todo: get the actual topic(s) in here
 summary_data_per_topic = sql_call(f"""
   SELECT topic, 
     TV_Funds, 
@@ -89,10 +89,10 @@ summary_data_per_topic = sql_call(f"""
         and {askgoal_string} 
         and SEND_DATE >= CURRENT_DATE() - INTERVAL {past_days} DAY 
         and SEND_DATE <= CURRENT_DATE() 
-    )
-    WHERE topic = 'border_hook'
-    GROUP BY topic
-)
+      )
+  WHERE topic = 'border_hook'
+  GROUP BY topic
+  )
 """)
 # if "all_hook" in topics: #This special case is just copy-pasted from above, with modifications, to make the all_hook (since the new table process has no all_hook in).
 #   summary_data_per_topic += sql_call(f"""WITH stats(topic, funds, sent, spend, project_count) AS (SELECT "all_hook", SUM(TV_FUNDS), SUM(SENT), SUM(SPEND_AMOUNT), COUNT(DISTINCT PROJECT_NAME) FROM hook_reporting.default.gold_topic_data_pivot WHERE {project_types_string} and {accounts_string} and {askgoal_string} and SEND_DATE >= CURRENT_DATE() - INTERVAL {past_days} DAY and SEND_DATE <= CURRENT_DATE()) SELECT topic, funds, cast( try_divide(funds, sent)*1000*100 as int )/100, cast( try_divide(funds, spend)*100 as int ), project_count from stats""") #TODO: handle (remove) the case where all_hook is 0, in this and the lower graph.
