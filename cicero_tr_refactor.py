@@ -36,7 +36,10 @@ def lowalph(s: str) -> str:
   """Given a string, return only its alphabetical characters, lowercased. This is especially useful when trying to string compare things that might have different punctuation. In our case, often en dashes vs hpyhens."""
   return ''.join(filter(str.isalpha, s)).lower()
 
-topics_table = sql_call("""select tag_name from cicero.ref_tables.ref_tags where visible_frontend = True """)
+topics_table = sql_call("""select distinct unique_topic from hook_reporting.default.gold_topic_data_array lateral view explode(topics_array) as unique_topic where unique_topic is not null order by unique_topic""")
+topics_list = []
+for i in topics_table:
+  topics_list.append(i[0])
 # st.dataframe(topics_table)
 
 with st.expander("Topics..."):
@@ -59,56 +62,82 @@ with col4:
   askgoal = "Both" if len(askgoals)!=1 else askgoals[0] #We take a little shortcut here because both is the same as none in this one case.
   askgoal_string = {"Both": "true", "Hard/Medium Ask": "GOAL = 'Fundraising' and FUNDRAISING_TYPE != 'Soft Ask'", "Soft Ask/Listbuilding": "GOAL = 'Fundraising' and FUNDRAISING_TYPE = 'Soft Ask' or GOAL = 'List Building'"}[askgoal]
 
-# #To minimize RAM usage on the front end, most of the computation is done in the sql query, on the backend.
-# #There's only really one complication to this data, which is that each row is duplicated n times — the "product" of the row and the list of hook types, as it were. Then only the true hooks have Hook_Bool true (all others have Hook_Bool null, which is our signal to ignore that row). This is just because it's easy to do a pivot table (or something) in Tableau that way; it doesn't actually matter. But we have to deal with it. It is also easy for us to deal with in SQL using WHERE Hook_Bool=true GROUP BY Hooks.
-# topics = topics_table
-# # TODO: refactor from pivoted version to non-pivoted, smaller table: hook_reporting.default.gold_topic_data_array
-# summary_data_per_topic = sql_call(f"""WITH stats(topic, funds, sent, spend, project_count) AS (SELECT Hooks, SUM(TV_FUNDS), SUM(SENT), SUM(SPEND_AMOUNT), COUNT(DISTINCT PROJECT_NAME) FROM hook_reporting.default.gold_topic_data_pivot WHERE {project_types_string} and {accounts_string} and {askgoal_string} and SEND_DATE >= CURRENT_DATE() - INTERVAL {past_days} DAY and SEND_DATE <= CURRENT_DATE() and Hooks in {to_sql_tuple_string(topics)} and Hook_Bool=true GROUP BY Hooks) SELECT topic, funds, cast( try_divide(funds, sent)*1000*100 as int )/100, cast( try_divide(funds, spend)*100 as int ), project_count from stats""")
+
+summary_data_per_topic = sql_call(f"""
+  SELECT topic, 
+    TV_Funds, 
+    Sent, 
+    Spend_Amount, 
+    Project_Count, 
+    cast( try_divide(TV_Funds, Sent)*1000*100 as int )/100 as FPM, 
+    cast( try_divide(TV_Funds, Spend_Amount)*100 as int ) as ROAS
+  FROM (
+    SELECT topic, 
+      SUM(TV_FUNDS) as TV_Funds, 
+      SUM(SENT) as Sent,
+      SUM(SPEND_AMOUNT) as Spend_Amount,
+      COUNT(Distinct PROJECT_NAME) as Project_Count
+    FROM (
+      SELECT explode(Topics_Array) as topic, 
+        TV_FUNDS, 
+        SENT,
+        SPEND_AMOUNT,
+        PROJECT_NAME
+      FROM hook_reporting.default.gold_topic_data_array
+      WHERE {project_types_string}
+        and {accounts_string}
+        and {askgoal_string} 
+        and SEND_DATE >= CURRENT_DATE() - INTERVAL {past_days} DAY 
+        and SEND_DATE <= CURRENT_DATE() 
+    )
+    WHERE topic = 'border_hook'
+    GROUP BY topic
+)
+""")
 # if "all_hook" in topics: #This special case is just copy-pasted from above, with modifications, to make the all_hook (since the new table process has no all_hook in).
 #   summary_data_per_topic += sql_call(f"""WITH stats(topic, funds, sent, spend, project_count) AS (SELECT "all_hook", SUM(TV_FUNDS), SUM(SENT), SUM(SPEND_AMOUNT), COUNT(DISTINCT PROJECT_NAME) FROM hook_reporting.default.gold_topic_data_pivot WHERE {project_types_string} and {accounts_string} and {askgoal_string} and SEND_DATE >= CURRENT_DATE() - INTERVAL {past_days} DAY and SEND_DATE <= CURRENT_DATE()) SELECT topic, funds, cast( try_divide(funds, sent)*1000*100 as int )/100, cast( try_divide(funds, spend)*100 as int ), project_count from stats""") #TODO: handle (remove) the case where all_hook is 0, in this and the lower graph.
-# key_of_rows = ("Topic", "TV Funds ($)", "FPM ($)", "ROAS (%)", "Project count")
-# dicted_rows = {key_of_rows[i]: [row[i] for row in summary_data_per_topic] for i, key in enumerate(key_of_rows)} #various formats probably work for this; this is just one of them.
-# dicted_rows["color"] = [tb["color"] for t in dicted_rows["Topic"] for _, tb in topics_big.items() if tb["internal name"] == t.removesuffix("_hook")] #COULD: one day revise the assumptions that necessitate this logic, which is really grody. #TODO: in some cases we get a "All arrays must be of the same length" error on this, but I'm pretty sure that's just a result of us being mid- topic-pivot.
+key_of_rows = ("Topic", "TV Funds ($)", "FPM ($)", "ROAS (%)", "Project count")
+dicted_rows = {key_of_rows[i]: [row[i] for row in summary_data_per_topic] for i, key in enumerate(key_of_rows)} #various formats probably work for this; this is just one of them.
+# dicted_rows["color"] = '#815a65' #TODO: get the colors from cicero.ref_tables.ref_tags
 # #COULD: set up some kind of function for these that decreases the multiplier as the max gets bigger
-# fpm_max = max(dicted_rows['FPM ($)'] or [0]) * 1.1 # The `or [0]` clauses prevent a crash when fpm (for example) is empty. #TODO: are the lower graphs correct in this case? Probably not, since they show... any data at all? Honestly when we change this graphing code to not use dicted_rows it will probably be clearer what's going on.
-# roas_max = max(dicted_rows['ROAS (%)'] or [0]) * 1.05
-# @st.fragment
-# def malarky() -> None:
-#   """This code displays a graph and lets the user select a point to drill down on its values. However, selecting the point reruns the page (this is unavoidable due to streamlit), and it seems like the way we get the points that go into this graph is a little unstable, so a rerun would often change the data slightly (order?) and change the colors of the graph and prevent the drilldown from appearing. So, we have to wrap it in a fragment. This is just another thing I hope to sort out in a refactor once the topic reporting is all moved over."""
-#   if len(summary_data_per_topic):
-#     single = alt.selection_single()
-#     chart = alt.Chart( pd.DataFrame( { key:pd.Series(value) for key, value in dicted_rows.items() } ) )\
-#       .mark_circle(size=400)\
-#       .encode(
-#         alt.X("ROAS (%)", scale=alt.Scale(domain=(0, roas_max))), 
-#         alt.Y("FPM ($)", scale=alt.Scale(domain=(0, fpm_max))), 
-#         alt.Color("Topic", scale=alt.Scale(domain=dicted_rows["Topic"], range=dicted_rows["color"]), legend=None), #todo: I don't think the current legend displays all the values, if more than about 13, because the text box for it is too small ¯\_(ツ)_/¯
-#         alt.Size(field="Project count", scale=alt.Scale(range=[150, 500]), legend=alt.Legend(title='Project Count', symbolFillColor='red', symbolStrokeColor='red')), #TODO: add a new column to dicted_rows to generate this legend, the thing is i want this to be dynamic, so we'll talk.
-#         opacity = alt.condition(single, alt.value(1.0), alt.value(0.4)),
-#         tooltip=key_of_rows
-#       ).add_selection( single )
-#     event = st.altair_chart(chart, use_container_width=True, on_select="rerun")
-#     if "selection" in event and (is_dev() or len(accounts) == 1): #on click we "drill down"
-#       if len(event['selection']['param_1']) > 0:
-#         selected_topics = event['selection']['param_1'][0]['Topic']
-#         st.header(selected_topics.title())
-#         selected_topics_rows = sql_call(f"""SELECT {dev_str("account_name,")} project_name, send_date , project_type, sum(tv_funds) as tv_funds, clean_text FROM hook_reporting.default.gold_topic_data_array WHERE {project_types_string} and {accounts_string} and {askgoal_string} and SEND_DATE >= CURRENT_DATE() - INTERVAL {past_days} DAY and SEND_DATE <= CURRENT_DATE() and array_contains(topics_array, '{selected_topics}') GROUP BY {dev_str("account_name,")} project_name, send_date, project_type, clean_text""")
-#         column_names = {str(i): k for i, k in enumerate(selected_topics_rows[0].asDict())}
-#         st.dataframe(selected_topics_rows, column_config=column_names, use_container_width=True)
-#   else:
-#     st.info("No data points are selected by the values indicated by the controls. Therefore, there is nothing to graph. Please broaden your criteria.")
-# malarky()
+fpm_max = max(dicted_rows['FPM ($)'] or [0]) * 1.1 # The `or [0]` clauses prevent a crash when fpm (for example) is empty.
+roas_max = max(dicted_rows['ROAS (%)'] or [0]) * 1.05
+@st.fragment
+def malarky() -> None:
+  """This code displays a graph and lets the user select a point to drill down on its values. However, selecting the point reruns the page (this is unavoidable due to streamlit), and it seems like the way we get the points that go into this graph is a little unstable, so a rerun would often change the data slightly (order?) and change the colors of the graph and prevent the drilldown from appearing. So, we have to wrap it in a fragment. This is just another thing I hope to sort out in a refactor once the topic reporting is all moved over."""
+  if len(summary_data_per_topic):
+    single = alt.selection_point()
+    chart = alt.Chart( pd.DataFrame( { key:pd.Series(value) for key, value in dicted_rows.items() } ) )\
+      .mark_circle(size=400)\
+      .encode(
+        alt.X("ROAS (%)", scale=alt.Scale(domain=(0, roas_max))), 
+        alt.Y("FPM ($)", scale=alt.Scale(domain=(0, fpm_max))), 
+        alt.Color("Topic", scale=alt.Scale(domain=dicted_rows["Topic"]), legend=None), #todo: I don't think the current legend displays all the values, if more than about 13, because the text box for it is too small ¯\_(ツ)_/¯
+        alt.Size(field="Project count", scale=alt.Scale(range=[150, 500]), legend=alt.Legend(title='Project Count', symbolFillColor='red', symbolStrokeColor='red')), #TODO: add a new column to dicted_rows to generate this legend, the thing is i want this to be dynamic, so we'll talk.
+        opacity = alt.condition(single, alt.value(1.0), alt.value(0.4)),
+        tooltip=key_of_rows
+      ).add_params( single )
+    event = st.altair_chart(chart, use_container_width=True, on_select="rerun")
+    if "selection" in event and (is_dev() or len(accounts) == 1): #on click we "drill down"
+      if len(event['selection']['param_1']) > 0:
+        selected_topics = event['selection']['param_1'][0]['Topic']
+        st.header(selected_topics.title())
+        selected_topics_rows = sql_call(f"""SELECT {dev_str("account_name,")} project_name, send_date , project_type, sum(tv_funds) as tv_funds, clean_text FROM hook_reporting.default.gold_topic_data_array WHERE {project_types_string} and {accounts_string} and {askgoal_string} and SEND_DATE >= CURRENT_DATE() - INTERVAL {past_days} DAY and SEND_DATE <= CURRENT_DATE() and array_contains(topics_array, '{selected_topics}') GROUP BY {dev_str("account_name,")} project_name, send_date, project_type, clean_text""")
+        column_names = {str(i): k for i, k in enumerate(selected_topics_rows[0].asDict())}
+        st.dataframe(selected_topics_rows, column_config=column_names, use_container_width=True)
+  else:
+    st.info("No data points are selected by the values indicated by the controls. Therefore, there is nothing to graph. Please broaden your criteria.")
+malarky()
 
 # # Behold! Day (x) vs TV funds (y) line graph, per selected topic, which is what we decided was the only other important graph to keep from the old topic reporting application.
-# topics = st.multiselect("Topics", topics_big, default="All", help="This control filters the below graph to only include results that have the selected topic.  If 'All' is one of the selected values, an aggregate sum of all the topics will be presented, as well.")
-# topics = external_topic_names_to_internal_hooks_list_mapping(topics)
+topics = st.multiselect("Topics", topics_list, help="This control filters the below graph to only include results that have the selected topic.  If 'All' is one of the selected values, an aggregate sum of all the topics will be presented, as well.")
 # # TODO: change to just a simple, case-insensitve contains
 # # COULD: maybe have a radio button or something here that lets dev mode users switch between regex and contains
-# search = st.text_input("Search", help="This box, if filled in, makes the below graph only include results that have text (in the clean_text or clean_email field) matching the contents of this box, as a regex (Java flavor regex; see https://regex101.com/?flavor=java&regex=biden|trump&flags=gm&testString=example%20non-matching%20text%0Asome%20trump%20stuff%0Abiden!%0Atrumpbiden for more details and to experiment interactively). This ***is*** case sensitive, and if you enter a regex that doesn't match any text appearing anywhere then the below graph might become nonsensical.") # Java flavor mentioned here: https://docs.databricks.com/en/sql/language-manual/functions/regexp.html # I've only seen the nonsensical graph (it's wrong axes) occur during testing, and haven't seen it in a while, but I guess it might still happen.
-# if search:
-#   search_string = "(clean_email regexp :regexp or clean_text regexp :regexp)"
-# else:
-#   search_string = "true"
+search = st.text_input("Search", help="This box, if filled in, makes the below graph only include results that have text (in the clean_text or clean_email field) matching the contents of this box, as a regex (Java flavor regex; see https://regex101.com/?flavor=java&regex=biden|trump&flags=gm&testString=example%20non-matching%20text%0Asome%20trump%20stuff%0Abiden!%0Atrumpbiden for more details and to experiment interactively). This ***is*** case sensitive, and if you enter a regex that doesn't match any text appearing anywhere then the below graph might become nonsensical.") # Java flavor mentioned here: https://docs.databricks.com/en/sql/language-manual/functions/regexp.html # I've only seen the nonsensical graph (it's wrong axes) occur during testing, and haven't seen it in a while, but I guess it might still happen.
+if search:
+  search_string = "(clean_email regexp :regexp or clean_text regexp :regexp)"
+else:
+  search_string = "true"
 
 # day_data_per_topic = sql_call(f"""WITH stats(date, funds, sent, spend, topic) AS (SELECT send_date, SUM(tv_funds), SUM(sent), SUM(spend_amount), hooks FROM hook_reporting.default.gold_topic_data_pivot WHERE {project_types_string} AND {accounts_string} AND hooks IN {to_sql_tuple_string(topics)} AND {askgoal_string} AND send_date >= NOW() - INTERVAL {past_days} DAY AND send_date < NOW() AND hook_bool=true AND {search_string} GROUP BY send_date, hooks) SELECT date, funds, CAST( TRY_DIVIDE(funds, sent)*1000*100 as INT )/100, CAST( TRY_DIVIDE(funds, spend)*100 as INT ), topic FROM stats""", {"regexp": search})
 # if "all_hook" in topics: #This special case is just copy-pasted from above, with modifications, to make the all_hook (since the new table process has no all_hook in).
