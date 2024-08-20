@@ -85,6 +85,16 @@ if st.button("update the pod table and also the activity log retroactively IN A 
   #even though datetime is now a proper timestamp and not a string, this seems to work.
   sql_call_cacheless("UPDATE cicero.default.activity_log SET user_pod = :pod WHERE user_email ilike :email AND timestamp >= :date_str", {"email": one_new_email, "pod": one_new_pod, "date_str": date_str})
 
+st.write("### manual entry 2")
+st.caption(r"if you have the pods in a format like mlyons@targetedvictory.com - Jeff`\n`csmart@targetedvictory.com - Sami, then put them in here:")
+foo = st.text_area("here")
+bar = [y.strip() for x in foo.split("\n") for y in x.split(" - ") ]
+st.write(bar)
+if st.button("then, you can click this button"):
+  while(bar):
+    do_one(bar.pop(0), bar.pop(0))
+
+
 new_pods_tuples = None #avoid run-time variable-not-defined error. Obviously we could just put the buttons inside the file_uploader if, but I think it leads for better discoverability to do it this way.
 st.write("### File entry")
 if file := st.file_uploader("Here, you can pick a new pod key excel file. If you do so, you can use it to modify the pod table, using the controls also in this section."):
