@@ -82,7 +82,7 @@ This codebase is not very object-oriented. Unless we need to use dependency code
 
 ## Random little problem
 
-Occasionally, about 1 in 20 times or so, this project will fail to launch because an internal component of a dependency throws an indecipherable error. This is from pytz and probably a fault of the databrick python sql connector. BUG-WORKAROUND: just reboot the process.
+Occasionally, about 1 in 20 times or so, this project will fail to launch because an internal component of a dependency throws an indecipherable error. This is from pytz and probably a fault of the databrick python sql connector. BUG-WORKAROUND: just reboot the process. Further development: actually, this might be a result of the email being None sometimes, on subsidiary pages, which the database doesn't like? Perhaps.
 
 ## Signoff
 

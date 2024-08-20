@@ -43,3 +43,6 @@ with st.expander("Bios"):
     if st.button("Add a new bio to an existing rollup name in the cicero.ref_tables.ref_bios table (DO NOT CLICK)") and bio_name and bio:
       sql_call_cacheless("INSERT INTO cicero.ref_tables.ref_bios (Candidate, Bio) VALUES (acct, bio)", {"acct": bio_name, "bio": bio}) # This also probably does not work
   st.table(sql_call_cacheless("SELECT Candidate, Bio FROM cicero.ref_tables.ref_bios ORDER BY Candidate ASC"))
+
+with st.expander("Misc"):
+  st.write("Put code here to evaluate it and see what happens. (I'm not including an eval here because lol don't use eval.)")
