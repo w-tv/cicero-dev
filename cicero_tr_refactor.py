@@ -17,6 +17,12 @@ from cicero_shared import dev_str, is_dev, load_account_names, sql_call
 import pandas as pd
 import altair as alt
 
+def to_graphable_dict[T](values: Sequence[Sequence[T]], x:str='x', y:str='y', color:str='color') -> list[dict[str, T]]:
+  if len(values) == 3: #it's a 3-list of n-lists
+    return [{x: values[0][i], y:values[1][i], color:values[2][i]} for i, _ in enumerate(values[0])]
+  else:
+    return [{x: value[0], y:value[1], color:value[2]} for value in values]
+
 def to_sql_tuple_string(x: Sequence[str]) -> str:
   """SQL doesn't like the trailing comma python puts in a singleton tuple, so we can't just use the tuple constructor and then convert that to string; we have to do this instead."""
   # databricks-sql-python-BUG-WORKAROUND: https://github.com/databricks/databricks-sql-python/issues/377 https://github.com/databricks/databricks-sql-python/issues/290
@@ -129,19 +135,85 @@ def malarky() -> None:
     st.info("No data points are selected by the values indicated by the controls. Therefore, there is nothing to graph. Please broaden your criteria.")
 malarky()
 
-# # Behold! Day (x) vs TV funds (y) line graph, per selected topic, which is what we decided was the only other important graph to keep from the old topic reporting application.
-topics = st.multiselect("Topics", topics_list, help="This control filters the below graph to only include results that have the selected topic.  If 'All' is one of the selected values, an aggregate sum of all the topics will be presented, as well.")
-# # TODO: change to just a simple, case-insensitve contains
-# # COULD: maybe have a radio button or something here that lets dev mode users switch between regex and contains
+# Behold! Day (x) vs TV funds (y) line graph, per selected topic, which is what we decided was the only other important graph to keep from the old topic reporting application.
+search_topics = st.multiselect("Topics", topics_list, help="This control filters the below graph to only include results that have the selected topic.  If 'All' is one of the selected values, an aggregate sum of all the topics will be presented, as well.")
+# COULD: maybe have a radio button or something here that lets dev mode users switch between regex and contains
 search = st.text_input("Search", help="This box, if filled in, makes the below graph only include results that have text (in the clean_text or clean_email field) matching the contents of this box, as a regex (Java flavor regex; see https://regex101.com/?flavor=java&regex=biden|trump&flags=gm&testString=example%20non-matching%20text%0Asome%20trump%20stuff%0Abiden!%0Atrumpbiden for more details and to experiment interactively). This ***is*** case sensitive, and if you enter a regex that doesn't match any text appearing anywhere then the below graph might become nonsensical.") # Java flavor mentioned here: https://docs.databricks.com/en/sql/language-manual/functions/regexp.html # I've only seen the nonsensical graph (it's wrong axes) occur during testing, and haven't seen it in a while, but I guess it might still happen.
 if search:
-  search_string = "(clean_email regexp :regexp or clean_text regexp :regexp)"
+  search_string = "(LOWER(clean_email) LIKE LOWER(CONCAT('%', :regexp, '%')) OR LOWER(clean_text) LIKE LOWER(CONCAT('%', :regexp, '%')))"
 else:
   search_string = "true"
 
-# day_data_per_topic = sql_call(f"""WITH stats(date, funds, sent, spend, topic) AS (SELECT send_date, SUM(tv_funds), SUM(sent), SUM(spend_amount), hooks FROM hook_reporting.default.gold_topic_data_pivot WHERE {project_types_string} AND {accounts_string} AND hooks IN {to_sql_tuple_string(topics)} AND {askgoal_string} AND send_date >= NOW() - INTERVAL {past_days} DAY AND send_date < NOW() AND hook_bool=true AND {search_string} GROUP BY send_date, hooks) SELECT date, funds, CAST( TRY_DIVIDE(funds, sent)*1000*100 as INT )/100, CAST( TRY_DIVIDE(funds, spend)*100 as INT ), topic FROM stats""", {"regexp": search})
-# if "all_hook" in topics: #This special case is just copy-pasted from above, with modifications, to make the all_hook (since the new table process has no all_hook in).
-#   day_data_per_topic += sql_call(f"""WITH stats(date, funds, sent, spend, topic) AS (SELECT DISTINCT send_date, SUM(tv_funds), SUM(sent), SUM(spend_amount), 'all_hook' FROM hook_reporting.default.gold_topic_data_pivot WHERE {project_types_string} AND {accounts_string} AND {askgoal_string} AND send_date >= NOW() - INTERVAL {past_days} DAY AND send_date < NOW() AND {search_string} GROUP BY send_date) SELECT date, funds, CAST( TRY_DIVIDE(funds, sent)*1000*100 as INT )/100, CAST( TRY_DIVIDE(funds, spend)*100 as INT ), topic FROM stats""", {"regexp": search})
+# day_data_per_topic = sql_call(f"""
+#   SELECT topic,
+#     Send_Date,
+#     TV_Funds, 
+#     Sent, 
+#     Spend_Amount, 
+#     Project_Count, 
+#     cast( try_divide(TV_Funds, Sent)*1000*100 as int )/100 as FPM, 
+#     cast( try_divide(TV_Funds, Spend_Amount)*100 as int ) as ROAS
+#   FROM (
+#     SELECT topic, 
+#       Send_Date,
+#       SUM(TV_FUNDS) as TV_Funds, 
+#       SUM(SENT) as Sent,
+#       SUM(SPEND_AMOUNT) as Spend_Amount,
+#       COUNT(Distinct PROJECT_NAME) as Project_Count
+#     FROM (
+#       SELECT explode(Topics_Array) as topic, 
+#         TV_FUNDS, 
+#         SENT,
+#         SPEND_AMOUNT,
+#         PROJECT_NAME,
+# 	      SEND_DATE as Send_Date
+#       FROM hook_reporting.default.gold_topic_data_array
+#       WHERE {project_types_string}
+#         and {accounts_string}
+#         and {askgoal_string}
+# 	      and {search_string} 
+#         and SEND_DATE >= CURRENT_DATE() - INTERVAL {past_days} DAY 
+#         and SEND_DATE <= CURRENT_DATE() 
+#       )
+#   GROUP BY topic, Send_Date
+#   where topic IN ('border_hook') 
+#   )""", 
+#   {"regexp": search})
+# if "all_hook" in search_topics: #This special case is just copy-pasted from above, with modifications, to make the all_hook (since the new table process has no all_hook in).
+#   day_data_per_topic += sql_call(f"""
+#   SELECT topic,
+#     Send_Date,
+#     TV_Funds, 
+#     Sent, 
+#     Spend_Amount, 
+#     Project_Count, 
+#     cast( try_divide(TV_Funds, Sent)*1000*100 as int )/100 as FPM, 
+#     cast( try_divide(TV_Funds, Spend_Amount)*100 as int ) as ROAS
+#   FROM (
+#     SELECT topic, 
+#       Send_Date,
+#       SUM(TV_FUNDS) as TV_Funds, 
+#       SUM(SENT) as Sent,
+#       SUM(SPEND_AMOUNT) as Spend_Amount,
+#       COUNT(Distinct PROJECT_NAME) as Project_Count
+#     FROM (
+#       SELECT explode(Topics_Array) as topic, 
+#         TV_FUNDS, 
+#         SENT,
+#         SPEND_AMOUNT,
+#         PROJECT_NAME,
+# 	      SEND_DATE as Send_Date
+#       FROM hook_reporting.default.gold_topic_data_array
+#       WHERE {project_types_string}
+#         and {accounts_string}
+#         and {askgoal_string}
+# 	      and {search_string} 
+#         and SEND_DATE >= CURRENT_DATE() - INTERVAL {past_days} DAY 
+#         and SEND_DATE <= CURRENT_DATE() 
+#       )
+#   GROUP BY Send_Date
+#   )""", 
+#   {"regexp": search})
 
 # if len(day_data_per_topic):
 #   tv_funds_graph = [(row[0], row[1], row[4]) for row in day_data_per_topic]
