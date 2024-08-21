@@ -134,7 +134,7 @@ def grow_chat(streamlit_key_suffix: str = "", alternate_content: str|None = None
         time_difference = datetime.now() - st.session_state["last_link_time"]
         if time_difference < timedelta(seconds=27): # It's 27 because we don't want to alert the user if they just have to wait another second or two. The query already takes that long, probably.
           remaining_seconds = round( 30 - time_difference.total_seconds() )
-          popup("Throttled!", f"Link reading is currently limited to once every 30 seconds per user.  Cicero has delayed your request by {remaining_seconds} seconds.  Contact the Cicero Team for more info.") # Festina lente! #Unfortunately I think an unreported bug in streamlit means this dialog only ever shows once per session. But that's ok in this case.
+          popup("Throttled!", f"Link reading is currently limited to once every 30 seconds per user.  Cicero has delayed your request by {remaining_seconds} seconds.  Contact the Cicero Team for more info.", show_x_instruction=False) # Festina lente! #Unfortunately I think an unreported bug in streamlit means this dialog only ever shows once per session. But that's ok in this case.
           time.sleep(remaining_seconds)
       st.session_state["last_link_time"] = datetime.now()
     p = expand_url_content(p)

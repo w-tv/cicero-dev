@@ -106,12 +106,13 @@ def die_with_database_error_popup(e_args: tuple[object, ...]) -> NoReturn:
   st.code(e_args)
   exit_error(4)
 
-def popup(title: str, body: str) -> None:
+def popup(title: str, body: str, show_x_instruction: bool = True) -> None:
   """This makes a simple modal dialog box in streamlit. It eschews the advanced functionality of the dialog, which usually allows arbitrary code to run. But we haven't needed that so far. (It could probably be done by allowing body to be a callable.)"""
   @st.dialog(title)
   def _() -> None:
     st.write(body)
-    st.caption("Press enter or click the ❌︎ in the upper-right corner to close this message.")
+    if show_x_instruction:
+      st.caption("Press enter or click the ❌︎ in the upper-right corner to close this message.")
   _()
 
 
