@@ -552,8 +552,8 @@ if st.session_state.get("submit_button_disabled"):
     prompt_tries = 5
     while True: #this is written in a slightly-more-complicated way so that the typechecker can infer that the variables are never unbound.
       prompt_sent, output_array, st.session_state['entire_prompt'], prompter_system_prompt, used_similarity_search_backup = execute_prompting(model, account, sender, ask_type, topics, additional_topics, tones, length_select, headline, num_outputs, temperature, bio, max_tokens, topic_weight, tone_weight, client_weight, ask_weight, text_len_weight, doc_pool_size, num_examples)
-      # Heuristic detection of if the text model has refused to answer. (Eg "As an AI model, I can't say anything hateful blah blah blah".) Might false-positive on "I can't believe the" etc etc.
-      if len(output_array) == 1 and len(output_array[0]) < 100 and (output_array[0].startswith("I'm sorry") or output_array[0].startswith("I can't") or output_array[0].startswith("As a large language model")):
+      # Heuristic detection of if the text model has refused to answer. (Eg "As an AI model, I can't say anything hateful blah blah blah".)
+      if len(output_array) == 1 and len(output_array[0]) < 100 and (output_array[0].startswith("I can't fulfill") or output_array[0].startswith("As a large language model")):
         prompt_tries -= 1
         st.info("Cicero has detected its generated output may have been insubordinate; retrying up to {prompt_tries} more times...")
         if not prompt_tries:
