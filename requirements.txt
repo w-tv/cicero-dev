@@ -28,7 +28,7 @@ typing-extensions
 pipreqs
 deptry >= 0.14.1
 ruff
-pyright >= 1.1.375, >= 1.1.374 #in general we like to keep this up to date, but there shouldn't be a problem with most older versions.
+pyright >= 1.1.377, >= 1.1.374 #in general we like to keep this up to date, but there shouldn't be a problem with most older versions.
 
 ## type stubs that aren't installed by mypy --install-types for whatever reason
 
