@@ -141,11 +141,10 @@ malarky()
 # Behold! Day (x) vs TV funds (y) line graph, per selected topic, which is what we decided was the only other important graph to keep from the old topic reporting application.
 topics = st.multiselect("Topics", topics_big, default="All", help="This control filters the below graph to only include results that have the selected topic.  If 'All' is one of the selected values, an aggregate sum of all the topics will be presented, as well.")
 topics = external_topic_names_to_internal_hooks_list_mapping(topics)
-# TODO: change to just a simple, case-insensitve contains
 # COULD: maybe have a radio button or something here that lets dev mode users switch between regex and contains
 search = st.text_input("Search", help="This box, if filled in, makes the below graph only include results that have text (in the clean_text or clean_email field) matching the contents of this box, as a regex (Java flavor regex; see https://regex101.com/?flavor=java&regex=biden|trump&flags=gm&testString=example%20non-matching%20text%0Asome%20trump%20stuff%0Abiden!%0Atrumpbiden for more details and to experiment interactively). This ***is*** case sensitive, and if you enter a regex that doesn't match any text appearing anywhere then the below graph might become nonsensical.") # Java flavor mentioned here: https://docs.databricks.com/en/sql/language-manual/functions/regexp.html # I've only seen the nonsensical graph (it's wrong axes) occur during testing, and haven't seen it in a while, but I guess it might still happen.
 if search:
-  search_string = "(clean_email regexp :regexp or clean_text regexp :regexp)"
+  search_string = "(LOWER(clean_email) LIKE LOWER(CONCAT('%', :regexp, '%')) OR LOWER(clean_text) LIKE LOWER(CONCAT('%', :regexp, '%')))"
 else:
   search_string = "true"
 
