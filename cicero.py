@@ -56,12 +56,20 @@ with Profiler():
 
   # Since we use st.navigation explicitly, the default page detection is disabled, even though we may use a pages folder later (although we shouldn't name that folder pages/, purely in order to suppress a warning message about how we shouldn't do that). This is good, because we want to hide some of the pages from non-dev-mode users.
   # There is an icon parameter to st.Page, so we could write eg icon="🗣️", but including the emoji in the titles makes them slightly larger and thus nicer-looking.
+  0
   pages = [ #pages visible to everyone
     st.Page("cicero_prompter.py", title="🗣️ Prompter", default=True)
   ]
+  1
+  2
+  3
+  4
   print(st.session_state['email'])
+  5
   print(f"{sql_call("select page_access from cicero.ref_tables.user_pods where user_email == :user_email", {"user_email": st.session_state['email']})=}")
+  6
   page_access: list[str] | None = sql_call("select page_access from cicero.ref_tables.user_pods where user_email == :user_email", {"user_email": st.session_state['email']})[0][0]
+  7
   if page_access is not None:
     if 'topic_reporting' in page_access:
       pages += [ st.Page("cicero_topic_reporting.py", title="📈 Topic Reporting") ]
