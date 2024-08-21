@@ -59,6 +59,8 @@ with Profiler():
   pages = [ #pages visible to everyone
     st.Page("cicero_prompter.py", title="🗣️ Prompter", default=True)
   ]
+  print(st.session_state['email'])
+  print(f"{sql_call("select page_access from cicero.ref_tables.user_pods where user_email == :user_email", {"user_email": st.session_state['email']})=}")
   page_access: list[str] | None = sql_call("select page_access from cicero.ref_tables.user_pods where user_email == :user_email", {"user_email": st.session_state['email']})[0][0]
   if page_access is not None:
     if 'topic_reporting' in page_access:
