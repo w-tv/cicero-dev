@@ -9,6 +9,7 @@ from databricks_genai_inference import ChatSession, FoundationModelAPIException
 from cicero_shared import consul_show, is_dev, ssget, ssset, ssmut, get_base_url, popup, typesafe_selectbox
 from cicero_types import Short_Model_Name, short_model_names, short_model_name_default, short_model_name_to_long_model_name
 import bs4, requests, re # for some reason bs4 is how you import beautifulsoup smh smh
+from pathlib import Path
 
 def pii_detector(input: str) -> list[str]:
   phone = re.findall(
@@ -212,7 +213,21 @@ def main(streamlit_key_suffix: str = "") -> None: # It's convenient to import ci
   st.write('''**Chat freeform with Cicero directly ChatGPT-style!**  \nHere are some ideas: rewrite copy, make copy longer, convert a text into an email, or write copy based off a starter phrase/quote.''')
   account = st.text_input("Account") if streamlit_key_suffix=="_corporate" else None
   if is_dev():
-    _uploaded_file = st.file_uploader(label="(CURRENTLY DOES NOTHING) Upload a file", type=['csv', 'xlsx', 'xls', 'txt', 'html'], accept_multiple_files=False, help='You can upload a file here for Cicero to analyze. Cicero currently supports these file types: csv, xlsx, xls, txt, and html.') #TODO: test out these files to make sure they actually work.
+    uploaded_file = st.file_uploader(label="(CURRENTLY DOES NOTHING) Upload a file", type=['csv', 'xlsx', 'xls', 'txt', 'html'], accept_multiple_files=False, help='You can upload a file here for Cicero to analyze. Cicero currently supports these file types: csv, xlsx, xls, txt, and html.') #TODO: test out these files to make sure they actually work.
+  if uploaded_file is not None:
+    file_ext = Path(str(uploaded_file.name)).suffix
+    if file_ext == '.txt':
+      st.write("You uploaded a txt file!")
+    if file_ext == '.csv':
+      st.write("You uploaded a txt file!")
+    if file_ext == '.xlsx':
+      st.write("You uploaded a txt file!")
+    if file_ext == '.xls':
+      st.write("You uploaded a txt file!")
+    if file_ext == '.html':
+      st.write("You uploaded a txt file!")
+    if file_ext not in ['.csv', '.xlsx', '.xls', '.txt', '.html']:
+      st.write("Cicero does not currently support this file type!")
   model_name = typesafe_selectbox("Model", short_model_names, key="model_name") if is_dev() else short_model_name_default
   if st.button("Reset"):
     reset_chat(streamlit_key_suffix)
