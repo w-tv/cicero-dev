@@ -6,7 +6,7 @@ import streamlit as st
 from datetime import datetime, timedelta
 import time
 from databricks_genai_inference import ChatSession, FoundationModelAPIException
-from cicero_shared import consul_show, is_dev, ssget, ssset, ssmut, get_base_url, popup, typesafe_selectbox
+from cicero_shared import catstr, consul_show, is_dev, ssget, ssset, ssmut, get_base_url, popup, typesafe_selectbox
 from cicero_types import Short_Model_Name, short_model_names, short_model_name_default, short_model_name_to_long_model_name
 import bs4, requests, re # for some reason bs4 is how you import beautifulsoup smh smh
 from pathlib import Path
@@ -150,8 +150,8 @@ def grow_chat(streamlit_key_suffix: str = "", alternate_content: str|None = None
         chat.reply(p)
         messages.append({"role": "user", "content": display_p})
         messages.append({"avatar": "assets/CiceroChat_800x800.jpg", "role": "assistant", "content": chat.last})
-        st.session_state["activity_log_payload"] = {"user_email": st.session_state["email"], "prompter_or_chatbot": 'chatbot'+streamlit_key_suffix, "prompt_sent": p, "response_given": chat.last, "model_name": short_model_name, "model_url": chat.model, "model_parameters": str(chat.parameters), "system_prompt": chat.system_message, "base_url": get_base_url(), "used_similarity_search_backup": "no"}
-        if not streamlit_key_suffix:
+        st.session_state["activity_log_payload"] = {"user_email": st.session_state["email"], "prompter_or_chatbot": 'chatbot'+streamlit_key_suffix, "prompt_sent": p, "response_given": chat.last, "model_name": short_model_name, "model_url": chat.model, "model_parameters": str(chat.parameters), "system_prompt": chat.system_message, "base_url": get_base_url(), "used_similarity_search_backup": "no"} | ({"user_feedback": "not asked", "user_feedback_satisfied": "not asked"} if streamlit_key_suffix == "_prompter" else {"user_feedback": "not received", "user_feedback_satisfied": "not received"} if streamlit_key_suffix == "_corporate" else {"user_feedback": "not received", "user_feedback_satisfied": "not asked"})
+        if not streamlit_key_suffix == "_prompter":
           st.session_state["outstanding_activity_log_payload"] = st.session_state["activity_log_payload"]
         break
       except FoundationModelAPIException as e:
@@ -190,20 +190,37 @@ def display_chat(streamlit_key_suffix: str = "", account: str|None = None, short
     for message in st.session_state.messages[streamlit_key_suffix]:
       with st.chat_message(message["role"], avatar=message.get("avatar")):
         st.markdown(message["content"].replace("$", r"\$").replace("[", r"\["))
-  if st.session_state.get("outstanding_activity_log_payload") and not streamlit_key_suffix:
+  if st.session_state.get("outstanding_activity_log_payload") and streamlit_key_suffix != "_prompter":
     emptyable = st.empty()
     with emptyable.container():
       _c1, c2, c3 = st.columns([.05, .06, .89], gap='small', vertical_alignment="center")
       with c2:
-        st_feedback: int|None = st.feedback("thumbs", key=ssget("feedback", streamlit_key_suffix))
+        st_feedback: int|None = st.feedback( "thumbs", key=catstr(ssget("feedback", streamlit_key_suffix), "feedback") )
       c3.write("***Did Cicero understand your request? Let us know to continue chatting.***")
     if st_feedback is not None:
-      emptyable.empty()
-      user_feedback = "bad" if st_feedback == 0 else "good"
-      ssmut(lambda x: x+1 if x else 1, "feedback", streamlit_key_suffix)
-      st.container().chat_input(on_submit=grow_chat, key="user_input_for_chatbot_this_frame"+streamlit_key_suffix, args=(streamlit_key_suffix, None, account, short_model_name_default) ) #Note that because it's a callback, the profiler will not catch grow_chat here. However, it takes about a second. (Update: maybe it's about 4 seconds, now? That's in the happy path, as well.) #Without the container, this UI element floats BELOW the pyinstrument profiler now, which is inconvenient. But also we might want it to float down later, if we start using streaming text...
-      st.session_state["outstanding_activity_log_payload_fulfilled"] = st.session_state["outstanding_activity_log_payload"] | {"user_feedback": user_feedback}
-      st.session_state["outstanding_activity_log_payload"] = None
+      user_feedback_satisfied = "not asked" # These are "declared" up here to appease possibly-unbound analysis.
+      st_feedback2 = None
+      emptyable2 = st.empty()
+      if streamlit_key_suffix == "_corporate":
+        did_round_2 = True
+        with emptyable2.container():
+          _c12, c22, c32 = st.columns([.05, .06, .89], gap='small', vertical_alignment="center")
+          with c22:
+            st_feedback2: int|None = st.feedback( "thumbs", key=catstr(ssget("feedback2", streamlit_key_suffix),"feedback2") )
+          c3.write("***Are you satisfied with this output? Let us know to continue chatting.***")
+      else:
+        did_round_2 = False
+      if not did_round_2 or st_feedback2 is not None:
+        emptyable.empty()
+        user_feedback = "bad" if st_feedback == 0 else "good"
+        ssmut(lambda x: x+1 if x else 1, "feedback", streamlit_key_suffix) # We have to do this, or the feedback widget will get stuck on its old value.
+        if did_round_2:
+          emptyable2.empty()
+          user_feedback_satisfied = "bad" if st_feedback == 0 else "good"
+          ssmut(lambda x: x+1 if x else 1, "feedback2", streamlit_key_suffix) # We have to do this, or the feedback widget will get stuck on its old value.
+        st.container().chat_input(on_submit=grow_chat, key="user_input_for_chatbot_this_frame"+streamlit_key_suffix, args=(streamlit_key_suffix, None, account, short_model_name_default) ) #Note that because it's a callback, the profiler will not catch grow_chat here. However, it takes about a second. (Update: maybe it's about 4 seconds, now? That's in the happy path, as well.) #Without the container, this UI element floats BELOW the pyinstrument profiler now, which is inconvenient. But also we might want it to float down later, if we start using streaming text...
+        st.session_state["outstanding_activity_log_payload_fulfilled"] = st.session_state["outstanding_activity_log_payload"] | {"user_feedback": user_feedback, "user_feedback_satisfied": user_feedback_satisfied}
+        st.session_state["outstanding_activity_log_payload"] = None
   else:
     if pii and pii[0] is False: # We're in a pii situation and the user has chosen to press on. So we have to show them the message they just had.
       st.info("Message you were editing (may contain PII):")

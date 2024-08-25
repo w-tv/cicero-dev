@@ -560,8 +560,8 @@ if st.session_state.get("submit_button_disabled"):
         break
     st.session_state['outputs'] = output_array
     # Activity logging takes a bit, so I've put it last (in cicero.py, not this file) to preserve immediate-feeling performance and responses for the user making a query. We set it up here.
-    # prompt_sent is only illustrative. But maybe that's enough. Maybe we should be using a different prompt?
-    st.session_state["activity_log_payload"] = {"user_email": st.session_state['email'], "prompter_or_chatbot": "prompter", "prompt_sent": prompt_sent, "response_given": json.dumps(st.session_state['outputs']), "model_name": model_name, "model_url": model, "model_parameters": str({"max_tokens": max_tokens, "temperature": temperature}), "system_prompt": prompter_system_prompt, "base_url": get_base_url(), "used_similarity_search_backup": used_similarity_search_backup}
+    # prompt_sent is only illustrative. But maybe that's enough. Maybe we should be using a different prompt? TODO: determine this.
+    st.session_state["activity_log_payload"] = {"user_email": st.session_state['email'], "prompter_or_chatbot": "prompter", "prompt_sent": prompt_sent, "response_given": json.dumps(st.session_state['outputs']), "model_name": model_name, "model_url": model, "model_parameters": str({"max_tokens": max_tokens, "temperature": temperature}), "system_prompt": prompter_system_prompt, "base_url": get_base_url(), "used_similarity_search_backup": used_similarity_search_backup} | {"user_feedback": "not asked", "user_feedback_satisfied": "not asked"}
 
     if len(st.session_state['outputs']) != num_outputs:
       st.info("CICERO has detected that the number of outputs may be wrong.")

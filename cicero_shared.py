@@ -10,6 +10,10 @@ from streamlit import runtime
 from typing import Any, Callable, NoReturn, TypedDict, Sequence
 import urllib.parse
 
+def catstr(*strables: object) -> str:
+  """Not to be confused with its C-language cousin, `strcat()`."""
+  return "".join([str(x) for x in strables])
+
 def ssget(string_to_get_from_streamlit_session_state: str, *args: object) -> Any | None:
   """ .get() all Y-combinatorally. This function repeatedly retrieves things from things using `.get()` . Starting with the first argument from st.session_state, and then all the subsequent args from the first. This loses type-safety, in a way, since it just returns Any, but st.session_state already didn't have type-safety (Could: figure out how to TypedDict the session_state? Doesn't seem worth it.) because it always just returns `Any | None`. This function also returns `Any | None`. However, long get chains on things taken from session_state like `st.session_state.get("chat").get(streamlit_key_suffix)` get you errors like `error: Item "None" of "Any | None" has no attribute "get"  [union-attr]` — and quite likely so, because that could give you a type error at runtime! You also can't do the ol' `if st.session_state.get("messages") and st.session_state.get("messages").get(streamlit_key_suffix)` "shortcut"-`and` trick, because there might be side-effects between the first and second call of the function. So you'd have to do something crazy like `if m := st.session_state.get("messages") and m.get(streamlit_key_suffix)` (actually, that leads to a type error `error: Name "m" is used before definition  [used-before-def]`). Or break up the clauses or use a variable. Or, you can simply call `get("messages", streamlit_key_suffix)` for the same effect.
 
@@ -120,7 +124,7 @@ def ensure_existence_of_activity_log() -> None:
   """Run this code before accessing the activity log. If the activity log doesn't exist, this function call will create it.
   Note that if the table exists, this sql call will not check if it has the right columns (names or types), unfortunately.
   Note that this table uses a real timestamp datatype. You can `SET TIME ZONE "US/Eastern";` in sql to get them to output as strings in US Eastern time, instead of the default UTC."""
-  sql_call("CREATE TABLE IF NOT EXISTS cicero.default.activity_log (timestamp timestamp, user_email string, user_pod string, prompter_or_chatbot string, prompt_sent string, response_given string, model_name string, model_url string, model_parameters string, system_prompt string, base_url string, user_feedback string)")
+  sql_call("CREATE TABLE IF NOT EXISTS cicero.default.activity_log (timestamp timestamp, user_email string, user_pod string, prompter_or_chatbot string, prompt_sent string, response_given string, model_name string, model_url string, model_parameters string, system_prompt string, base_url string, user_feedback string, user_feedback_satisfied string, used_similarity_search_backup string)")
 
 @st.cache_data(show_spinner=False)
 def sql_call(query: str, sql_params_dict: TParameterCollection|None = None) -> list[Row]:
