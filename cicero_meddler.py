@@ -21,7 +21,6 @@ with st.expander("Account (client) names w/ rollup"):
       sql_call_cacheless("INSERT INTO cicero.ref_tables.ref_account_rollup (account_name, rollup_name, modified_datetime) VALUES (:acct, :rollup, NOW())", {"acct": acct, "rollup": rollup}) # This is untested because I didn't want to mar the names. (:kongzi:)
   st.table(sql_call_cacheless("SELECT account_name, rollup_name FROM cicero.ref_tables.ref_account_rollup ORDER BY account_name ASC"))
 
-# thanks for this, we gotta align the Visible_Frontend and Enabled columns with topic big
 with st.expander("Topics"):
   c = st.columns(2)
   with c[0]:
@@ -29,8 +28,8 @@ with st.expander("Topics"):
   with c[1]:
     st.write(
       {"All":{ "color":"#61A5A2", "internal name":"all", "show in prompter?": False}} # We need to add this in bespoke.
-      | # dict addition operator "why did they need to use an existing symbol meant for something else when there is already a perfectly good addition operator symbol: '+'" - chang "because, of course, | is the perfectly good existing operator for or ;)" - wyatt
-      {external.title():{"color":color.upper(), "internal name":internal.removesuffix("_hook"), "show in prompter?": True} for external, internal, color in sql_call_cacheless('select tag_name, tag_column_name, color from cicero.ref_tables.ref_tags WHERE tag_type == "Topic" ORDER BY tag_name ASC')} #TODO: Visible_Frontend and Enabled will presumably be useful some day, when we get around to making them not all false.
+      | # dict addition operator
+      {external.title():{"color":color, "internal name":internal.removesuffix("_hook"), "visible_fronted": visible_frontend, "enabled": enabled} for external, internal, color, visible_frontend, enabled in sql_call_cacheless('select tag_name, tag_column_name, color, visible_frontend, enabled from cicero.ref_tables.ref_tags WHERE tag_type == "Topic" ORDER BY tag_name ASC')}
     )
 
 with st.expander("Bios"):
