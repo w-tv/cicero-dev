@@ -153,9 +153,25 @@ if "all_hook" in topics: #This special case is just copy-pasted from above, with
   day_data_per_topic += sql_call(f"""WITH stats(date, funds, sent, spend, topic) AS (SELECT DISTINCT send_date, SUM(tv_funds), SUM(sent), SUM(spend_amount), 'all_hook' FROM hook_reporting.default.gold_topic_data_pivot WHERE {project_types_string} AND {accounts_string} AND {askgoal_string} AND send_date >= NOW() - INTERVAL {past_days} DAY AND send_date < NOW() AND {search_string} GROUP BY send_date) SELECT date, funds, CAST( TRY_DIVIDE(funds, sent)*1000*100 as INT )/100, CAST( TRY_DIVIDE(funds, spend)*100 as INT ), topic FROM stats""", {"regexp": search})
 
 if len(day_data_per_topic):
-  tv_funds_graph = [(row[0], row[1], row[4]) for row in day_data_per_topic]
+  tv_funds_df = pd.DataFrame([(row[0], row[1], row[4]) for row in day_data_per_topic], columns=['Day', 'TV_Funds', 'Topic']) # a list of tuples
+  # tv_funds_df['Day'] = tv_funds_df['Day'].astype(str)
+  # st.dataframe(tv_funds_df)
+  tv_funds_graph = [(row[0], row[1], row[4]) for row in day_data_per_topic] # a list of tuples
   fpm_graph = [(row[0], row[2], row[4]) for row in day_data_per_topic]
   roas_graph = [(row[0], row[3], row[4]) for row in day_data_per_topic]
+
+  tv_funds_chart = (
+    alt.Chart(data=tv_funds_df)
+    .mark_line(size=200)
+    .encode(
+      alt.X("Day"),
+      alt.Y("TV_Funds")
+      )
+  )
+
+  st.altair_chart(tv_funds_chart)
+
+
   st.line_chart(to_graphable_dict(fpm_graph, "Day", "FPM ($)", "Topic"), x='Day', y='FPM ($)', color='Topic', height=500) #COULD: make colors match above. Not sure if it's important.
   st.line_chart(to_graphable_dict(roas_graph, "Day", "ROAS (%)", "Topic"), x='Day', y='ROAS (%)', color='Topic', height=500) #COULD: make colors match above. Not sure if it's important.
   st.line_chart(to_graphable_dict(tv_funds_graph, "Day", "TV Funds ($)", "Topic"), x='Day', y='TV Funds ($)', color='Topic', height=500) #COULD: make colors match above. Not sure if it's important.
