@@ -1,5 +1,5 @@
 #!/usr/bin/env -S streamlit run
-""" This shows you the top of the activity log, to make sure things are going through."""
+"""This shows you the top of the activity log, to make sure things are going through."""
 import streamlit as st
 from cicero_shared import sql_call_cacheless
 
