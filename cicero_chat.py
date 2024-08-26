@@ -100,7 +100,7 @@ def grow_chat(streamlit_key_suffix: str = "", alternate_content: str|None = None
   if not st.session_state.get("chat"):
     st.session_state.chat = {}
   if not ssget("chat", streamlit_key_suffix):
-    st.session_state.chat[streamlit_key_suffix] = ChatSession(model=short_model_name_to_long_model_name(short_model_name), system_message=sys_prompt, max_tokens=4096) # Keep in mind that unless DATABRICKS_HOST and DATABRICKS_TOKEN are in the environment (streamlit does this with secret value by default), then this line of code will fail with an extremely cryptic error asking you to run this program with a `setup` command line argument (which won't do anything)
+    st.session_state.chat[streamlit_key_suffix] = ChatSession(model=short_model_name_to_long_model_name(short_model_name), system_message=sys_prompt, max_tokens=8192) # Keep in mind that unless DATABRICKS_HOST and DATABRICKS_TOKEN are in the environment (streamlit does this with secret value by default), then this line of code will fail with an extremely cryptic error asking you to run this program with a `setup` command line argument (which won't do anything)
   chat = st.session_state.chat[streamlit_key_suffix] # Note that, as an object reference, updating and accessing chat will continue to update and access the same object.
   if not st.session_state.get("messages"): # We keep our own list of messages, I think because I found it hard to format the chat_history output when I tried once.
     st.session_state.messages = {}
@@ -219,13 +219,13 @@ def main(streamlit_key_suffix: str = "") -> None: # It's convenient to import ci
     if file_ext == '.txt':
       st.write("You uploaded a txt file!")
     if file_ext == '.csv':
-      st.write("You uploaded a txt file!")
+      st.write("You uploaded a csv file!")
     if file_ext == '.xlsx':
-      st.write("You uploaded a txt file!")
+      st.write("You uploaded an xlsx file!")
     if file_ext == '.xls':
-      st.write("You uploaded a txt file!")
+      st.write("You uploaded an xls file!")
     if file_ext == '.html':
-      st.write("You uploaded a txt file!")
+      st.write("You uploaded an html file!")
     if file_ext not in ['.csv', '.xlsx', '.xls', '.txt', '.html']:
       st.write("Cicero does not currently support this file type!")
   model_name = typesafe_selectbox("Model", short_model_names, key="model_name") if is_dev() else short_model_name_default
