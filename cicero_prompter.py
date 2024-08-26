@@ -153,7 +153,7 @@ def sample_dissimilar_texts(population: list[ReferenceTextElement], k: int, max_
     not_selected = scored_unselected
   return random.sample(final_arr, k=len(final_arr))
 
-def execute_prompting(model: Long_Model_Name, account: str, sender: str|None, ask_type: Ask_Type, topics: list[str], additional_topics: list[str], tones: list[Tone], text_len: Selectable_Length, headline: str|None, num_outputs: Num_Outputs, model_temperature: float = 0.8, bio: str|None = None, max_tokens: int = 8192, topic_weight: float = 4, tone_weight: float = 1, client_weight: float = 6, ask_weight: float = 2, text_len_weight: float = 3, doc_pool_size: int = 30, num_examples: int = 10) -> tuple[str, list[str], str, str, str]:
+def execute_prompting(model: Long_Model_Name, account: str, sender: str|None, ask_type: Ask_Type, topics: list[str], additional_topics: list[str], tones: list[Tone], text_len: Selectable_Length, headline: str|None, num_outputs: Num_Outputs, model_temperature: float = 0.8, bio: str|None = None, max_tokens: int = 4096, topic_weight: float = 4, tone_weight: float = 1, client_weight: float = 6, ask_weight: float = 2, text_len_weight: float = 3, doc_pool_size: int = 30, num_examples: int = 10) -> tuple[str, list[str], str, str, str]:
   score_threshold = 0.5 # Document Similarity Score Acceptance Threshold
   consul_show(f"{score_threshold=}, {doc_pool_size=}, {num_examples=}")
   assert_always(num_examples <= doc_pool_size, "You can't ask to provide more examples than there are documents in the pool! Try again with a different value.")
@@ -399,9 +399,7 @@ def execute_prompting(model: Long_Model_Name, account: str, sender: str|None, as
     input_variables=list(combined_dict.keys()),
     template=rag_prompt
   )
-
-  # Note: The Llama-3 model has a limit of 8192 tokens for its input and output combined. e.g. if our input is 8000 tokens, then we can only have 192 tokens for the output. However, we don't handle that eventuality; an error message will just happen I guess.
-
+  # Undocumented max_token cap of 4096!
   chat_model = ChatDatabricks(endpoint=model, max_tokens=max_tokens, temperature=model_temperature) # Keep in mind that unless DATABRICKS_HOST and DATABRICKS_TOKEN are in the environment (streamlit does this with secret value by default), then the following line of code will fail with an extremely cryptic error asking you to run this program with a `setup` command line argument (which won't do anything)
 
   # Assemble the LLM chain, which makes it easier to invoke the model and parse its outputs. This uses langchain's own pipe syntax to organize multiple components into a "pipe".
@@ -535,7 +533,7 @@ if is_dev():
     st.session_state["submit_button_disabled"] = True
     account = "AAF" # Just a testing value.
 
-max_tokens = 8192 # This isn't really a thing we should let the user control, at the moment, but we the developers could change it, much like the other variables.
+max_tokens = 4096 # This isn't really a thing we should let the user control, at the moment, but we the developers could change it, much like the other variables.
 
 #Composition and sending a request:
 did_a_query = False

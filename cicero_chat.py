@@ -10,6 +10,8 @@ from cicero_shared import consul_show, is_dev, ssget, ssset, ssmut, get_base_url
 from cicero_types import Short_Model_Name, short_model_names, short_model_name_default, short_model_name_to_long_model_name
 import bs4, requests, re # for some reason bs4 is how you import beautifulsoup smh smh
 from pathlib import Path
+from io import StringIO
+import pandas as pd
 
 def pii_detector(input: str) -> list[str]:
   phone = re.findall(
@@ -100,7 +102,7 @@ def grow_chat(streamlit_key_suffix: str = "", alternate_content: str|None = None
   if not st.session_state.get("chat"):
     st.session_state.chat = {}
   if not ssget("chat", streamlit_key_suffix):
-    st.session_state.chat[streamlit_key_suffix] = ChatSession(model=short_model_name_to_long_model_name(short_model_name), system_message=sys_prompt, max_tokens=8192) # Keep in mind that unless DATABRICKS_HOST and DATABRICKS_TOKEN are in the environment (streamlit does this with secret value by default), then this line of code will fail with an extremely cryptic error asking you to run this program with a `setup` command line argument (which won't do anything)
+    st.session_state.chat[streamlit_key_suffix] = ChatSession(model=short_model_name_to_long_model_name(short_model_name), system_message=sys_prompt, max_tokens=4096) # Keep in mind that unless DATABRICKS_HOST and DATABRICKS_TOKEN are in the environment (streamlit does this with secret value by default), then this line of code will fail with an extremely cryptic error asking you to run this program with a `setup` command line argument (which won't do anything)
   chat = st.session_state.chat[streamlit_key_suffix] # Note that, as an object reference, updating and accessing chat will continue to update and access the same object.
   if not st.session_state.get("messages"): # We keep our own list of messages, I think because I found it hard to format the chat_history output when I tried once.
     st.session_state.messages = {}
@@ -129,7 +131,7 @@ def grow_chat(streamlit_key_suffix: str = "", alternate_content: str|None = None
       pii_dialog(p, possible_pii, streamlit_key_suffix, keyword_arguments)
       continue_prompt = False
 
-  if streamlit_key_suffix=="_corporate": #implement url content expansion, at this point only for the corp chat
+  if streamlit_key_suffix=="_corporate" or is_dev(): #implement url content expansion, at this point only for the corp chat
     if detect_url_content(p):
       if "last_link_time" in st.session_state:
         time_difference = datetime.now() - st.session_state["last_link_time"]
@@ -213,19 +215,36 @@ def main(streamlit_key_suffix: str = "") -> None: # It's convenient to import ci
   st.write('''**Chat freeform with Cicero directly ChatGPT-style!**  \nHere are some ideas: rewrite copy, make copy longer, convert a text into an email, or write copy based off a starter phrase/quote.''')
   account = st.text_input("Account") if streamlit_key_suffix=="_corporate" else None
   if is_dev():
-    uploaded_file = st.file_uploader(label="(CURRENTLY DOES NOTHING) Upload a file", type=['csv', 'xlsx', 'xls', 'txt', 'html'], accept_multiple_files=False, help='You can upload a file here for Cicero to analyze. Cicero currently supports these file types: csv, xlsx, xls, txt, and html.') #TODO: test out these files to make sure they actually work.
+    uploaded_file = st.file_uploader(label="(CURRENTLY DOES NOTHING) Upload a file", type=['csv', 'xlsx', 'xls', 'txt', 'html'], accept_multiple_files=False, help='Cicero currently supports these file types: csv, xlsx, xls, txt, and html.') #TODO: test out these files to make sure they actually work.
   if uploaded_file is not None:
     file_ext = Path(str(uploaded_file.name)).suffix
     if file_ext == '.txt':
       st.write("You uploaded a txt file!")
+      # To convert to a string based IO:
+      stringio = StringIO(uploaded_file.getvalue().decode("utf-8"))
+      # To read file as string:
+      string_data = stringio.read()
+      st.write(string_data)
+      use_file = st.selectbox("Send this file to Cicero?", ("Yes", "No"))
     if file_ext == '.csv':
       st.write("You uploaded a csv file!")
+      dataframe = pd.read_csv(uploaded_file, nrows=10)
+      st.dataframe(dataframe)
     if file_ext == '.xlsx':
       st.write("You uploaded an xlsx file!")
+      dataframe = pd.read_excel(uploaded_file, nrows=10)
+      st.dataframe(dataframe)
     if file_ext == '.xls':
       st.write("You uploaded an xls file!")
+      dataframe = pd.read_excel(uploaded_file, nrows=10)
+      st.dataframe(dataframe)
     if file_ext == '.html':
       st.write("You uploaded an html file!")
+      # To convert to a string based IO:
+      stringio = StringIO(uploaded_file.getvalue().decode("utf-8"))
+      # To read file as string:
+      string_data = stringio.read()
+      st.write(string_data)
     if file_ext not in ['.csv', '.xlsx', '.xls', '.txt', '.html']:
       st.write("Cicero does not currently support this file type!")
   model_name = typesafe_selectbox("Model", short_model_names, key="model_name") if is_dev() else short_model_name_default
