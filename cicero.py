@@ -31,7 +31,7 @@ with Profiler():
   # Google sign-in logic, using IAP. From https://cloud.google.com/iap/docs/signed-headers-howto, with modifications. Will set the email to a new value iff it succeeds.
   if iap_jwt := st.context.headers.get("X-Goog-Iap-Jwt-Assertion"):
     try:
-      decoded_jwt = id_token.verify_token(iap_jwt, requests.Request(), audience=st.secrets["aud"], certs_url="https://www.gstatic.com/iap/verify/public_key") #type: ignore[no-untyped-call] # There is no vendor providing comprehensive type signatures for this library (it doesn't have them by default and google-auth-stubs isn't comprehensive enough as of 2024-07-30), so we just ignore the fact that it's an untyped call, which mypy --strict otherwise complains about (for good reason). Oh well!
+      decoded_jwt = id_token.verify_token(iap_jwt, requests.Request(), audience=st.secrets["aud"], certs_url="https://www.gstatic.com/iap/verify/public_key")
       st.session_state["email"] = decoded_jwt["email"].split(":")[1]
     except Exception as e: # This pass probably hits if you don't have an aud, you don't have an X-Goog-IAP-JWT-Assertion header (you aren't behind an IAP), or the decode fails (the header is forged or otherwise invalid).
       st_print(e)
