@@ -199,14 +199,14 @@ def display_chat(streamlit_key_suffix: str = "", account: str|None = None, short
       c3.write("***Did Cicero understand your request? Let us know to continue chatting.***")
     if st_feedback is not None:
       user_feedback_satisfied = "not asked" # These are "declared" up here to appease possibly-unbound analysis.
-      st_feedback2 = None
+      st_feedback2: int|None = None
       emptyable2 = st.empty()
       if streamlit_key_suffix == "_corporate":
         did_round_2 = True
         with emptyable2.container():
           _c12, c22, c32 = st.columns([.05, .06, .89], gap='small', vertical_alignment="center")
           with c22:
-            st_feedback2: int|None = st.feedback( "thumbs", key=catstr(ssget("feedback2", streamlit_key_suffix),"feedback2") )
+            st_feedback2 = st.feedback( "thumbs", key=catstr(ssget("feedback2", streamlit_key_suffix),"feedback2") )
           c3.write("***Are you satisfied with this output? Let us know to continue chatting.***")
       else:
         did_round_2 = False
@@ -214,9 +214,9 @@ def display_chat(streamlit_key_suffix: str = "", account: str|None = None, short
         emptyable.empty()
         user_feedback = "bad" if st_feedback == 0 else "good"
         ssmut(lambda x: x+1 if x else 1, "feedback", streamlit_key_suffix) # We have to do this, or the feedback widget will get stuck on its old value.
-        if did_round_2:
+        if did_round_2: # todo: I'm fairly certain this will get messed up if the user switches tabs in the middle (until I do the changes in my git stash)?
           emptyable2.empty()
-          user_feedback_satisfied = "bad" if st_feedback == 0 else "good"
+          user_feedback_satisfied = "bad" if st_feedback2 == 0 else "good"
           ssmut(lambda x: x+1 if x else 1, "feedback2", streamlit_key_suffix) # We have to do this, or the feedback widget will get stuck on its old value.
         st.container().chat_input(on_submit=grow_chat, key="user_input_for_chatbot_this_frame"+streamlit_key_suffix, args=(streamlit_key_suffix, None, account, short_model_name_default) ) #Note that because it's a callback, the profiler will not catch grow_chat here. However, it takes about a second. (Update: maybe it's about 4 seconds, now? That's in the happy path, as well.) #Without the container, this UI element floats BELOW the pyinstrument profiler now, which is inconvenient. But also we might want it to float down later, if we start using streaming text...
         st.session_state["outstanding_activity_log_payload_fulfilled"] = st.session_state["outstanding_activity_log_payload"] | {"user_feedback": user_feedback, "user_feedback_satisfied": user_feedback_satisfied}
