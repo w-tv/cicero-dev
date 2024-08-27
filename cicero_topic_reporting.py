@@ -109,13 +109,13 @@ key_of_rows = ("Topic", "TV Funds ($)", "FPM ($)", "ROAS (%)", "Project count")
 dicted_rows = {key_of_rows[i]: [row[i] for row in summary_data_per_topic] for i, key in enumerate(key_of_rows)} #various formats probably work for this; this is just one of them.
 dicted_rows["color"] = [tb["color"] for t in dicted_rows["Topic"] for _, tb in topics_big.items() if tb["internal name"] == t.removesuffix("_hook")] #COULD: one day revise the assumptions that necessitate this logic, which is really grody. #TODO: in some cases we get a "All arrays must be of the same length" error on this, but I'm pretty sure that's just a result of us being mid- topic-pivot.
 #COULD: set up some kind of function for these that decreases the multiplier as the max gets bigger
-fpm_max = max(dicted_rows['FPM ($)'] or [0]) * 1.1 # The `or [0]` clauses prevent a crash when fpm (for example) is empty. #TODO: are the lower graphs correct in this case? Probably not, since they show... any data at all? Honestly when we change this graphing code to not use dicted_rows it will probably be clearer what's going on.
-roas_max = max(dicted_rows['ROAS (%)'] or [0]) * 1.05
+fpm_max = max([val if val is not None else 0 for val in dicted_rows['FPM ($)']]) * 1.1
+roas_max = max([val if val is not None else 0 for val in dicted_rows['ROAS (%)']]) * 1.05
 @st.fragment
 def malarky() -> None:
   """This code displays a graph and lets the user select a point to drill down on its values. However, selecting the point reruns the page (this is unavoidable due to streamlit), and it seems like the way we get the points that go into this graph is a little unstable, so a rerun would often change the data slightly (order?) and change the colors of the graph and prevent the drilldown from appearing. So, we have to wrap it in a fragment. This is just another thing I hope to sort out in a refactor once the topic reporting is all moved over. TODO."""
   if len(summary_data_per_topic):
-    single = alt.selection_single()
+    single = alt.selection_point()
     chart = alt.Chart( pd.DataFrame( { key:pd.Series(value) for key, value in dicted_rows.items() } ) )\
       .mark_circle(size=400)\
       .encode(
@@ -125,7 +125,7 @@ def malarky() -> None:
         alt.Size(field="Project count", scale=alt.Scale(range=[150, 500]), legend=alt.Legend(title='Project Count', symbolFillColor='red', symbolStrokeColor='red')), #TODO: add a new column to dicted_rows to generate this legend, the thing is i want this to be dynamic, so we'll talk.
         opacity = alt.condition(single, alt.value(1.0), alt.value(0.4)),
         tooltip=key_of_rows
-      ).add_selection( single )
+      ).add_params( single )
     event = st.altair_chart(chart, use_container_width=True, on_select="rerun")
     if "selection" in event and (is_dev() or len(accounts) == 1): #on click we "drill down"
       if len(event['selection']['param_1']) > 0:
@@ -162,7 +162,8 @@ if len(day_data_per_topic):
     .mark_line(size=5)
     .encode(
       alt.X("Day"),
-      alt.Y("TV Funds ($)")
+      alt.Y("TV Funds ($)"),
+      alt.Color("Topic", legend=None)
       )
   )
 
@@ -171,17 +172,18 @@ if len(day_data_per_topic):
     .mark_line(size=5)
     .encode(
       alt.X("Day"),
-      alt.Y("FPM ($)")
+      alt.Y("FPM ($)"),
+      alt.Color("Topic", legend=None)
       )
   )
-
 
   roas_chart = (
     alt.Chart(data=roas_df)
     .mark_line(size=5)
     .encode(
       alt.X("Day"),
-      alt.Y("ROAS (%)")
+      alt.Y("ROAS (%)"),
+      alt.Color("Topic", legend=None)
       )
   )
 
