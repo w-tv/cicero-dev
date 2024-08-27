@@ -215,7 +215,7 @@ def main(streamlit_key_suffix: str = "") -> None: # It's convenient to import ci
   st.write('''**Chat freeform with Cicero directly ChatGPT-style!**  \nHere are some ideas: rewrite copy, make copy longer, convert a text into an email, or write copy based off a starter phrase/quote.''')
   account = st.text_input("Account") if streamlit_key_suffix=="_corporate" else None
   if is_dev():
-    uploaded_file = st.file_uploader(label="(CURRENTLY DOES NOTHING) Upload a file", type=['csv', 'xlsx', 'xls', 'txt', 'html'], accept_multiple_files=False, help='Cicero currently supports these file types: csv, xlsx, xls, txt, and html.') #TODO: test out these files to make sure they actually work.
+    uploaded_file = st.file_uploader(label="(CURRENTLY DOES NOTHING) Upload a file", type=['csv', 'docx', 'html', 'txt', 'xls', 'xlsx'], accept_multiple_files=False, help='Cicero currently supports these file types: csv, docx, html, txt, xls, and xlsx.') #TODO: test out these files to make sure they actually work.
   if uploaded_file is not None:
     file_ext = Path(str(uploaded_file.name)).suffix
     if file_ext == '.txt':
@@ -225,19 +225,30 @@ def main(streamlit_key_suffix: str = "") -> None: # It's convenient to import ci
       # To read file as string:
       string_data = stringio.read()
       st.write(string_data)
-      use_file = st.selectbox("Send this file to Cicero?", ("Yes", "No"))
+
+    if file_ext == '.docx':
+      st.write("You uploaded a docx file!")
+      # To convert to a string based IO:
+      stringio = StringIO(uploaded_file.getvalue().decode("utf-8"))
+      # To read file as string:
+      string_data = stringio.read()
+      st.write(string_data)
+
     if file_ext == '.csv':
       st.write("You uploaded a csv file!")
       dataframe = pd.read_csv(uploaded_file, nrows=10)
       st.dataframe(dataframe)
+
     if file_ext == '.xlsx':
       st.write("You uploaded an xlsx file!")
       dataframe = pd.read_excel(uploaded_file, nrows=10)
       st.dataframe(dataframe)
+      
     if file_ext == '.xls':
       st.write("You uploaded an xls file!")
       dataframe = pd.read_excel(uploaded_file, nrows=10)
       st.dataframe(dataframe)
+
     if file_ext == '.html':
       st.write("You uploaded an html file!")
       # To convert to a string based IO:
@@ -245,7 +256,8 @@ def main(streamlit_key_suffix: str = "") -> None: # It's convenient to import ci
       # To read file as string:
       string_data = stringio.read()
       st.write(string_data)
-    if file_ext not in ['.csv', '.xlsx', '.xls', '.txt', '.html']:
+
+    if file_ext not in ['csv', 'docx', 'html', 'txt', 'xls', 'xlsx']:
       st.write("Cicero does not currently support this file type!")
   model_name = typesafe_selectbox("Model", short_model_names, key="model_name") if is_dev() else short_model_name_default
   if st.button("Reset"):
@@ -254,3 +266,4 @@ def main(streamlit_key_suffix: str = "") -> None: # It's convenient to import ci
 
 if __name__ == "__main__":
   main()
+
