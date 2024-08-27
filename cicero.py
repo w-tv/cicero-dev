@@ -121,4 +121,15 @@ with Profiler():
     st.session_state["outstanding_activity_log_payload_fulfilled"] = None
     print("Done writing to log.")
 
+  if st.session_state.get("outstanding_activity_log_payload_fulfilled2"):
+    print("Writing good/bad to log.")
+    ensure_existence_of_activity_log()
+    sql_call_cacheless(
+      # Note: we are gambling that the user_pod and timestamp will never be necessary in practice to have in here, because getting them would be inconvenient. Theoretically, an exact replica circumstance could occur, without those disambiguators. But this is so unlikely; it's probably fine.
+      "UPDATE cicero.default.activity_log SET user_feedback_satisfied = :user_feedback_satisfied WHERE user_email = :user_email AND prompter_or_chatbot = :prompter_or_chatbot AND prompt_sent = :prompt_sent AND response_given = :response_given AND model_name = :model_name AND model_url = :model_url AND model_parameters = :model_parameters AND system_prompt = :system_prompt AND base_url = :base_url;",
+      st.session_state["outstanding_activity_log_payload_fulfilled2"]
+    )
+    st.session_state["outstanding_activity_log_payload_fulfilled2"] = None
+    print("Done writing to log.")
+
   print("End of a run.", str(datetime.now(tz=datetime.now().astimezone().tzinfo)) )
