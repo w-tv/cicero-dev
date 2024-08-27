@@ -131,7 +131,7 @@ def grow_chat(streamlit_key_suffix: str = "", alternate_content: str|None = None
       pii_dialog(p, possible_pii, streamlit_key_suffix, keyword_arguments)
       continue_prompt = False
 
-  if streamlit_key_suffix=="_corporate" or is_dev(): #implement url content expansion, at this point only for the corp chat
+  if streamlit_key_suffix=="_corporate" or is_dev(): #implement url content expansion, at this point only for the corp chat and devs
     if detect_url_content(p):
       if "last_link_time" in st.session_state:
         time_difference = datetime.now() - st.session_state["last_link_time"]
@@ -232,7 +232,7 @@ def main(streamlit_key_suffix: str = "") -> None: # It's convenient to import ci
   st.write('''**Chat freeform with Cicero directly ChatGPT-style!**  \nHere are some ideas: rewrite copy, make copy longer, convert a text into an email, or write copy based off a starter phrase/quote.''')
   account = st.text_input("Account") if streamlit_key_suffix=="_corporate" else None
   if is_dev():
-    uploaded_file = st.file_uploader(label="(CURRENTLY DOES NOTHING) Upload a file", type=['csv', 'docx', 'html', 'txt', 'xls', 'xlsx'], accept_multiple_files=False, help='Cicero currently supports these file types: csv, docx, html, txt, xls, and xlsx.') #TODO: test out these files to make sure they actually work.
+    uploaded_file = st.file_uploader(label="(CURRENTLY DOES NOTHING) Upload a file", type=['csv', 'docx', 'html', 'txt', 'xls', 'xlsx'], accept_multiple_files=False, help='Cicero currently supports these file types: csv, docx, html, txt, xls, and xlsx.')
   if uploaded_file is not None:
     file_ext = Path(str(uploaded_file.name)).suffix
     if file_ext == '.txt':
