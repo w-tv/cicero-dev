@@ -6,7 +6,7 @@ import streamlit as st
 import pandas as pd
 import json
 from typing import Any, Literal, TypedDict
-from cicero_shared import assert_always, consul_show, dev_str, ensure_existence_of_activity_log, exit_error, is_dev, ssget, get_base_url, load_account_names, sql_call, sql_call_cacheless, st_print, topics_big, typesafe_selectbox
+from cicero_shared import assert_always, consul_show, dev_str, ensure_existence_of_activity_log, exit_error, is_dev, ssget, get_base_url, load_account_names, sql_call, sql_call_cacheless, st_print, topics_big
 from cicero_types import aa, Short_Model_Name, Long_Model_Name, short_model_names, short_model_name_default, short_model_name_to_long_model_name
 import cicero_chat
 
@@ -485,7 +485,7 @@ with st.expander(r"$\textsf{\Large NEWS HEADLINES}$"): # I tried to remove the L
   h: list[str] = load_headlines(get_all=False) if not overdrive else load_headlines(get_all=False, past_days=3)
   if exact_match_query:
     h = only_those_strings_of_the_list_that_contain_the_given_substring_case_insensitively(h, exact_match_query)
-  headline = st.selectbox("If a headline is selected here, it will be added to your prompt below.", list(h), key="headline") # No typesafe_selectbox here because we actually do want this to possibly be unselected.
+  headline = st.selectbox("If a headline is selected here, it will be added to your prompt below.", list(h), key="headline")
 
 st.text("") # Just for vertical spacing.
 
@@ -508,17 +508,17 @@ with st.form('query_builder'):
       doc_pool_size = 30
       num_examples = 10
 
-  model_name = typesafe_selectbox("Model (required)", short_model_names, key="model_name") if is_dev() else short_model_name_default
+  model_name = st.selectbox("Model (required)", short_model_names, key="model_name") if is_dev() else short_model_name_default
   model = short_model_name_to_long_model_name(model_name)
-  account = st.selectbox("Account (required)", load_account_names(), key="account") # No typesafe_selectbox here because we actually do want this to possibly be unselected.
+  account = st.selectbox("Account (required)", load_account_names(), key="account")
   sender = st.text_input("Sender Name", key="sender")
-  ask_type = typesafe_selectbox("Ask Type", aa(Ask_Type), key="ask_type").lower()
+  ask_type = st.selectbox("Ask Type", aa(Ask_Type), key="ask_type").lower()
   topics = st.multiselect("Topics", sorted([t for t, d in topics_big.items() if d["show in prompter?"]]), key="topics" )
   topics = external_topic_names_to_internal_topic_names_list_mapping(topics)
-  length_select = typesafe_selectbox("Length", aa(Selectable_Length), key='lengths', format_func=lambda x: f"{x.capitalize()} ({'<160' if x == 'short' else '161-399' if x == 'medium' else '400+'} characters)")
+  length_select = st.selectbox("Length", aa(Selectable_Length), key='lengths', format_func=lambda x: f"{x.capitalize()} ({'<160' if x == 'short' else '161-399' if x == 'medium' else '400+'} characters)")
   additional_topics = [x.strip().lower() for x in st.text_input("Additional Topics (examples: Biden, survey, deadline)", key="additional_topics" ).split(",") if x.strip()] # The list comprehension is to filter out empty strings on split, because otherwise this fails to make a truly empty list in the default case, instead having a list with an empty string in, because split changes its behavior when you give it arguments. Anyway, this also filters out trailing comma edge-cases and such.
   tones = st.multiselect("Tones", aa(Tone), key="tones")
-  num_outputs = typesafe_selectbox(r"\# Outputs", aa(Num_Outputs), key='num_outputs')
+  num_outputs = st.selectbox(r"\# Outputs", aa(Num_Outputs), key='num_outputs')
   temperature: float = st.slider("Output Variance:", min_value=0.0, max_value=1.0, key="temperature") if is_dev() else 0.7
   buttonhole = st.empty()
   with buttonhole:
@@ -527,7 +527,7 @@ with st.form('query_builder'):
     else:
       st.form_submit_button("Submit", type="primary", on_click=disable_submit_button_til_complete)
   if is_dev():
-    st.session_state["use_backup_similarity_search_library"] = typesafe_selectbox("(developer mode option) trigger a fake error in the appropriate place in this run to use backup similarity search library", [False, True])
+    st.session_state["use_backup_similarity_search_library"] = st.selectbox("(developer mode option) trigger a fake error in the appropriate place in this run to use backup similarity search library", [False, True])
 if is_dev():
   if st.button("Developer mode special button for testing: “***I'm feeling (un)lucky***”"):
     st.session_state["submit_button_disabled"] = True

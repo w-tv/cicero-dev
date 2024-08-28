@@ -7,7 +7,7 @@ from databricks.sql.types import Row
 from databricks.sql.parameters.native import TParameterCollection
 import streamlit as st
 from streamlit import runtime
-from typing import Any, Callable, NoReturn, TypedDict, Sequence
+from typing import Any, Callable, NoReturn, TypedDict
 import urllib.parse
 
 def catstr(*strables: object) -> str:
@@ -151,31 +151,6 @@ def assert_always(x: object, message_to_assert: str|None = None) -> None | NoRet
   if not x:
     raise AssertionError(message_to_assert or x)
   return None
-
-def typesafe_selectbox[T](label: str, options: Sequence[T], default: T|None = None, **kwargs: Any) -> T:
-  """Call `st.selectbox` but don't pollute your type with `None` in the process;
-  if the selectbox would return `None`, return the value passed in as `default`.
-  If `default` is `None` (eg: not passed in), the value of `options[0]` is used.
-  The value of `default` (unless `None`) must be in `options`, on pain of runtime error;
-  and, furthermore, `options` must not be empty.
-
-  `options` is also a `Sequence` type rather than the broader `Iterable`
-  to ensure it isn't an exhaustible iterator that would be harmed by a call to `.index()`
-
-  `default` is named in analogy to a parameter in `st.multiselect`.
-  But there are other widgets, like `st.text_input`, that have an analogous parameter named `value` 🤷.
-
-  All arguments, including kwargs, are passed on to st.selectbox, either directly or indirectly.
-  It's not clear to me if there's a better & concise way to do the type signature of kwargs here.
-
-  Note that if you use st.session_state to set the value of the key of the selectbox, that takes priority over the `default` argument.
-  However, if you set the value of said key to `None`, this function will still return `options[0]`.
-
-  The parameter kwargs is expanded and passed to selectbox; it is not to be confused with the kwargs of selectbox itself, which is a dict passed to the callback."""
-  #STREAMLIT-BUG-WORKAROUND: every time I use this instead of st.selectbox I think this is technically working around a bug in streamlit, although it's a typing bug and might be impossible for them to fix: https://github.com/streamlit/streamlit/issues/8717
-  i = 0 if default is None else options.index(default)
-  x = st.selectbox(label, options, index=i, **kwargs)
-  return x if x is not None else options[i]
 
 # This is the 'big' of topics, the authoritative record of various facts and mappings about topics.
 Topics_Big_Payload = TypedDict("Topics_Big_Payload", {'color': str, 'internal name': str, 'show in prompter?': bool})

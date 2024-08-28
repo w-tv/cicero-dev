@@ -6,7 +6,7 @@ import streamlit as st
 from datetime import datetime, timedelta
 import time
 from databricks_genai_inference import ChatSession, FoundationModelAPIException
-from cicero_shared import catstr, consul_show, is_dev, ssget, ssset, ssmut, get_base_url, popup, typesafe_selectbox
+from cicero_shared import catstr, consul_show, is_dev, ssget, ssset, ssmut, get_base_url, popup
 from cicero_types import Short_Model_Name, short_model_names, short_model_name_default, short_model_name_to_long_model_name
 import bs4, requests, re # for some reason bs4 is how you import beautifulsoup smh smh
 from pathlib import Path
@@ -251,7 +251,7 @@ def main(streamlit_key_suffix: str = "") -> None: # It's convenient to import ci
           st.dataframe( pd.read_excel(uploaded_file, nrows=10) )
         case _:
           st.write("Cicero does not currently support this file type!")
-  model_name = typesafe_selectbox("Model", short_model_names, key="model_name") if is_dev() else short_model_name_default
+  model_name = st.selectbox("Model", short_model_names, key="model_name") if is_dev() else short_model_name_default
   if st.button("Reset"):
     reset_chat(streamlit_key_suffix)
   display_chat(streamlit_key_suffix, account=account, short_model_name=model_name)
