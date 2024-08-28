@@ -50,10 +50,8 @@ def ssmut[T](f: Callable[[Any], T], string_to_get_from_streamlit_session_state: 
   return ssdrill(lambda container, accessor: f(container.get(accessor)), string_to_get_from_streamlit_session_state, *additional_args, dont_actually_set_the_value=dont_actually_set_the_value)
 
 def ssset(string_to_get_from_streamlit_session_state: str, *additional_args_ending_with_payload: Any) -> None:
-  """Like ssget, but setting a value. Note that this means that if a None is encountered along the way, it will be replaced with a {}; much like the behavior of a defaultdict, in a way. Also note that payload must be given as a keyword argument, like payload=whatever, because of how variadic arguments work in python."""
-  a = list(additional_args_ending_with_payload)
-  payload = a.pop(-1)
-  ssmut(lambda x: payload, string_to_get_from_streamlit_session_state, *a)
+  """Like ssget, but setting a value. Note that this means that if a None is encountered along the way, it will be replaced with a {}; much like the behavior of a defaultdict, in a way."""
+  ssmut(lambda x: additional_args_ending_with_payload[-1], string_to_get_from_streamlit_session_state, *additional_args_ending_with_payload[:-1])
 
 def sspop(string_to_get_from_streamlit_session_state: str, *additional_args: Any) -> Any:
   """Like ssget, but delete the value we find from its container.""" #could alias ssdel to this I guess.
