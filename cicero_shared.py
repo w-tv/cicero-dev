@@ -170,7 +170,7 @@ def typesafe_selectbox[T](label: str, options: Sequence[T], default: T|None = No
 
   Note that if you use st.session_state to set the value of the key of the selectbox, that takes priority over the `default` argument.
   However, if you set the value of said key to `None`, this function will still return `options[0]`.
-  
+
   The parameter kwargs is expanded and passed to selectbox; it is not to be confused with the kwargs of selectbox itself, which is a dict passed to the callback."""
   #STREAMLIT-BUG-WORKAROUND: every time I use this instead of st.selectbox I think this is technically working around a bug in streamlit, although it's a typing bug and might be impossible for them to fix: https://github.com/streamlit/streamlit/issues/8717
   i = 0 if default is None else options.index(default)
