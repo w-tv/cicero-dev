@@ -6,7 +6,7 @@ import streamlit as st
 from datetime import datetime, timedelta
 import time
 from databricks_genai_inference import ChatSession, FoundationModelAPIException
-from cicero_shared import catstr, consul_show, is_dev, ssget, ssset, ssmut, get_base_url, popup
+from cicero_shared import catstr, consul_show, is_dev, ssget, ssset, ssmut, sspop, get_base_url, popup
 from cicero_types import Short_Model_Name, short_model_names, short_model_name_default, short_model_name_to_long_model_name
 import bs4, requests, re # for some reason bs4 is how you import beautifulsoup smh smh
 from pathlib import Path
@@ -100,15 +100,11 @@ def grow_chat(streamlit_key_suffix: str = "", alternate_content: str|None = None
     sys_prompt = "You are a helpful, expert marketer. Do not mention that you are a helpful, expert marketer."+" The system interfacing you can expand links into document contents, after the user enters them but before you see them; but do not mention this unless it is relevant."
   else:
     sys_prompt = "You are an expert copywriter who specializes in writing fundraising and engagement texts and emails for conservative political candidates in the United States of America. Make sure all messages are in English. Be direct with your responses, and avoid extraneous messages like 'Hello!' and 'I hope this helps!'. These text messages and emails tend to be more punchy and engaging than normal marketing material. Focus on these five fundraising elements when writing content: the Hook, Urgency, Agency, Stakes, and the Call to Action (CTA). Do not make up facts or statistics. Do not mention that you are a helpful, expert copywriter. Do not use emojis or hashtags in your messages. Make sure each written message is unique. Write the exact number of messages asked for."
-  if not st.session_state.get("chat"):
-    st.session_state.chat = {}
   if not ssget("chat", streamlit_key_suffix):
-    st.session_state.chat[streamlit_key_suffix] = ChatSession(model=short_model_name_to_long_model_name(short_model_name), system_message=sys_prompt, max_tokens=4096) # Keep in mind that unless DATABRICKS_HOST and DATABRICKS_TOKEN are in the environment (streamlit does this with secret value by default), then this line of code will fail with an extremely cryptic error asking you to run this program with a `setup` command line argument (which won't do anything)
+    ssset( "chat", streamlit_key_suffix, ChatSession(model=short_model_name_to_long_model_name(short_model_name), system_message=sys_prompt, max_tokens=4096) ) # Keep in mind that unless DATABRICKS_HOST and DATABRICKS_TOKEN are in the environment (streamlit does this with secret value by default), then this line of code will fail with an extremely cryptic error asking you to run this program with a `setup` command line argument (which won't do anything)
   chat = st.session_state.chat[streamlit_key_suffix] # Note that, as an object reference, updating and accessing chat will continue to update and access the same object.
-  if not st.session_state.get("messages"): # We keep our own list of messages, I think because I found it hard to format the chat_history output when I tried once.
-    st.session_state.messages = {}
   if not ssget("messages", streamlit_key_suffix):
-    st.session_state.messages[streamlit_key_suffix] = []
+    st.session_state.messages[streamlit_key_suffix] = [] # We keep our own list of messages, I think because I found it hard to format the chat_history output when I tried once.
   messages = st.session_state.messages[streamlit_key_suffix] # Note that, as an object reference, updating and accessing messages will continue to update and access the same object.
   if alternate_content:
     p = "Here is a conservative fundraising text: [" + alternate_content + "] Analyze the quality of the text based off of these five fundraising elements: the Hook, Urgency, Agency, Stakes, and the Call to Action (CTA). Do not assign scores to the elements. It's possible one or more of these elements is missing from the text provided. If so, please point that out. Then, directly ask the user what assistance they need with the text. Additionally, mention that you can also help edit the text to be shorter or longer, and convert the text into an email. Only provide analysis once, unless the user asks for analysis again."
@@ -220,13 +216,12 @@ def display_chat(streamlit_key_suffix: str = "", account: str|None = None, short
   if pii and pii[0] is True: # We're in a pii situation and the user has chosen to press on. So we have to send that chat message before we display the chat history.
     grow_chat(**pii[2])
     ssset( "pii_interrupt_state", streamlit_key_suffix, [None, ""] )
-  if ssget("messages", streamlit_key_suffix):
-    for message in st.session_state.messages[streamlit_key_suffix]:
+  if ms := ssget("messages", streamlit_key_suffix):
+    for message in ms:
       with st.chat_message(message["role"], avatar=message.get("avatar")):
         st.markdown(message["content"].replace("$", r"\$").replace("[", r"\["))
-  if s := ssget("last_url_content") and is_dev():
-    st.expander("\n\nDeveloper Mode Message (will disappear on next page load): url content").caption(s)
-    ssset("last_url_content", None)
+  if (s := sspop("last_url_content")) and is_dev():
+    st.expander("Developer Mode Message (will disappear on next page load): url content").caption(s)
   if ssget("outstanding_activity_log_payload", streamlit_key_suffix):
     cicero_feedback_widget(streamlit_key_suffix, "", "***Did Cicero understand your request? Let us know to continue chatting.***")
   if ssget("outstanding_activity_log_payload2", streamlit_key_suffix):

@@ -14,7 +14,7 @@ def catstr(*strables: object) -> str:
   """Not to be confused with its C-language cousin, `strcat()`."""
   return "".join([str(x) for x in strables])
 
-def ssget(string_to_get_from_streamlit_session_state: str, *args: object) -> Any | None:
+def ssget(string_to_get_from_streamlit_session_state: str, *additional_args: object) -> Any | None:
   """ .get() all Y-combinatorally. This function repeatedly retrieves things from things using `.get()` . Starting with the first argument from st.session_state, and then all the subsequent args from the first. This loses type-safety, in a way, since it just returns Any, but st.session_state already didn't have type-safety (Could: figure out how to TypedDict the session_state? Doesn't seem worth it.) because it always just returns `Any | None`. This function also returns `Any | None`. However, long get chains on things taken from session_state like `st.session_state.get("chat").get(streamlit_key_suffix)` get you errors like `error: Item "None" of "Any | None" has no attribute "get"  [union-attr]` — and quite likely so, because that could give you a type error at runtime! You also can't do the ol' `if st.session_state.get("messages") and st.session_state.get("messages").get(streamlit_key_suffix)` "shortcut"-`and` trick, because there might be side-effects between the first and second call of the function. So you'd have to do something crazy like `if m := st.session_state.get("messages") and m.get(streamlit_key_suffix)` (actually, that leads to a type error `error: Name "m" is used before definition  [used-before-def]`). Or break up the clauses or use a variable. Or, you can simply call `get("messages", streamlit_key_suffix)` for the same effect.
 
   Much like .get(), which is better than . and [], this function will never throw an error (unless you make it visit an object that has no .get() method but is not None), only ever return None if something is not found. Note that there is no indication of where in the chain the None is coming from.
@@ -26,46 +26,38 @@ def ssget(string_to_get_from_streamlit_session_state: str, *args: object) -> Any
   get is a particular type of safe navigation operator, which you can read the wikipedia page about. https://en.wikipedia.org/wiki/Safe_navigation_operator
 
   Needing this whole thing is very silly. But that's the Python way!"""
-  x = st.session_state.get(string_to_get_from_streamlit_session_state)
-  if x is None:
-    return None
-  else:
-    for a in args:
-      x = x.get(a)
-      if x is None:
-        return None
-  return x
+  # Although lambda x: x should be a no-op anyway, we *also* specify dont_actually_set_the_value=True to avoid any crazy subtle side-effects.
+  return ssmut(lambda x: x, string_to_get_from_streamlit_session_state, *additional_args, dont_actually_set_the_value=True)
 
-def ssset(string_to_get_from_streamlit_session_state: str, *additional_args_ending_with_payload: Any) -> None:
-  """Like ssget, but setting a value. Note that this means that if a None is encountered along the way, it will be replaced with a {}; much like the behavior of a defaultdict, in a way. Also note that payload must be given as a keyword argument, like payload=whatever, because of how variadic arguments work in python."""
-  a = list(additional_args_ending_with_payload)
-  if len(a) == 1: # I'm fairly certain this is redundant given the general case handled below. But it's nice to spell things out sometimes.
-    st.session_state[string_to_get_from_streamlit_session_state] = a[0]
-  else:
-    x = st.session_state
-    s = string_to_get_from_streamlit_session_state
-    while len(a) >= 2:
-      if x.get(s) is None:
-        x[s] = {}
-      # Set up the arguments for the next iteraton of the loop:
-      x = x[s]
-      s = a.pop(0)
-    x[s] = a.pop(0)
-
-def ssmut[T](f: Callable[[Any], T], string_to_get_from_streamlit_session_state: str, *additional_args: Any) -> T:
-  """Like ssset, but the value is set to the value of f(current value). Note that the current value may be None. (Hence, it is Session State MUTate.) This also means the *additional_args does not end in the payload; instead, it's just all the accessor arguments."""
+def ssdrill[T](anonymous_function: Callable[[Any, Any], T], string_to_get_from_streamlit_session_state: str, *additional_args: Any, dont_actually_set_the_value: bool = False) -> T:
+  """The final form of ss-manipulation functions, in terms of which everything else is implemented. It is like ssmut except that the function it takes takes the container and accessor; this is so you can support .pop() (for example)"""
   a = list(additional_args)
   x = st.session_state
   s = string_to_get_from_streamlit_session_state
   while len(a) >= 1:
     if x.get(s) is None:
-      x[s] = {}
+      x[s] = {} #the fact that we create these is maybe unfortunate...
     # Set up the arguments for the next iteraton of the loop:
     x = x[s]
     s = a.pop(0)
-  value = f(x.get(s)) #this is purposefully evaluated only once, so the user doesn't have to worry about making f a pure function.
-  x[s] = value
+  value = anonymous_function(x,s) #this is purposefully evaluated only once, so the user doesn't have to worry about making f a pure function.
+  if not dont_actually_set_the_value:
+    x[s] = value
   return value
+
+def ssmut[T](f: Callable[[Any], T], string_to_get_from_streamlit_session_state: str, *additional_args: Any, dont_actually_set_the_value: bool = False) -> T:
+  """Like ssset, but the value is set to the value of f(its current value). Hence, it is Session State MUTate. Note that the current value may be None; f must handle this case. This also means the *additional_args does not end in the payload like ssset; instead, it's just all the accessor arguments. Returns the new value, as well as setting it. If dont_actually_set_the_value is True, don't actually set the value, just return it."""
+  return ssdrill(lambda container, accessor: f(container.get(accessor)), string_to_get_from_streamlit_session_state, *additional_args, dont_actually_set_the_value=dont_actually_set_the_value)
+
+def ssset(string_to_get_from_streamlit_session_state: str, *additional_args_ending_with_payload: Any) -> None:
+  """Like ssget, but setting a value. Note that this means that if a None is encountered along the way, it will be replaced with a {}; much like the behavior of a defaultdict, in a way. Also note that payload must be given as a keyword argument, like payload=whatever, because of how variadic arguments work in python."""
+  a = list(additional_args_ending_with_payload)
+  payload = a.pop(-1)
+  ssmut(lambda x: payload, string_to_get_from_streamlit_session_state, *a)
+
+def sspop(string_to_get_from_streamlit_session_state: str, *additional_args: Any) -> Any:
+  """Like ssget, but delete the value we find from its container.""" #could alias ssdel to this I guess.
+  return ssdrill(lambda container, accessor: container.pop(accessor) if accessor in container else None, string_to_get_from_streamlit_session_state, *additional_args, dont_actually_set_the_value=True)
 
 def is_dev() -> bool:
   """Return true if developer mode is active and false if it is inactive."""
