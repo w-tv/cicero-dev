@@ -3,6 +3,7 @@
 """Cicero (the actual, historical man (it's really him))."""
 
 import streamlit as st
+from streamlit.runtime.uploaded_file_manager import UploadedFile
 from datetime import datetime, timedelta
 import time
 from databricks_genai_inference import ChatSession, FoundationModelAPIException
@@ -88,7 +89,7 @@ def expand_url_content(s: str) -> str:
   """Expand the urls in a string to the content of their contents (placing said contents back into the same containing string."""
   return re.sub(pattern=url_regex, repl=content_from_url_regex_match, string=s)
 
-def grow_chat(streamlit_key_suffix: str = "", alternate_content: str|None = None, account: str|None = None, short_model_name: Short_Model_Name = short_model_name_default) -> None:
+def grow_chat(streamlit_key_suffix: str = "", alternate_content: str|UploadedFile|None = None, account: str|None = None, short_model_name: Short_Model_Name = short_model_name_default) -> None:
   """Note that this function will do something special to the prompt if alternate_content is supplied.
   Also, the streamlit_key_suffix is only necessary because we use this code in two places. If streamlit_key_suffix is "", we infer we're in the chat page, and if otherwise we infer we're being used on a different page (so far, the only thing that does this is prompter).
   Random fyi: chat.history is an alias for chat.chat_history (you can mutate chat.chat_history but not chat.history, btw). Internally, it's, like: [{'role': 'system', 'content': 'You are a helpful assistant.'}, {'role': 'user', 'content': 'Knock, knock.'}, {'role': 'assistant', 'content': "Hello! Who's there?"}, {'role': 'user', 'content': 'Guess who!'}, {'role': 'assistant', 'content': "Okay, I'll play along! Is it a person, a place, or a thing?"}]"""
@@ -107,8 +108,12 @@ def grow_chat(streamlit_key_suffix: str = "", alternate_content: str|None = None
     st.session_state.messages[streamlit_key_suffix] = [] # We keep our own list of messages, I think because I found it hard to format the chat_history output when I tried once.
   messages = st.session_state.messages[streamlit_key_suffix] # Note that, as an object reference, updating and accessing messages will continue to update and access the same object.
   if alternate_content:
-    p = "Here is a conservative fundraising text: [" + alternate_content + "] Analyze the quality of the text based off of these five fundraising elements: the Hook, Urgency, Agency, Stakes, and the Call to Action (CTA). Do not assign scores to the elements. It's possible one or more of these elements is missing from the text provided. If so, please point that out. Then, directly ask the user what assistance they need with the text. Additionally, mention that you can also help edit the text to be shorter or longer, and convert the text into an email. Only provide analysis once, unless the user asks for analysis again."
-    display_p = "« " + alternate_content + " »"
+    if isinstance(alternate_content, UploadedFile):
+      p = StringIO(alternate_content.getvalue().decode("utf-8")).read() # convert file-like BytesIO object to a string
+      display_p = f"「 {p} 」"
+    else:
+      p = "Here is a conservative fundraising text: [" + alternate_content + "] Analyze the quality of the text based off of these five fundraising elements: the Hook, Urgency, Agency, Stakes, and the Call to Action (CTA). Do not assign scores to the elements. It's possible one or more of these elements is missing from the text provided. If so, please point that out. Then, directly ask the user what assistance they need with the text. Additionally, mention that you can also help edit the text to be shorter or longer, and convert the text into an email. Only provide analysis once, unless the user asks for analysis again."
+      display_p = "« " + alternate_content + " »"
   elif pii and pii[0]: #there was pii, and we are continuing
     p = pii[1]
     display_p = p
@@ -238,16 +243,17 @@ def main(streamlit_key_suffix: str = "") -> None: # It's convenient to import ci
   account = st.text_input("Account") if streamlit_key_suffix=="_corporate" else None
   if is_dev():
     uploaded_file = st.file_uploader(label="Upload a file", type=['csv', 'docx', 'html', 'txt', 'xls', 'xlsx'], accept_multiple_files=False)
-    if uploaded_file is not None:
+    if uploaded_file is not None and not ssget("chat_file_uploader"):
+      ssmut(lambda x: x+1 if x else 1, "chat_file_uploader")
       file_ext = Path(str(uploaded_file.name)).suffix
       st.write(f"You uploaded a {file_ext} file!")
-      match file_ext:
+      grow_chat(streamlit_key_suffix, uploaded_file, account, short_model_name_default)
+      match file_ext: #todo: delete this?
         case '.txt' | '.docx' | '.html' :
           # convert file-like BytesIO object to a string based IO:
           stringio = StringIO(uploaded_file.getvalue().decode("utf-8"))
           string_data = stringio.read() # read file as string
           st.write(string_data)
-          grow_chat(streamlit_key_suffix, string_data, account, short_model_name_default) # could: do something more significant with this? And what should we do for the other file types? and, also, we could make alternate_content act differently depending on what type is passed in to it...
         case '.csv':
           st.dataframe( pd.read_csv(uploaded_file, nrows=10) )
         case '.xls' | '.xlsx':
