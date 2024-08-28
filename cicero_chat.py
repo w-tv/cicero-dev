@@ -237,8 +237,7 @@ def main(streamlit_key_suffix: str = "") -> None: # It's convenient to import ci
   st.write('''**Chat freeform with Cicero directly ChatGPT-style!**  \nHere are some ideas: rewrite copy, make copy longer, convert a text into an email, or write copy based off a starter phrase/quote.''')
   account = st.text_input("Account") if streamlit_key_suffix=="_corporate" else None
   if is_dev():
-    file_types = ['csv', 'docx', 'html', 'txt', 'xls', 'xlsx']
-    uploaded_file = st.file_uploader(label="(CURRENTLY DOES NOTHING) Upload a file", type=file_types, accept_multiple_files=False, help=f'Cicero currently supports these file types: {file_types}')
+    uploaded_file = st.file_uploader(label="Upload a file", type=['csv', 'docx', 'html', 'txt', 'xls', 'xlsx'], accept_multiple_files=False)
     if uploaded_file is not None:
       file_ext = Path(str(uploaded_file.name)).suffix
       st.write(f"You uploaded a {file_ext} file!")
@@ -248,12 +247,14 @@ def main(streamlit_key_suffix: str = "") -> None: # It's convenient to import ci
           stringio = StringIO(uploaded_file.getvalue().decode("utf-8"))
           string_data = stringio.read() # read file as string
           st.write(string_data)
+          grow_chat(streamlit_key_suffix, string_data, account, short_model_name_default) # could: do something more significant with this? And what should we do for the other file types? and, also, we could make alternate_content act differently depending on what type is passed in to it...
         case '.csv':
           st.dataframe( pd.read_csv(uploaded_file, nrows=10) )
         case '.xls' | '.xlsx':
           st.dataframe( pd.read_excel(uploaded_file, nrows=10) )
         case _:
           st.write("Cicero does not currently support this file type!")
+      
   model_name = st.selectbox("Model", short_model_names, key="model_name") if is_dev() else short_model_name_default
   if st.button("Reset"):
     reset_chat(streamlit_key_suffix)
