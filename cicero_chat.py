@@ -152,7 +152,7 @@ def grow_chat(streamlit_key_suffix: str = "", alternate_content: str|None = None
         messages.append({"avatar": "assets/CiceroChat_800x800.jpg", "role": "assistant", "content": chat.last})
         st.session_state["activity_log_payload"] = {"user_email": st.session_state["email"], "prompter_or_chatbot": 'chatbot'+streamlit_key_suffix, "prompt_sent": p, "response_given": chat.last, "model_name": short_model_name, "model_url": chat.model, "model_parameters": str(chat.parameters), "system_prompt": chat.system_message, "base_url": get_base_url(), "used_similarity_search_backup": "no"} | ({"user_feedback": "not asked", "user_feedback_satisfied": "not asked"} if streamlit_key_suffix == "_prompter" else {"user_feedback": "not received", "user_feedback_satisfied": "not received"} if streamlit_key_suffix == "_corporate" else {"user_feedback": "not received", "user_feedback_satisfied": "not asked"})
         if not streamlit_key_suffix == "_prompter":
-          st.session_state["outstanding_activity_log_payload"] = st.session_state["activity_log_payload"]
+          ssset("outstanding_activity_log_payload", streamlit_key_suffix, st.session_state["activity_log_payload"])
         break
       except FoundationModelAPIException as e:
         if e.message.startswith('{"error_code":"BAD_REQUEST","message":"Bad request: prompt token count'): # Find out if it's exactly the right error we know how to handle.
@@ -170,12 +170,41 @@ def grow_chat(streamlit_key_suffix: str = "", alternate_content: str|None = None
           raise e
 
 def reset_chat(streamlit_key_suffix: str = "") -> None:
-  if st.session_state.get("chat"):
-    st.session_state["chat"][streamlit_key_suffix] = None
-  if st.session_state.get("messages"):
-    st.session_state["messages"][streamlit_key_suffix] = None
-  if not streamlit_key_suffix: #The user has decided to reset the chat-page chat, so we won't force them to good/bad the last message, which they now can no longer see.
-    st.session_state["outstanding_activity_log_payload"] = None # Don't force the user to up/down the cleared message if they reset the chat.
+  ssset("chat", streamlit_key_suffix, None)
+  ssset("messages", "streamlit_key_suffix", None)
+  ssset("outstanding_activity_log_payload", streamlit_key_suffix, None) # Don't force the user to up/down the cleared message if they reset the chat.
+  ssset("outstanding_activity_log_payload2", streamlit_key_suffix, None)
+
+def cicero_feedback_widget(streamlit_key_suffix: str, feedback_suffix: str, feedback_message: str) -> None:
+  """ '' is the feedback suffix we started with, so probably the one you want to use.
+  This function returns nothing, and (tees up a state that) writes to the activity log. It also manipulates the session state to remove the session state that leads to its running."""
+  st_feedback: int|None = None # This is "declared" up here to appease possibly-unbound analysis.
+  emptyable = st.empty()
+  ss_feedback_key = "feedback" + streamlit_key_suffix + feedback_suffix
+  with emptyable.container():
+    _c1, c2, c3 = st.columns([.05, .06, .89], gap='small', vertical_alignment="center")
+    with c2:
+      st_feedback = st.feedback( "thumbs", key=catstr(ssget("feedback", ss_feedback_key), ss_feedback_key) )
+    c3.write(feedback_message)
+  if st_feedback is not None:
+    emptyable.empty()
+    user_feedback = "bad" if st_feedback == 0 else "good"
+    ssmut(lambda x: x+1 if x else 1, "feedback", ss_feedback_key) # We have to do this, or the feedback widget will get stuck on its old value.
+
+    o = ssget("outstanding_activity_log_payload", streamlit_key_suffix)
+    o2 = ssget("outstanding_activity_log_payload2", streamlit_key_suffix)
+    if o and o2:
+      print("!! Cicero internal error: you are in an invalid state somehow! You have both outstandings {o=},{o2=}")
+    elif o:
+      st.session_state["activity_log_update"] = o | {"user_feedback"+feedback_suffix: user_feedback}
+      if streamlit_key_suffix == "_corporate":
+        ssset("outstanding_activity_log_payload2", streamlit_key_suffix, o)
+      ssset("outstanding_activity_log_payload", streamlit_key_suffix, None)
+    elif o2:
+      st.session_state["activity_log_update2"] = o2 | {"user_feedback"+feedback_suffix: user_feedback}
+      ssset("outstanding_activity_log_payload2", streamlit_key_suffix, None)
+    else:
+      print("!! Cicero internal warning: you are in an invalid state somehow? You are using the feedback widget but have neither outstandings {o=},{o2=}")
 
 def display_chat(streamlit_key_suffix: str = "", account: str|None = None, short_model_name: Short_Model_Name = short_model_name_default) -> None:
   """Display chat messages from history on app reload; this is how we get the messages to display, and then the chat box.
@@ -190,43 +219,16 @@ def display_chat(streamlit_key_suffix: str = "", account: str|None = None, short
     for message in st.session_state.messages[streamlit_key_suffix]:
       with st.chat_message(message["role"], avatar=message.get("avatar")):
         st.markdown(message["content"].replace("$", r"\$").replace("[", r"\["))
-  if st.session_state.get("outstanding_activity_log_payload") and streamlit_key_suffix != "_prompter":
-    emptyable = st.empty()
-    with emptyable.container():
-      _c1, c2, c3 = st.columns([.05, .06, .89], gap='small', vertical_alignment="center")
-      with c2:
-        st_feedback: int|None = st.feedback( "thumbs", key=catstr(ssget("feedback", streamlit_key_suffix), "feedback") )
-      c3.write("***Did Cicero understand your request? Let us know to continue chatting.***")
-    if st_feedback is not None:
-      user_feedback_satisfied = "not asked" # These are "declared" up here to appease possibly-unbound analysis.
-      st_feedback2: int|None = None
-      emptyable2 = st.empty()
-      if streamlit_key_suffix == "_corporate":
-        did_round_2 = True
-        with emptyable2.container():
-          _c12, c22, c32 = st.columns([.05, .06, .89], gap='small', vertical_alignment="center")
-          with c22:
-            st_feedback2 = st.feedback( "thumbs", key=catstr(ssget("feedback2", streamlit_key_suffix),"feedback2") )
-          c3.write("***Are you satisfied with this output? Let us know to continue chatting.***")
-      else:
-        did_round_2 = False
-      if not did_round_2 or st_feedback2 is not None:
-        emptyable.empty()
-        user_feedback = "bad" if st_feedback == 0 else "good"
-        ssmut(lambda x: x+1 if x else 1, "feedback", streamlit_key_suffix) # We have to do this, or the feedback widget will get stuck on its old value.
-        if did_round_2: # todo: I'm fairly certain this will get messed up if the user switches tabs in the middle (until I do the changes in my git stash)?
-          emptyable2.empty()
-          user_feedback_satisfied = "bad" if st_feedback2 == 0 else "good"
-          ssmut(lambda x: x+1 if x else 1, "feedback2", streamlit_key_suffix) # We have to do this, or the feedback widget will get stuck on its old value.
-        st.container().chat_input(on_submit=grow_chat, key="user_input_for_chatbot_this_frame"+streamlit_key_suffix, args=(streamlit_key_suffix, None, account, short_model_name_default) ) #Note that because it's a callback, the profiler will not catch grow_chat here. However, it takes about a second. (Update: maybe it's about 4 seconds, now? That's in the happy path, as well.) #Without the container, this UI element floats BELOW the pyinstrument profiler now, which is inconvenient. But also we might want it to float down later, if we start using streaming text...
-        st.session_state["outstanding_activity_log_payload_fulfilled"] = st.session_state["outstanding_activity_log_payload"] | {"user_feedback": user_feedback, "user_feedback_satisfied": user_feedback_satisfied}
-        st.session_state["outstanding_activity_log_payload"] = None
-  else:
+  if ssget("outstanding_activity_log_payload", streamlit_key_suffix):
+    cicero_feedback_widget(streamlit_key_suffix, "", "***Did Cicero understand your request? Let us know to continue chatting.***")
+  if ssget("outstanding_activity_log_payload2", streamlit_key_suffix):
+    cicero_feedback_widget(streamlit_key_suffix, "_satisfied", "***Are you satisfied with this output? Let us know to continue chatting.***")
+  if not ( ssget("outstanding_activity_log_payload", streamlit_key_suffix) or ssget("outstanding_activity_log_payload2", streamlit_key_suffix) ):
     if pii and pii[0] is False: # We're in a pii situation and the user has chosen to press on. So we have to show them the message they just had.
       st.info("Message you were editing (may contain PII):")
       st.code(pii[1])
       ssset( "pii_interrupt_state", streamlit_key_suffix, [None, ""] )
-    st.container().chat_input(on_submit=grow_chat, key="user_input_for_chatbot_this_frame"+streamlit_key_suffix, args=(streamlit_key_suffix, None, account, short_model_name_default) ) #Note that because it's a callback, the profiler will not catch grow_chat here. However, it takes about a second. (Update: maybe it's about 4 seconds, now? That's in the happy path, as well.)
+    st.container().chat_input(on_submit=grow_chat, key="user_input_for_chatbot_this_frame"+streamlit_key_suffix, args=(streamlit_key_suffix, None, account, short_model_name_default) ) #Note that because it's a callback, the profiler will not catch grow_chat here. However, it takes about a second. (Update: maybe it's about 4 seconds, now? That's in the happy path, as well.) #Without the container, this UI element floats BELOW the pyinstrument profiler now, which is inconvenient. But also we might want it to float down later, if we start using streaming text...
 
 def main(streamlit_key_suffix: str = "") -> None: # It's convenient to import cicero_chat in other files, to use its function in them, so we do a main() here so we don't run this code on startup.
   st.write('''**Chat freeform with Cicero directly ChatGPT-style!**  \nHere are some ideas: rewrite copy, make copy longer, convert a text into an email, or write copy based off a starter phrase/quote.''')
