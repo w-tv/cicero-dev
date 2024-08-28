@@ -74,7 +74,7 @@ with Profiler():
     pages += [
       st.Page("cicero_tr_refactor.py", title="📈 Refactor"),
       st.Page("cicero_response_lookup.py", title="🔍 Response Lookup"),
-      st.Page("cicero_new_pod_key.py", title="🆕 New Pod Key"),
+      st.Page("cicero_pod_key.py", title="🫛 Pod Key"),
       st.Page("cicero_activity_looker.py", title="👁️ Activity Looker"),
       st.Page("cicero_meddler.py", title="✍️ Meddler")
     ]
