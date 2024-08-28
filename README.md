@@ -80,6 +80,8 @@ This codebase almost never uses Exceptions. Python has multiple-return so we wou
 
 This codebase is not very object-oriented. Unless we need to use dependency code that is object-oriented, or we need to do some kind of type syntax that is technically a class, we don't have or use any classes. In part this is because we don't deal with phenomena that are naturally modelable as Objects (we mostly just deal with strings and floats). In part it's because I don't personally like objects. I'm much more of a types-and-primitives guy than an objects guy. I don't have much of a use for objects. Unless I wanted to make a new class of primitive with special infix operators, I guess, or a suite of related manipulation functions. Cicero_chat is the thing we have that is most like an object-oriented subject, because it has associated state an manipulations, but I still decided to use plain old functions and variable for that. Not using object-oriented methods means there's a whole panoply of things the maintainer of this code doesn't have to learn or worry about (class semantics); this is, of course, at the cost of learning about and worrying about a whole other category of thing (type semantics).
 
+All Code Is Liability. ACIL. I'm constantly trying to engineer myself out of a job. Unfortunately, it is very difficult.
+
 ## Random little problem
 
 Occasionally, about 1 in 20 times or so, this project will fail to launch because an internal component of a dependency throws an indecipherable error. This is from pytz and probably a fault of the databrick python sql connector. BUG-WORKAROUND: just reboot the process. Further development: actually, this might be a result of the email being None sometimes, on subsidiary pages, which the database doesn't like? Perhaps.
