@@ -102,8 +102,8 @@ with Profiler():
       # The WTIH clause here basically just does a left join; I just happened to write it in this way.
       # Note that this will implicitly null the user_feedback, as that field is not specified here.
       """WITH tmp(user_pod) AS (SELECT user_pod FROM cicero.ref_tables.user_pods WHERE user_email ilike :user_email) INSERT INTO cicero.default.activity_log
-      (timestamp,           user_email, user_pod,                               prompter_or_chatbot,  prompt_sent,  response_given,  model_name,  model_url,  model_parameters,  system_prompt,  base_url, user_feedback,  user_feedback_satisfied,  used_similarity_search_backup) SELECT
-      current_timestamp(), :user_email, COALESCE(tmp.user_pod, 'Pod unknown'), :prompter_or_chatbot, :prompt_sent, :response_given, :model_name, :model_url, :model_parameters, :system_prompt, :base_url, :user_feedback, :user_feedback_satisfied, :used_similarity_search_backup
+      (timestamp,           user_email, user_pod,                               prompter_or_chatbot,  prompt_sent,  response_given,  model_name,  model_url,  model_parameters,  system_prompt,  base_url, user_feedback,  user_feedback_satisfied,  used_similarity_search_backup,  hit_readlink_time_limit) SELECT
+      current_timestamp(), :user_email, COALESCE(tmp.user_pod, 'Pod unknown'), :prompter_or_chatbot, :prompt_sent, :response_given, :model_name, :model_url, :model_parameters, :system_prompt, :base_url, :user_feedback, :user_feedback_satisfied, :used_similarity_search_backup, :hit_readlink_time_limit
       FROM tmp RIGHT JOIN (SELECT 1) AS dummy ON true -- I don't really know if this is the best way to make the log still get written to if the pod is unknown, but it's the one I found.""",
       ssget("activity_log_payload")
     )

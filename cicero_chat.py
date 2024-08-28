@@ -55,7 +55,10 @@ def content_from_url(url: str) -> str:
       st.toast("Cicero does not currently support link reading for that URL.  Contact the Cicero Team for more info.") # This is a toast to make sure it doesn't overlap with the popup, as only one dialog is allowed at a time or streamlit throws a don't-do-that exception.
       return "" #early out, return nothing (not even the url).
   # from https://stackoverflow.com/questions/69593352/how-to-get-all-copyable-text-from-a-web-page-python/69594284#69594284
-  response = requests.get(url,headers={'User-Agent': 'Mozilla/5.0'})
+  try:
+    response = requests.get(url,headers={'User-Agent': 'Mozilla/5.0'})
+  except Exception as e:
+    return f"(document unavailable, error {e}"
   soup = bs4.BeautifulSoup(response.text, 'html.parser')
   if b := soup.body:
     text = b.get_text(' ', strip=True)
@@ -95,8 +98,7 @@ def grow_chat(streamlit_key_suffix: str = "", alternate_content: str|None = None
   if streamlit_key_suffix=="_prompter":
     sys_prompt = "You are a helpful, expert copywriter who specializes in writing fundraising text messages and emails for conservative candidates and causes. Be direct with your responses, and avoid extraneous messages like 'Hello!' and 'I hope this helps!'. These text messages and emails tend to be more punchy and engaging than normal marketing material. Do not mention that you are a helpful, expert copywriter."
   elif streamlit_key_suffix=="_corporate":
-    sys_prompt = "You are a helpful, expert marketer. Do not mention that you are a helpful, expert marketer."
-    #TODO: account #This field will be read from the cicero.ref_tables.corp_acc table, which currently doesn't exist. the idea is we create custom system prompts containing information about the client and some example material
+    sys_prompt = "You are a helpful, expert marketer. Do not mention that you are a helpful, expert marketer."+" The system interfacing you can expand links into document contents, after the user enters them but before you see them; but do not mention this unless it is relevant."
   else:
     sys_prompt = "You are an expert copywriter who specializes in writing fundraising and engagement texts and emails for conservative political candidates in the United States of America. Make sure all messages are in English. Be direct with your responses, and avoid extraneous messages like 'Hello!' and 'I hope this helps!'. These text messages and emails tend to be more punchy and engaging than normal marketing material. Focus on these five fundraising elements when writing content: the Hook, Urgency, Agency, Stakes, and the Call to Action (CTA). Do not make up facts or statistics. Do not mention that you are a helpful, expert copywriter. Do not use emojis or hashtags in your messages. Make sure each written message is unique. Write the exact number of messages asked for."
   if not st.session_state.get("chat"):
@@ -131,11 +133,13 @@ def grow_chat(streamlit_key_suffix: str = "", alternate_content: str|None = None
       pii_dialog(p, possible_pii, streamlit_key_suffix, keyword_arguments)
       continue_prompt = False
 
+  hit_readlink_time_limit = False
   if streamlit_key_suffix=="_corporate" or is_dev(): #implement url content expansion, at this point only for the corp chat and devs
     if detect_url_content(p):
       if "last_link_time" in st.session_state:
         time_difference = datetime.now() - st.session_state["last_link_time"]
         if time_difference < timedelta(seconds=27): # It's 27 because we don't want to alert the user if they just have to wait another second or two. The query already takes that long, probably.
+          hit_readlink_time_limit = True
           remaining_seconds = round( 30 - time_difference.total_seconds() )
           popup("Throttled!", f"Link reading is currently limited to once every 30 seconds per user.  Cicero has delayed your request by {remaining_seconds} seconds.  Contact the Cicero Team for more info.", show_x_instruction=False) # Festina lente! #Unfortunately I think an unreported bug in streamlit means this dialog only ever shows once per session. But that's ok in this case.
           time.sleep(remaining_seconds)
@@ -150,7 +154,7 @@ def grow_chat(streamlit_key_suffix: str = "", alternate_content: str|None = None
         chat.reply(p)
         messages.append({"role": "user", "content": display_p})
         messages.append({"avatar": "assets/CiceroChat_800x800.jpg", "role": "assistant", "content": chat.last})
-        st.session_state["activity_log_payload"] = {"user_email": st.session_state["email"], "prompter_or_chatbot": 'chatbot'+streamlit_key_suffix, "prompt_sent": p, "response_given": chat.last, "model_name": short_model_name, "model_url": chat.model, "model_parameters": str(chat.parameters), "system_prompt": chat.system_message, "base_url": get_base_url(), "used_similarity_search_backup": "no"} | ({"user_feedback": "not asked", "user_feedback_satisfied": "not asked"} if streamlit_key_suffix == "_prompter" else {"user_feedback": "not received", "user_feedback_satisfied": "not received"} if streamlit_key_suffix == "_corporate" else {"user_feedback": "not received", "user_feedback_satisfied": "not asked"})
+        st.session_state["activity_log_payload"] = {"user_email": st.session_state["email"], "prompter_or_chatbot": 'chatbot'+streamlit_key_suffix, "prompt_sent": p, "response_given": chat.last, "model_name": short_model_name, "model_url": chat.model, "model_parameters": str(chat.parameters), "system_prompt": chat.system_message, "base_url": get_base_url(), "used_similarity_search_backup": "no"} | ({"user_feedback": "not asked", "user_feedback_satisfied": "not asked"} if streamlit_key_suffix == "_prompter" else {"user_feedback": "not received", "user_feedback_satisfied": "not received"} if streamlit_key_suffix == "_corporate" else {"user_feedback": "not received", "user_feedback_satisfied": "not asked"}) | {"hit_readlink_time_limit": hit_readlink_time_limit}
         if not streamlit_key_suffix == "_prompter":
           ssset("outstanding_activity_log_payload", streamlit_key_suffix, st.session_state["activity_log_payload"])
         break
