@@ -121,20 +121,9 @@ def grow_chat(streamlit_key_suffix: str = "", alternate_content: str|None = None
     p = st.session_state["user_input_for_chatbot_this_frame"+streamlit_key_suffix]
     display_p = p
 
-  continue_prompt = True
-  if possible_pii := pii_detector(p):
-    pii_state = ssget("pii_interrupt_state", streamlit_key_suffix)
-    if pii_state is None:
-      st.session_state.pii_interrupt_state = {}
-    if pii_state and pii_state[0]: #if the field is true, we continue
-      ssset( "pii_interrupt_state", streamlit_key_suffix, [None, "", {}] ) #reset the field, since we're going to send this one and get a new circumstance later.
-    else:
-      ssset( "pii_interrupt_state", streamlit_key_suffix, [None, "", {}] ) #reset the field, since the dialog is about to set it, and this prevents funny business from x-ing the dialogue.
-      pii_dialog(p, possible_pii, streamlit_key_suffix, keyword_arguments)
-      continue_prompt = False
-
+  #implement url content expansion, at this point only for the corp chat and devs
   hit_readlink_time_limit = False
-  if streamlit_key_suffix=="_corporate" or is_dev(): #implement url content expansion, at this point only for the corp chat and devs
+  if streamlit_key_suffix=="_corporate" or is_dev():
     if detect_url_content(p):
       if "last_link_time" in st.session_state:
         time_difference = datetime.now() - st.session_state["last_link_time"]
@@ -146,6 +135,19 @@ def grow_chat(streamlit_key_suffix: str = "", alternate_content: str|None = None
       st.session_state["last_link_time"] = datetime.now()
     p = expand_url_content(p)
     ssset("urls_we_have_expanded_right_now", 0) # Have to reset this value in this remote place for flow-control reasons :/
+
+  # detect pii
+  continue_prompt = True
+  if possible_pii := pii_detector(p):
+    pii_state = ssget("pii_interrupt_state", streamlit_key_suffix)
+    if pii_state is None:
+      st.session_state.pii_interrupt_state = {}
+    if pii_state and pii_state[0]: #if the field is true, we continue
+      ssset( "pii_interrupt_state", streamlit_key_suffix, [None, "", {}] ) #reset the field, since we're going to send this one and get a new circumstance later.
+    else:
+      ssset( "pii_interrupt_state", streamlit_key_suffix, [None, "", {}] ) #reset the field, since the dialog is about to set it, and this prevents funny business from x-ing the dialogue.
+      pii_dialog(p, possible_pii, streamlit_key_suffix, keyword_arguments)
+      continue_prompt = False
 
   if continue_prompt:
     old_chat = chat.chat_history.copy()
