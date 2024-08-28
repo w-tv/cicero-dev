@@ -5,7 +5,12 @@ You can also do most of this stuff in databricks using the sql query tool.
 """
 import streamlit as st
 from pandas import read_excel
-from cicero_shared import sql_call_cacheless
+from cicero_shared import ensure_existence_of_activity_log, sql_call_cacheless
+
+def ensure_existence_of_pod_table() -> None:
+  """Run this code before accessing the pod table. If the pod table doesn't exist, this function call will create it. (TODO: probably we should be running this in a lot more places than we currently are.
+  Note that if the table exists, this sql call will not check if it has the right columns (names or types), unfortunately."""
+  sql_call_cacheless("CREATE TABLE IF NOT EXISTS cicero.ref_tables.user_pods (user_email STRING, user_pod STRING, user_permitted_to_see_these_accounts_in_topic_reporting ARRAY<STRING>, page_access ARRAY<STRING>)")
 
 def do_one(email: str, pod: str) -> None:
   """Because we need to update the value if it exists, and create a new record if none exist, this is an "upsert", and a MERGE INTO is apparently the best way to do it. Also I got almost all of this code from the AI. But it's very basic code, like example code of just how you would use MERGE INTO syntax, really. I just think it's interesting."""
@@ -16,8 +21,8 @@ def do_one(email: str, pod: str) -> None:
     WHEN MATCHED THEN
         UPDATE SET user_pod = :pod
     WHEN NOT MATCHED THEN
-        INSERT (       user_email,        user_pod, user_permitted_to_see_these_accounts_in_topic_reporting)
-        VALUES (source.user_email, source.user_pod, ARRAY())
+        INSERT (       user_email,        user_pod, user_permitted_to_see_these_accounts_in_topic_reporting, page_access)
+        VALUES (source.user_email, source.user_pod, ARRAY(), ARRAY())
     """,
     locals()
   )
@@ -37,19 +42,34 @@ def do_one_tr(email: str, accounts: list[str]) -> None:
     WHEN MATCHED THEN
         UPDATE SET user_permitted_to_see_these_accounts_in_topic_reporting = {a}
     WHEN NOT MATCHED THEN
-        INSERT (       user_email,     user_pod, user_permitted_to_see_these_accounts_in_topic_reporting)
-        VALUES (source.user_email, "Pod unknown", {a})
+        INSERT (       user_email,     user_pod, user_permitted_to_see_these_accounts_in_topic_reporting, page_access)
+        VALUES (source.user_email, "Pod unknown", {a}, ARRAY())
     """,
     {"email": email}
   )
 
+def do_one_pa(email: str, page_accesses: list[str]) -> None:
+  """Because we need to update the value if it exists, and create a new record if none exist, this is an "upsert", and a MERGE INTO is apparently the best way to do it. Also I got almost all of this code from the AI. But it's very basic code, like example code of just how you would use MERGE INTO syntax, really. I just think it's interesting."""
+  a = to_sql_string_array_literal(page_accesses)
+  sql_call_cacheless(f"""
+    MERGE INTO cicero.ref_tables.user_pods AS target
+    USING (SELECT :email AS user_email, {a} AS page_access) AS source
+    ON target.user_email = source.user_email
+    WHEN MATCHED THEN
+        UPDATE SET page_access = {a}
+    WHEN NOT MATCHED THEN
+        INSERT (       user_email,     user_pod, user_permitted_to_see_these_accounts_in_topic_reporting, page_access)
+        VALUES (source.user_email, "Pod unknown", ARRAY(), {a})
+    """,
+    {"email": email}
+  )
 
 st.warning("This page is an internal developer tool for Cicero. Also the controls aren't very self-explanatory.\n\nYou may also enjoy the song “Brand New Key” by Melanie Safka (RIP) https://www.youtube.com/watch?v=-mXlW9LytYo, although this will not help you use the tool in any way.")
 st.write("## Concerning The Topic Reporting")
 st.write("### Manual entry")
 with st.form("form_pod_tr"):
   st.write("Here, you can manually update what accounts a user is allowed to see in the drop down of the topic reporting page. THEN GO SET THE POD VALUE IF YOU'RE MAKING A NEW PERSON.")
-  c = st.columns(4)
+  c = st.columns(3)
   with c[0]:
     one_new_email_tr = st.text_input("one new email (tr)").strip()
   with c[1]:
@@ -58,6 +78,20 @@ with st.form("form_pod_tr"):
     st.caption("enticing button")
     if st.form_submit_button("input that one new email and accounts-list value...") and one_new_email_tr and one_new_list:
       do_one_tr(one_new_email_tr, one_new_list)
+
+st.write("## Concerning Page Access")
+st.write("### Manual entry")
+with st.form("form_pod_pa"):
+  st.write("Here, you can manually update what pages a user is allowed to see in cicero. THEN GO SET THE POD VALUE IF YOU'RE MAKING A NEW PERSON.")
+  c = st.columns(3)
+  with c[0]:
+    one_new_email_pa = st.text_input("one email (pa)").strip()
+  with c[1]:
+    one_new_list_pa = st.text_input("page access names separated by `, `").strip().split(", ")
+  with c[2]:
+    st.caption("enticing button")
+    if st.form_submit_button("input that one new email and page-list value...") and one_new_email_pa and one_new_list_pa:
+      do_one_pa(one_new_email_pa, one_new_list_pa)
 
 st.write("## Concerning The Pods")
 st.write("This section contains controls for updating the pod table (listed below) and the activity log (listed even belower).\n\nThe pod table is consulted every time a user does a prompt and cicero thereby writes to the activity log.\n\nSo, the pod table controls what will appear in the pod column in activity log entries going forward for users.\n\nIf you've done something wrong previously, you might also want to update the activity log retroactively, to correct any erroneous pod listing you may have caused to exist in there.")
@@ -117,16 +151,19 @@ if st.button("update the activity log retroactively to match the file contents")
   else:
     st.error("*No file is selected, or perhaps I just don't recognize the format of the file.*")
 
-st.write("## Pod table")
-st.info("This is the database table of user pods that Cicero currently uses. Remember: this section is completely collapsable in the user interface, if its huge size is visually distracting.")
-sql_call_cacheless("CREATE TABLE IF NOT EXISTS cicero.ref_tables.user_pods (user_email string, user_pod string)")
-pod_table_results = sql_call_cacheless("SELECT * FROM cicero.ref_tables.user_pods")
-st.write(pod_table_results)
+with st.expander("Pod table", expanded=True):
+  st.write("## Pod table")
+  st.info("This is the database table of user pods that Cicero currently uses. Remember: this section is completely collapsable in the user interface, if its huge size is visually distracting.")
+  ensure_existence_of_pod_table()
+  pod_table_results = sql_call_cacheless("SELECT * FROM cicero.ref_tables.user_pods")
+  # An important feature is being able to control-f for names, and st.dataframe breaks that, so we use a table.
+  st.table([x.asDict() for x in pod_table_results]) # for some reason, the asDict puts it in the right form to display the column headers.
 
-st.write("## Activity log (main, not chatbot)")
-st.info("Here, you can see what pods users actually have in the activity log, in case you need to correct any mistakes of previous pod-assignment. Remember: this section is completely collapsable in the user interface, if its huge size is visually distracting.\n\nPlease note also that if a user has had multiple pod values over the course of time, you should expect to see multiple values for them in here (one for each different pod). These are in no particular order, so you might want to ctrl+f (although, beware the other table, the pod table above) which will also contain them!).")
-st.write(f"""activity log entries where the pod is NULL, suggesting you need to run the retroactive application (above) if there are any: ***{sql_call_cacheless("SELECT count(*) FROM cicero.default.activity_log WHERE user_pod IS NULL")[0][0]}***""")
-st.write(f"""activity log entries where the pod is "Pod unknown", suggesting you need to run the retroactive application (above) if there are any: ***{sql_call_cacheless("SELECT count( distinct user_email) FROM cicero.default.activity_log WHERE user_pod = 'Pod unknown'")[0][0]}***""")
-activity_log_results = sql_call_cacheless("SELECT DISTINCT user_email, user_pod FROM cicero.default.activity_log")
-activity_log_results_tuples = [(r[0].lower(),r[1]) for r in activity_log_results]
-st.write(activity_log_results_tuples)
+with st.expander("Activity log", expanded=True):
+  st.write("## Activity log")
+  st.info("Here, you can see what pods users actually have in the activity log, in case you need to correct any mistakes of previous pod-assignment. Remember: this section is completely collapsable in the user interface, if its huge size is visually distracting.\n\nPlease note also that if a user has had multiple pod values over the course of time, you should expect to see multiple values for them in here (one for each different pod). These are in no particular order, so you might want to ctrl+f (although, beware the other table, the pod table above) which will also contain them!).")
+  ensure_existence_of_activity_log()
+  st.write(f"""activity log entries where the pod is NULL, suggesting you need to run the retroactive application (above) if there are any: ***{sql_call_cacheless("SELECT count(*) FROM cicero.default.activity_log WHERE user_pod IS NULL")[0][0]}***""")
+  st.write(f"""activity log entries where the pod is "Pod unknown", suggesting you need to run the retroactive application (above) if there are any: ***{sql_call_cacheless("SELECT count( distinct user_email) FROM cicero.default.activity_log WHERE user_pod = 'Pod unknown'")[0][0]}***""")
+  activity_log_results = sql_call_cacheless("SELECT DISTINCT user_email, user_pod FROM cicero.default.activity_log")
+  st.table([x.asDict() for x in activity_log_results])
