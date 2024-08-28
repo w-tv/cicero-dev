@@ -1,5 +1,5 @@
 #!/usr/bin/env -S streamlit run
-""" This is Cicero.
+"""This is Cicero.
 You must have streamlit installed to run this program. Among other things. Why not run this script using run.bat instead?
 Check the cicero_*.py files for various functionalities of Cicero. This file basically just does user auth, displays some stats, and hosts subsidiary pages (one will be open by default).
 """

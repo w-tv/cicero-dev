@@ -1,5 +1,5 @@
 #!/usr/bin/env -S streamlit run
-""" This is Cicero New Pod Key tab.
+"""This is Cicero New Pod Key tab.
 A tool for updating the list of which people are assigned to which pod, manually or with an xlsx.
 You can also do most of this stuff in databricks using the sql query tool.
 """
