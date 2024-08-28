@@ -72,8 +72,7 @@ def content_from_url_regex_match(m: re.Match[str]) -> str:
   count = ssmut(lambda x: (x or 0) + 1, "urls_we_have_expanded_right_now")
   if count == 1:
     new_str = content_from_url(m.group(0))
-    if is_dev(): #Note: appears at top of page, since we're in a callback and thus run first thing in the run.
-      st.expander("\n\nDeveloper Mode Message: url content").caption(new_str.replace("$", r"\$"))
+    ssset("last_url_content", new_str.replace("$", r"\$")) #diagnostic we want to print elsewhere on the page (later)
   else:
     new_str = ""
     if count == 2:
@@ -225,6 +224,9 @@ def display_chat(streamlit_key_suffix: str = "", account: str|None = None, short
     for message in st.session_state.messages[streamlit_key_suffix]:
       with st.chat_message(message["role"], avatar=message.get("avatar")):
         st.markdown(message["content"].replace("$", r"\$").replace("[", r"\["))
+  if s := ssget("last_url_content") and is_dev():
+    st.expander("\n\nDeveloper Mode Message (will disappear on next page load): url content").caption(s)
+    ssset("last_url_content", None)
   if ssget("outstanding_activity_log_payload", streamlit_key_suffix):
     cicero_feedback_widget(streamlit_key_suffix, "", "***Did Cicero understand your request? Let us know to continue chatting.***")
   if ssget("outstanding_activity_log_payload2", streamlit_key_suffix):
