@@ -10,16 +10,18 @@ st.write("""TODO: Figure out how to write the record hashes... then, sections th
   * and maybe some other stuff if you can think of anything"""
 )
 with st.expander("Account (client) names w/ rollup"):
-  c = st.columns(3)
-  with c[0]:
-    acct = st.text_input("New account name").strip()
-  with c[1]:
-    rollup = st.text_input("Rollup Name").strip()
-  with c[2]:
-    #st.caption("")
-    if st.button("Add a new account and rollup name to the ref_account_rollup table (DO NOT CLICK)") and acct and rollup:
-      sql_call_cacheless("INSERT INTO cicero.ref_tables.ref_account_rollup (account_name, rollup_name, modified_datetime) VALUES (:acct, :rollup, NOW())", {"acct": acct, "rollup": rollup}) # This is untested because I didn't want to mar the names. (:kongzi:)
-  st.table(sql_call_cacheless("SELECT account_name, rollup_name FROM cicero.ref_tables.ref_account_rollup ORDER BY account_name ASC"))
+  with st.form("account_enter_rollup_thingy", clear_on_submit=True):
+    c = st.columns(4)
+    with c[0]:
+      acct = st.text_input("New account name").strip()
+    with c[1]:
+      rollup = st.text_input("Rollup Name").strip()
+    with c[2]:
+      visible_frontend = st.checkbox("Visible_Frontend")
+    with c[3]:
+      if st.form_submit_button("Add a new account and rollup name to the ref_account_rollup table") and acct and rollup:
+        sql_call_cacheless("INSERT INTO cicero.ref_tables.ref_account_rollup (account_name, rollup_name, visible_frontend, modified_datetime) VALUES (:acct, :rollup, :visible_frontend, NOW())", {"acct": acct, "rollup": rollup, "visible_frontend": visible_frontend})
+  st.table(sql_call_cacheless("SELECT account_name, rollup_name, visible_frontend FROM cicero.ref_tables.ref_account_rollup ORDER BY account_name ASC"))
 
 with st.expander("Topics"):
   c = st.columns(2)
