@@ -21,6 +21,8 @@ with st.expander("Account (client) names w/ rollup"):
     with c[3]:
       if st.form_submit_button("Add a new account and rollup name to the ref_account_rollup table") and acct and rollup:
         sql_call_cacheless("INSERT INTO cicero.ref_tables.ref_account_rollup (account_name, rollup_name, visible_frontend, modified_datetime) VALUES (:acct, :rollup, :visible_frontend, NOW())", {"acct": acct, "rollup": rollup, "visible_frontend": visible_frontend})
+      if st.form_submit_button("delete rows matching both name fields") and acct and rollup:
+        sql_call_cacheless("DELETE FROM cicero.ref_tables.ref_account_rollup WHERE account_name=:acct AND rollup_name=:rollup", {"acct": acct, "rollup": rollup})
   st.table(sql_call_cacheless("SELECT account_name, rollup_name, visible_frontend FROM cicero.ref_tables.ref_account_rollup ORDER BY account_name ASC"))
 
 with st.expander("Topics"):
