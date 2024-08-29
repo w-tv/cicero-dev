@@ -54,12 +54,12 @@ def content_from_url(url: str) -> str:
   for forbade in forbiddens:
     if forbade in url.lower(): # This is just a string-contains, which could false-positive on, say, example.com/winred.com.txt, but that's probably fine. # It could also easily be beaten by a link shortener, but "it will never occur to them" 😄
       st.toast("Cicero does not currently support link reading for that URL.  Contact the Cicero Team for more info.") # This is a toast to make sure it doesn't overlap with the popup, as only one dialog is allowed at a time or streamlit throws a don't-do-that exception.
-      return "" #early out, return nothing (not even the url).
+      return "(document unavailable, url not supported)" #early out. We remove the url itself so that Cicero can't make up ("hallucinate") things based on its name.
   # from https://stackoverflow.com/questions/69593352/how-to-get-all-copyable-text-from-a-web-page-python/69594284#69594284
   try:
     response = requests.get(url,headers={'User-Agent': 'Mozilla/5.0'})
   except Exception as e:
-    return f"(document unavailable, error {e}"
+    return f"(document unavailable, error {e})"
   soup = bs4.BeautifulSoup(response.text, 'html.parser')
   if b := soup.body:
     text = b.get_text(' ', strip=True)
