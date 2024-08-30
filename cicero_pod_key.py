@@ -107,6 +107,9 @@ with c[2]:
   st.caption("enticing button")
   if st.button("input that one new email and pod value... just one") and one_new_email and one_new_pod:
     do_one(one_new_email, one_new_pod)
+  if st.button("del row instead"):
+    st.write( "rows affected:", sql_call_cacheless("DELETE FROM cicero.ref_tables.user_pods WHERE user_email ilike :email AND user_pod ilike :pod", {"email": one_new_email, "pod": one_new_pod})[0][0] )
+
 with c[3]:
   st.caption("enticing button 2")
   if st.button("update the activity log retroactively with that one new email and pod") and one_new_email and one_new_pod:

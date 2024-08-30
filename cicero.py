@@ -61,7 +61,7 @@ with Profiler():
     st.Page("cicero_prompter.py", title="🗣️ Prompter", default=True)
   ]
   page_access_result: list[Row] = sql_call("select page_access from cicero.ref_tables.user_pods where user_email == :user_email", {"user_email": st.session_state['email']})
-  page_access: list[str] | None = page_access_result[0][0] if len(page_access_result) > 0 else print(f"!! {st.session_state['email']=} not in user_pods table!") or [] # If the user email isn't in the user_pos table we won't get any Rows for them, so we have to use a [] for their page access list. We also (using the confusing python or operator; don't worry about it) log a message to the logs, in case someone would like to fix that later, or perhaps detect "unauthorized" usages.
+  page_access: list[str] | None = page_access_result[0][0] if len(page_access_result) > 0 else print(f"!! {st.session_state['email']=} not in user_pods table!") or [] # If the user email isn't in the user_pod table we won't get any Rows for them, so we have to use a [] for their page access list. We also (using the confusing python or operator; don't worry about it) log a message to the logs, in case someone would like to fix that later, or perhaps detect "unauthorized" usages.
   if page_access is not None:
     if 'topic_reporting' in page_access:
       pages += [ st.Page("cicero_topic_reporting.py", title="📈 Topic Reporting") ]
