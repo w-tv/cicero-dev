@@ -2,6 +2,7 @@ altair == 5.4.1, >= 5.4.0 # I'm pretty sure streamlit automatically installs thi
 streamlit == 1.38.0 # We use a name or two from 1.37.0 and a typing from 1.38.0
 pandas
 psutil
+python-docx
 torch == 2.3.0 # For some reason, 2.3.1 of this has some bug that makes torch not be found properly or something? So we import this explicitly here to avoid that (sentence-transformers depends on torch)
 transformers == 4.42.4 # Previous patch version of this seems to cause a weird error in the backup similarity search, so we avoid that ¯\_(ツ)_/¯
 cryptography #needed for google-auth's JWT's ES256

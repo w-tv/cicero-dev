@@ -13,6 +13,16 @@ import bs4, requests, re # for some reason bs4 is how you import beautifulsoup s
 from pathlib import Path
 from io import StringIO
 import pandas as pd
+from docx import Document
+
+def get_text_from_docx(docx_file):
+    # Load the .docx file
+    doc = Document(docx_file)
+
+    # Extract the text from each paragraph and join them into a single string
+    full_text = '\n'.join([para.text for para in doc.paragraphs])
+
+    return full_text
 
 def pii_detector(input: str) -> list[str]:
   phone = re.findall(
@@ -249,11 +259,14 @@ def main(streamlit_key_suffix: str = "") -> None: # It's convenient to import ci
       st.write(f"You uploaded a {file_ext} file!")
       grow_chat(streamlit_key_suffix, uploaded_file, account, short_model_name_default)
       match file_ext: #todo: delete this?
-        case '.txt' | '.docx' | '.html' :
+        case '.txt' | '.html' :
           # convert file-like BytesIO object to a string based IO:
           stringio = StringIO(uploaded_file.getvalue().decode("utf-8"))
           string_data = stringio.read() # read file as string
           st.write(string_data)
+        case '.docx':
+          docx_text = get_text_from_docx(uploaded_file)
+          st.write(docx_text)
         case '.csv':
           st.dataframe( pd.read_csv(uploaded_file, nrows=10) )
         case '.xls' | '.xlsx':
