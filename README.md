@@ -82,6 +82,10 @@ This codebase is not very object-oriented. Unless we need to use dependency code
 
 All Code Is Liability. ACIL. I'm constantly trying to engineer myself out of a job. Unfortunately, it is very difficult.
 
+All Email Is Spam. AEIS. —Alex Chang
+
+All Type-ignores Are Errors. ATAE. (Usually errors in the typechecker that aren't worth the time to fix. Or maybe in your code, but also not worth.)
+
 ## Random little problem
 
 Occasionally, about 1 in 20 times or so, this project will fail to launch because an internal component of a dependency throws an indecipherable error. This is from pytz and probably a fault of the databrick python sql connector. BUG-WORKAROUND: just reboot the process. Further development: actually, this might be a result of the email being None sometimes, on subsidiary pages, which the database doesn't like? Perhaps.
