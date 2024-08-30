@@ -119,7 +119,23 @@ def grow_chat(streamlit_key_suffix: str = "", alternate_content: str|UploadedFil
   messages = st.session_state.messages[streamlit_key_suffix] # Note that, as an object reference, updating and accessing messages will continue to update and access the same object.
   if alternate_content:
     if isinstance(alternate_content, UploadedFile):
-      p = StringIO(alternate_content.getvalue().decode("utf-8")).read() # convert file-like BytesIO object to a string
+      file_ext = Path(str(UploadedFile.name)).suffix
+      match file_ext: #todo: delete this?
+        case '.txt' | '.html' :
+          stringio = StringIO(UploadedFile.getvalue().decode("utf-8")) # convert file-like BytesIO object to a string based IO
+          string_data = stringio.read() # read file as string
+          st.write(string_data)
+          p = string_data
+        case '.docx':
+          docx_text = get_text_from_docx(UploadedFile)
+          st.write(docx_text)
+          p = docx_text
+        case '.csv':
+          st.dataframe( pd.read_csv(UploadedFile, nrows=10) )
+        case '.xls' | '.xlsx':
+          st.dataframe( pd.read_excel(UploadedFile, nrows=10) )
+        case _:
+          st.write("Cicero does not currently support this file type!")
       display_p = f"「 {p} 」"
     else:
       p = "Here is a conservative fundraising text: [" + alternate_content + "] Analyze the quality of the text based off of these five fundraising elements: the Hook, Urgency, Agency, Stakes, and the Call to Action (CTA). Do not assign scores to the elements. It's possible one or more of these elements is missing from the text provided. If so, please point that out. Then, directly ask the user what assistance they need with the text. Additionally, mention that you can also help edit the text to be shorter or longer, and convert the text into an email. Only provide analysis once, unless the user asks for analysis again."
