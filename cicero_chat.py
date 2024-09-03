@@ -120,7 +120,7 @@ def grow_chat(streamlit_key_suffix: str = "", alternate_content: str|UploadedFil
   if alternate_content:
     if isinstance(alternate_content, UploadedFile):
       file_ext = Path(str(UploadedFile.name)).suffix
-      match file_ext: #todo: delete this?
+      match file_ext: #todo: delete this? or at least the write statements in it?
         case '.txt' | '.html' :
           stringio = StringIO(UploadedFile.getvalue().decode("utf-8")) # convert file-like BytesIO object to a string based IO
           string_data = stringio.read() # read file as string
@@ -274,22 +274,6 @@ def main(streamlit_key_suffix: str = "") -> None: # It's convenient to import ci
       file_ext = Path(str(uploaded_file.name)).suffix
       st.write(f"You uploaded a {file_ext} file!")
       grow_chat(streamlit_key_suffix, uploaded_file, account, short_model_name_default)
-      match file_ext: #todo: delete this?
-        case '.txt' | '.html' :
-          # convert file-like BytesIO object to a string based IO:
-          stringio = StringIO(uploaded_file.getvalue().decode("utf-8"))
-          string_data = stringio.read() # read file as string
-          st.write(string_data)
-        case '.docx':
-          docx_text = get_text_from_docx(uploaded_file)
-          st.write(docx_text)
-        case '.csv':
-          st.dataframe( pd.read_csv(uploaded_file, nrows=10) )
-        case '.xls' | '.xlsx':
-          st.dataframe( pd.read_excel(uploaded_file, nrows=10) )
-        case _:
-          st.write("Cicero does not currently support this file type!")
-      
   model_name = st.selectbox("Model", short_model_names, key="model_name") if is_dev() else short_model_name_default
   if st.button("Reset"):
     reset_chat(streamlit_key_suffix)
