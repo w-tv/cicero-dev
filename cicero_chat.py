@@ -118,9 +118,9 @@ def grow_chat(streamlit_key_suffix: str = "", alternate_content: str|UploadedFil
     st.session_state.messages[streamlit_key_suffix] = [] # We keep our own list of messages, I think because I found it hard to format the chat_history output when I tried once.
   messages = st.session_state.messages[streamlit_key_suffix] # Note that, as an object reference, updating and accessing messages will continue to update and access the same object.
   if alternate_content:
-    if isinstance(alternate_content, UploadedFile):
+    if isinstance(alternate_content, UploadedFile): # I think this is broken because of our dependencies. Possibly up to and including the Python language itself. It can be worked around. Or, maybe databricks will eventually implement their own file-upload thing (I guess that's on their roadmap.
       file_ext = Path(str(UploadedFile.name)).suffix
-      match file_ext: #todo: delete this? or at least the write statements in it?
+      match file_ext: #todo: delete this? or at least the st.write statements in it?
         case '.txt' | '.html' :
           stringio = StringIO(UploadedFile.getvalue().decode("utf-8")) # convert file-like BytesIO object to a string based IO
           string_data = stringio.read() # read file as string
