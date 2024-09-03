@@ -113,7 +113,7 @@ def ensure_existence_of_activity_log() -> None:
   """Run this code before accessing the activity log. If the activity log doesn't exist, this function call will create it.
   Note that if the table exists, this sql call will not check if it has the right columns (names or types), unfortunately.
   Note that this table uses a real timestamp datatype. You can `SET TIME ZONE "US/Eastern";` in sql to get them to output as strings in US Eastern time, instead of the default UTC."""
-  sql_call("CREATE TABLE IF NOT EXISTS cicero.default.activity_log (timestamp timestamp, user_email string, user_pod string, prompter_or_chatbot string, prompt_sent string, response_given string, model_name string, model_url string, model_parameters string, system_prompt string, base_url string, user_feedback string, user_feedback_satisfied string, used_similarity_search_backup string, hit_readlink_time_limit boolean)")
+  sql_call("CREATE TABLE IF NOT EXISTS cicero.default.activity_log (timestamp timestamp, user_email STRING, user_pod STRING, prompter_or_chatbot STRING, prompt_sent STRING, response_given STRING, model_name STRING, model_url STRING, model_parameters STRING, system_prompt STRING, base_url STRING, user_feedback STRING, user_feedback_satisfied STRING, used_similarity_search_backup STRING, hit_readlink_time_limit BOOLEAN, pii_concern BOOLEAN, fec_concern BOOLEAN, winred_concern BOOLEAN)")
 
 @st.cache_data(show_spinner=False)
 def sql_call(query: str, sql_params_dict: TParameterCollection|None = None) -> list[Row]:
