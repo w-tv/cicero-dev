@@ -15,15 +15,6 @@ from io import StringIO
 import pandas as pd
 from docx import Document
 
-def get_text_from_docx(docx_file):
-    # Load the .docx file
-    doc = Document(docx_file)
-
-    # Extract the text from each paragraph and join them into a single string
-    full_text = '\n'.join([para.text for para in doc.paragraphs])
-
-    return full_text
-
 def pii_detector(input: str) -> list[str]:
   phone = re.findall(
     r"""\d?[- ]?\(?\d{3}\)?[- ]?\d{3}[- ]?\d{4}"""
@@ -119,23 +110,28 @@ def grow_chat(streamlit_key_suffix: str = "", alternate_content: str|UploadedFil
   messages = st.session_state.messages[streamlit_key_suffix] # Note that, as an object reference, updating and accessing messages will continue to update and access the same object.
   if alternate_content:
     if isinstance(alternate_content, UploadedFile): # I think this is broken because of our dependencies. Possibly up to and including the Python language itself. It can be worked around. Or, maybe databricks will eventually implement their own file-upload thing (I guess that's on their roadmap.
-      file_ext = Path(str(UploadedFile.name)).suffix
+      file_ext = Path(str(alternate_content.name)).suffix
       match file_ext: #todo: delete this? or at least the st.write statements in it?
         case '.txt' | '.html' :
-          stringio = StringIO(UploadedFile.getvalue().decode("utf-8")) # convert file-like BytesIO object to a string based IO
+          stringio = StringIO(alternate_content.getvalue().decode("utf-8")) # convert file-like BytesIO object to a string based IO
           string_data = stringio.read() # read file as string
           st.write(string_data)
           p = string_data
         case '.docx':
-          docx_text = get_text_from_docx(UploadedFile)
+          docx_text = '\n'.join([para.text for para in Document(alternate_content).paragraphs])
           st.write(docx_text)
           p = docx_text
         case '.csv':
-          st.dataframe( pd.read_csv(UploadedFile, nrows=10) )
+          x = pd.read_csv(alternate_content, nrows=10)
+          st.dataframe( x )
+          p = str(x)
         case '.xls' | '.xlsx':
-          st.dataframe( pd.read_excel(UploadedFile, nrows=10) )
+          st.dataframe( x := pd.read_excel(alternate_content, nrows=10) )
+          p = str(x)
         case _:
-          st.write("Cicero does not currently support this file type!")
+          x = "Cicero does not currently support this file type!"
+          st.write(x)
+          p = x
       display_p = f"「 {p} 」"
     else:
       p = "Here is a conservative fundraising text: [" + alternate_content + "] Analyze the quality of the text based off of these five fundraising elements: the Hook, Urgency, Agency, Stakes, and the Call to Action (CTA). Do not assign scores to the elements. It's possible one or more of these elements is missing from the text provided. If so, please point that out. Then, directly ask the user what assistance they need with the text. Additionally, mention that you can also help edit the text to be shorter or longer, and convert the text into an email. Only provide analysis once, unless the user asks for analysis again."
