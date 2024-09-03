@@ -142,7 +142,11 @@ def grow_chat(streamlit_key_suffix: str = "", alternate_content: str|UploadedFil
   else:
     p = st.session_state["user_input_for_chatbot_this_frame"+streamlit_key_suffix]
     display_p = p
-
+  
+  #detect concerning elements:
+  winred_concern = "winred.com" in p.lower()
+  fec_concern = "fec.gov" in p.lower()
+  
   #implement url content expansion, at this point only for the corp chat and devs
   hit_readlink_time_limit = False
   if streamlit_key_suffix=="_corporate" or is_dev():
@@ -162,7 +166,7 @@ def grow_chat(streamlit_key_suffix: str = "", alternate_content: str|UploadedFil
   continue_prompt = True
   if possible_pii := pii_detector(p):
     pii_state = ssget("pii_interrupt_state", streamlit_key_suffix)
-    if pii_state is None:
+    if pii_state is None: #TODO: this can be refactored to use the new ss-family of functions and be way clearer about what it does.
       st.session_state.pii_interrupt_state = {}
     if pii_state and pii_state[0]: #if the field is true, we continue
       ssset( "pii_interrupt_state", streamlit_key_suffix, [None, "", {}] ) #reset the field, since we're going to send this one and get a new circumstance later.
@@ -178,7 +182,7 @@ def grow_chat(streamlit_key_suffix: str = "", alternate_content: str|UploadedFil
         chat.reply(p)
         messages.append({"role": "user", "content": display_p})
         messages.append({"avatar": "assets/CiceroChat_800x800.jpg", "role": "assistant", "content": chat.last})
-        st.session_state["activity_log_payload"] = {"user_email": st.session_state["email"], "prompter_or_chatbot": 'chatbot'+streamlit_key_suffix, "prompt_sent": p, "response_given": chat.last, "model_name": short_model_name, "model_url": chat.model, "model_parameters": str(chat.parameters), "system_prompt": chat.system_message, "base_url": get_base_url(), "used_similarity_search_backup": "no"} | ({"user_feedback": "not asked", "user_feedback_satisfied": "not asked"} if streamlit_key_suffix == "_prompter" else {"user_feedback": "not received", "user_feedback_satisfied": "not received"} if streamlit_key_suffix == "_corporate" else {"user_feedback": "not received", "user_feedback_satisfied": "not asked"}) | {"hit_readlink_time_limit": hit_readlink_time_limit} | {"pii_concern": pii}
+        st.session_state["activity_log_payload"] = {"user_email": st.session_state["email"], "prompter_or_chatbot": 'chatbot'+streamlit_key_suffix, "prompt_sent": p, "response_given": chat.last, "model_name": short_model_name, "model_url": chat.model, "model_parameters": str(chat.parameters), "system_prompt": chat.system_message, "base_url": get_base_url(), "used_similarity_search_backup": "no"} | ({"user_feedback": "not asked", "user_feedback_satisfied": "not asked"} if streamlit_key_suffix == "_prompter" else {"user_feedback": "not received", "user_feedback_satisfied": "not received"} if streamlit_key_suffix == "_corporate" else {"user_feedback": "not received", "user_feedback_satisfied": "not asked"}) | {"hit_readlink_time_limit": hit_readlink_time_limit} | {"pii_concern": bool(pii and pii[0]), "winred_concern": winred_concern, "fec_concern": fec_concern}
         if not streamlit_key_suffix == "_prompter":
           ssset("outstanding_activity_log_payload", streamlit_key_suffix, st.session_state["activity_log_payload"])
         break

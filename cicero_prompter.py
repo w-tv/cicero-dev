@@ -565,7 +565,8 @@ if st.session_state.get("submit_button_disabled"):
       {"user_email": st.session_state['email'], "prompter_or_chatbot": "prompter", "prompt_sent": prompt_sent, "response_given": json.dumps(st.session_state['outputs']), "model_name": model_name, "model_url": model, "model_parameters": str({"max_tokens": max_tokens, "temperature": temperature}), "system_prompt": prompter_system_prompt, "base_url": get_base_url(), "used_similarity_search_backup": used_similarity_search_backup} |
       {"user_feedback": "not asked", "user_feedback_satisfied": "not asked"} |
       {"hit_readlink_time_limit": False} |
-      {"pii_concern": None} #pii_concern is always None for the prompter, because we can neither affirmatively say yes or no (but the falsy behavior of null suits us well, because it's almost certainly not a problem)
+      {"pii_concern": None} | #pii_concern is always None for the prompter, because we can neither affirmatively say yes or no (but the falsy behavior of null suits us well, because it's almost certainly not a problem)
+      {"winred_concern": False, "fec_concern": False} # These concerns are 100% about url expansion of these sites, which prompter doesn't do, so we're safe.
     #this | formatting is not important, I was just kind of feeling out how to format this when I originally wrote it; you can reformat it if you like.
     )
 
