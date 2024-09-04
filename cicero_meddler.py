@@ -1,7 +1,7 @@
 #!/usr/bin/env -S streamlit run
 """This shows you the top of the activity log, to make sure things are going through."""
 import streamlit as st
-from cicero_shared import sql_call_cacheless, topics_big
+from cicero_shared import sql_call_cacheless
 
 st.button("Refresh the page", help="Clicking this button will do nothing, but it will refresh the page, which is sometimes useful if this page loaded before the activity log was written to, and you want to see the new data in the activity log.")
 st.write("""TODO: Figure out how to write the record hashes... then, sections that will let us:
@@ -24,17 +24,6 @@ with st.expander("Account (client) names w/ rollup"):
       if st.form_submit_button("delete rows matching both name fields") and acct and rollup:
         sql_call_cacheless("DELETE FROM cicero.ref_tables.ref_account_rollup WHERE account_name=:acct AND rollup_name=:rollup", {"acct": acct, "rollup": rollup})
   st.table(sql_call_cacheless("SELECT account_name, rollup_name, visible_frontend FROM cicero.ref_tables.ref_account_rollup ORDER BY account_name ASC"))
-
-with st.expander("Topics"):
-  c = st.columns(2)
-  with c[0]:
-    st.write(topics_big)
-  with c[1]:
-    st.write(
-      {"All":{ "color":"#61A5A2", "internal name":"all", "show in prompter?": False}} # We need to add this in bespoke.
-      | # dict addition operator
-      {external.title():{"color":color, "internal name":internal.removesuffix("_hook"), "visible_fronted": visible_frontend, "enabled": enabled} for external, internal, color, visible_frontend, enabled in sql_call_cacheless('select tag_name, tag_column_name, color, visible_frontend, enabled from cicero.ref_tables.ref_tags WHERE tag_type == "Topic" ORDER BY tag_name ASC')}
-    )
 
 with st.expander("Bios"):
   c = st.columns(3)
