@@ -146,7 +146,7 @@ Topics_Big_Payload = TypedDict("Topics_Big_Payload", {'color': str, 'internal na
 topics_big: dict[str, Topics_Big_Payload] = (
   {"All":{ "color":"#61A5A2", "internal name":"all", "show in prompter?": False}} # We need to add this in bespoke.
   | # dict-combining operator
-  {external.title():{"color":color, "internal name":internal.removesuffix("_hook"), "show in prompter?": visible_frontend} for external, internal, color, visible_frontend in sql_call_cacheless('select tag_name, tag_column_name, color, visible_frontend FROM cicero.ref_tables.ref_tags WHERE tag_type == "Topic" and enabled ORDER BY tag_name ASC')}
+  {external.title():{"color":color, "internal name":internal, "show in prompter?": visible_frontend} for external, internal, color, visible_frontend in sql_call_cacheless('select tag_name, tag_column_name, color, visible_frontend FROM cicero.ref_tables.ref_tags_new WHERE tag_type == "Topic" and enabled ORDER BY tag_name ASC')}
 )
 #TODO: add "Other" topic as well, for anything with no topic (maybe not in the topics bigs, but somewhere.
 

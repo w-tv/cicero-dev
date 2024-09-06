@@ -44,7 +44,7 @@ def external_account_names_to_internal_account_names_list_mapping(external_accou
   return [ian for ean in external_account_names for ian in external_account_name_to_internal_account_names(ean)]
 
 def external_topic_names_to_internal_hooks_list_mapping(external_topic_names: list[str]) -> list[str]:
-  return [topics_big[e]["internal name"]+"_hook" for e in external_topic_names]
+  return [topics_big[e]["internal name"] for e in external_topic_names]
 
 def permissible_account_names(user_email: str) -> list[str]:
   """Note that these should be the "external" names (the short and more user-friendly ones, which map to a number of internal projects (or whatever) run by those people (or however that works).
@@ -103,11 +103,11 @@ with col4:
 topics = external_topic_names_to_internal_hooks_list_mapping(bool_dict_to_string_list(topics_gigaselect))
 # TODO: refactor from pivoted version to non-pivoted, smaller table: hook_reporting.default.gold_topic_data_array
 summary_data_per_topic = sql_call(f"""WITH stats(topic, funds, sent, spend, project_count) AS (SELECT Hooks, SUM(TV_FUNDS), SUM(SENT), SUM(SPEND_AMOUNT), COUNT(DISTINCT PROJECT_NAME) FROM hook_reporting.default.gold_topic_data_pivot WHERE {project_types_string} and {accounts_string} and {askgoal_string} and SEND_DATE >= CURRENT_DATE() - INTERVAL {past_days} DAY and SEND_DATE <= CURRENT_DATE() and Hooks in {to_sql_tuple_string(topics)} and Hook_Bool=true GROUP BY Hooks) SELECT topic, funds, cast( try_divide(funds, sent)*1000*100 as int )/100, cast( try_divide(funds, spend)*100 as int ), project_count from stats""")
-if "all_hook" in topics: #This special case is just copy-pasted from above, with modifications, to make the all_hook (since the new table process has no all_hook in).
-  summary_data_per_topic += sql_call(f"""WITH stats(topic, funds, sent, spend, project_count) AS (SELECT "all_hook", SUM(TV_FUNDS), SUM(SENT), SUM(SPEND_AMOUNT), COUNT(DISTINCT PROJECT_NAME) FROM hook_reporting.default.gold_topic_data_pivot WHERE {project_types_string} and {accounts_string} and {askgoal_string} and SEND_DATE >= CURRENT_DATE() - INTERVAL {past_days} DAY and SEND_DATE <= CURRENT_DATE()) SELECT topic, funds, cast( try_divide(funds, sent)*1000*100 as int )/100, cast( try_divide(funds, spend)*100 as int ), project_count from stats""") #TODO: handle (remove) the case where all_hook is 0, in this and the lower graph.
+if "all" in topics: #This special case is just copy-pasted from above, with modifications, to make the all-topic (since the new table process has no all-topic in).
+  summary_data_per_topic += sql_call(f"""WITH stats(topic, funds, sent, spend, project_count) AS (SELECT "all", SUM(TV_FUNDS), SUM(SENT), SUM(SPEND_AMOUNT), COUNT(DISTINCT PROJECT_NAME) FROM hook_reporting.default.gold_topic_data_pivot WHERE {project_types_string} and {accounts_string} and {askgoal_string} and SEND_DATE >= CURRENT_DATE() - INTERVAL {past_days} DAY and SEND_DATE <= CURRENT_DATE()) SELECT topic, funds, cast( try_divide(funds, sent)*1000*100 as int )/100, cast( try_divide(funds, spend)*100 as int ), project_count from stats""") #TODO: handle (remove) the case where all is 0, in this and the lower graph.
 key_of_rows = ("Topic", "TV Funds ($)", "FPM ($)", "ROAS (%)", "Project count")
 dicted_rows = {key_of_rows[i]: [row[i] for row in summary_data_per_topic] for i, key in enumerate(key_of_rows)} #various formats probably work for this; this is just one of them.
-dicted_rows["color"] = [tb["color"] for t in dicted_rows["Topic"] for _, tb in topics_big.items() if tb["internal name"] == t.removesuffix("_hook")] #COULD: one day revise the assumptions that necessitate this logic, which is really grody. #TODO: in some cases we get a "All arrays must be of the same length" error on this, but I'm pretty sure that's just a result of us being mid- topic-pivot.
+dicted_rows["color"] = [tb["color"] for t in dicted_rows["Topic"] for _, tb in topics_big.items() if tb["internal name"] == t] #COULD: one day revise the assumptions that necessitate this logic, which is really grody. #TODO: in some cases we get a "All arrays must be of the same length" error on this, but I'm pretty sure that's just a result of us being mid- topic-pivot.
 #COULD: set up some kind of function for these that decreases the multiplier as the max gets bigger
 fpm_max = max([val if val is not None else 0 for val in dicted_rows['FPM ($)']]) * 1.1
 roas_max = max([val if val is not None else 0 for val in dicted_rows['ROAS (%)']]) * 1.05
@@ -149,8 +149,8 @@ else:
   search_string = "true"
 
 day_data_per_topic = sql_call(f"""WITH stats(date, funds, sent, spend, topic) AS (SELECT send_date, SUM(tv_funds), SUM(sent), SUM(spend_amount), hooks FROM hook_reporting.default.gold_topic_data_pivot WHERE {project_types_string} AND {accounts_string} AND hooks IN {to_sql_tuple_string(topics)} AND {askgoal_string} AND send_date >= NOW() - INTERVAL {past_days} DAY AND send_date < NOW() AND hook_bool=true AND {search_string} GROUP BY send_date, hooks) SELECT date, funds, CAST( TRY_DIVIDE(funds, sent)*1000*100 as INT )/100, CAST( TRY_DIVIDE(funds, spend)*100 as INT ), topic FROM stats""", {"regexp": search})
-if "all_hook" in topics: #This special case is just copy-pasted from above, with modifications, to make the all_hook (since the new table process has no all_hook in).
-  day_data_per_topic += sql_call(f"""WITH stats(date, funds, sent, spend, topic) AS (SELECT DISTINCT send_date, SUM(tv_funds), SUM(sent), SUM(spend_amount), 'all_hook' FROM hook_reporting.default.gold_topic_data_pivot WHERE {project_types_string} AND {accounts_string} AND {askgoal_string} AND send_date >= NOW() - INTERVAL {past_days} DAY AND send_date < NOW() AND {search_string} GROUP BY send_date) SELECT date, funds, CAST( TRY_DIVIDE(funds, sent)*1000*100 as INT )/100, CAST( TRY_DIVIDE(funds, spend)*100 as INT ), topic FROM stats""", {"regexp": search})
+if "all" in topics: #This special case is just copy-pasted from above, with modifications, to make the all-topic (since the new table process has no all-topic in).
+  day_data_per_topic += sql_call(f"""WITH stats(date, funds, sent, spend, topic) AS (SELECT DISTINCT send_date, SUM(tv_funds), SUM(sent), SUM(spend_amount), 'all' FROM hook_reporting.default.gold_topic_data_pivot WHERE {project_types_string} AND {accounts_string} AND {askgoal_string} AND send_date >= NOW() - INTERVAL {past_days} DAY AND send_date < NOW() AND {search_string} GROUP BY send_date) SELECT date, funds, CAST( TRY_DIVIDE(funds, sent)*1000*100 as INT )/100, CAST( TRY_DIVIDE(funds, spend)*100 as INT ), topic FROM stats""", {"regexp": search})
 
 if len(day_data_per_topic):
   tv_funds_df = pd.DataFrame([(row[0], row[1], row[4]) for row in day_data_per_topic], columns=['Day', 'TV Funds ($)', 'Topic'])
