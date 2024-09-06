@@ -1,7 +1,7 @@
 #!/usr/bin/env -S streamlit run
 """This shows you the top of the activity log, to make sure things are going through."""
 import streamlit as st
-from cicero_shared import sql_call_cacheless
+from cicero_shared import sql_call, sql_call_cacheless
 
 st.button("Refresh the page", help="Clicking this button will do nothing, but it will refresh the page, which is sometimes useful if this page loaded before the activity log was written to, and you want to see the new data in the activity log.")
 st.write("""TODO: Figure out how to write the record hashes... then, sections that will let us:
@@ -9,6 +9,7 @@ st.write("""TODO: Figure out how to write the record hashes... then, sections th
   * add a bio (corresponding to a rollup name) (internal or external?)
   * and maybe some other stuff if you can think of anything"""
 )
+
 with st.expander("Account (client) names w/ rollup"):
   with st.form("account_enter_rollup_thingy", clear_on_submit=True):
     c = st.columns(4)
@@ -35,6 +36,14 @@ with st.expander("Bios"):
     if st.button("Add a new bio to an existing rollup name in the cicero.ref_tables.ref_bios table (DO NOT CLICK)") and bio_name and bio:
       sql_call_cacheless("INSERT INTO cicero.ref_tables.ref_bios (Candidate, Bio) VALUES (acct, bio)", {"acct": bio_name, "bio": bio}) # This also probably does not work
   st.table(sql_call_cacheless("SELECT Candidate, Bio FROM cicero.ref_tables.ref_bios ORDER BY Candidate ASC"))
+
+with st.expander("Topics"):
+  st.write("You can look at the topics here, but you should edit them using the workflow that create the topics, instead of in here.")
+  c = st.columns(2)
+  with c[0]:
+    st.table(sql_call("SELECT * FROM cicero.ref_tables.ref_tags"))
+  with c[1]:
+    st.table(sql_call("SELECT * FROM cicero.ref_tables.ref_tags_new"))
 
 with st.expander("Misc"):
   st.write("Put code here to evaluate it and see what happens. (I'm not including an eval here because lol don't use eval.)")
