@@ -270,8 +270,12 @@ def main(streamlit_key_suffix: str = "") -> None: # It's convenient to import ci
   if is_dev():
     account = st.selectbox("Account (required)", load_account_names(), key="account") if streamlit_key_suffix!="_corporate" else None
     if account != None:
-      texts_from_account = sql_call(f"SELECT DISTINCT clean_text FROM cicero.text_data.gold_text_outputs WHERE client_name = '{account}' limit 10")
-      st.write(texts_from_account)
+      texts_from_account = sql_call(f"SELECT DISTINCT clean_text FROM cicero.text_data.gold_text_outputs WHERE client_name = '{account}' limit 5")
+      texts_from_account_list = []
+      for row in texts_from_account:
+        texts_from_account_list.append(row[0])
+      texts_from_account_str = ' | '.join(texts_from_account_list)
+      st.write(texts_from_account_str)
     # TODO: get the clean texts into the prompt, and edit the prompt such that its like, hey here are some references texts to look at
     uploaded_file = st.file_uploader(label="Upload a file", type=['csv', 'docx', 'html', 'txt', 'xls', 'xlsx'], accept_multiple_files=False)
     if uploaded_file is not None and not ssget("chat_file_uploader"):
