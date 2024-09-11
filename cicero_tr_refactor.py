@@ -50,7 +50,7 @@ for i in topics_table:
 
 with st.expander("Topics..."):
   for i in topics_table:
-    st.checkbox(label=i[0], value=i[0])
+    topic_selected = st.checkbox(label=i[0], value=i[0]) #is this right? i get the feeling this isn't right
 
 
 col1, col2, col3, col4 = st.columns(4) #possibly refactor this into non-unpacking for-loop type thing if I need to keep editing it.
@@ -66,9 +66,8 @@ with col3:
 with col4:
   askgoals = st.multiselect("Ask-Goal", ["Hard/Medium Ask", "Soft Ask/Listbuilding"], help='This control allows you to filter on \"ask type\" which is basically how directly focused on fundraising the text was supposed to be. Hard is more and soft is less.\n\nThe internal logic is: nothing selected is no filter; "Soft Ask/Listbuilding" is (Goal = Fundraising AND Ask Type = Soft Ask) OR Goal = List Building; and "Hard/Medium Ask" is Goal = Fundraising AND Ask Type != Soft Ask. (`!= "Soft Ask"` is the same as `in ("Hard Ask", "Medium Ask")` except it will also catch the values null and \'None\', which are sometimes also in there.)\n\nNotably: at the current moment, selecting both values in this control is the same as selecting no values.')
   askgoal = "Both" if len(askgoals)!=1 else askgoals[0] #We take a little shortcut here because both is the same as none in this one case.
-  askgoal_string = {"Both": "true", "Hard/Medium Ask": "GOAL = 'Fundraising' and FUNDRAISING_TYPE != 'Soft Ask'", "Soft Ask/Listbuilding": "GOAL = 'Fundraising' and FUNDRAISING_TYPE = 'Soft Ask' or GOAL = 'List Building'"}[askgoal]
+  askgoal_string = {"Both": "true", "Hard/Medium Ask": "(GOAL = 'Fundraising' and FUNDRAISING_TYPE != 'Soft Ask)'", "Soft Ask/Listbuilding": "((GOAL = 'Fundraising' and FUNDRAISING_TYPE = 'Soft Ask') or GOAL = 'List Building')"}[askgoal]
 
-# todo: get the actual topic(s) in here
 summary_data_per_topic = sql_call(f"""
   SELECT topic, 
     TV_Funds, 
@@ -96,7 +95,7 @@ summary_data_per_topic = sql_call(f"""
         and SEND_DATE >= CURRENT_DATE() - INTERVAL {past_days} DAY 
         and SEND_DATE <= CURRENT_DATE() 
       )
-  WHERE topic = 'border_hook'
+  WHERE topic = '{topic_selected}'
   GROUP BY topic
   )
 """)
@@ -105,9 +104,9 @@ summary_data_per_topic = sql_call(f"""
 key_of_rows = ("Topic", "TV Funds ($)", "FPM ($)", "ROAS (%)", "Project count")
 dicted_rows = {key_of_rows[i]: [row[i] for row in summary_data_per_topic] for i, key in enumerate(key_of_rows)} #various formats probably work for this; this is just one of them.
 # dicted_rows["color"] = '#815a65' #TODO: get the colors from cicero.ref_tables.ref_tags
-# #COULD: set up some kind of function for these that decreases the multiplier as the max gets bigger
-fpm_max = max(dicted_rows['FPM ($)'] or [0]) * 1.1 # The `or [0]` clauses prevent a crash when fpm (for example) is empty.
-roas_max = max(dicted_rows['ROAS (%)'] or [0]) * 1.05
+#COULD: set up some kind of function for these that decreases the multiplier as the max gets bigger
+fpm_max = max([val if val is not None else 0 for val in dicted_rows['FPM ($)']], default=0) * 1.1
+roas_max = max([val if val is not None else 0 for val in dicted_rows['ROAS (%)']], default=0) * 1.05
 @st.fragment
 def malarky() -> None:
   """This code displays a graph and lets the user select a point to drill down on its values. However, selecting the point reruns the page (this is unavoidable due to streamlit), and it seems like the way we get the points that go into this graph is a little unstable, so a rerun would often change the data slightly (order?) and change the colors of the graph and prevent the drilldown from appearing. So, we have to wrap it in a fragment. This is just another thing I hope to sort out in a refactor once the topic reporting is all moved over."""
