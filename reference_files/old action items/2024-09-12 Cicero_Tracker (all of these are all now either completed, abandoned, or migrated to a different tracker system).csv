@@ -1,0 +1,67 @@
+Task,Status,Priority,Description,Assignee,"Due date",emoji
+,,,,,,
+"Topic Reporting full migration","In progress",4,"This is it. The big one. <@U0615URB4MC> if you could put in the comments for this item all the changes you would like to see for topic reporting that'd be great, and I will work on those forthwith.",achang@targetedvictory.com,2024-08-23,:mardi-gras-hillary-clinton:
+"CwC: Show last 5 conversations in history",Ideation,1,"i think we'll just do a sql call",wcarpenter@targetedvictory.com,2024-09-13,:cicerochat:
+"Drill down table user access",Done,4,,wcarpenter@targetedvictory.com,2024-08-16,
+"Feedback: New activity log column","In progress",3,"Because we're adding a second feedback question we're going to need a second feedback column. I think we should rename the columns based on the question it is asking.",wcarpenter@targetedvictory.com,2024-08-23,:building_construction:
+"Feedback: CwCorpo",Done,4,"In CwCorpo:
+- 2x thumbs up/down feedback
+   + ""Did Cicero understand your request?""
+   + If yes, ""Are you satisfied with this output?""
+```      # if user_feedback == ""good"":
+      #   with emptyable.container():
+      #     _c1, c2, c3 = st.columns([.05, .06, .89], gap='small', vertical_alignment=""center"")
+      #     with c2:
+      #       st_feedback_2: int|None = st.feedback(""thumbs"")
+      #     c3.write(""***Are you satisfied with this output? Let us know to continue chatting.***"")
+      #     if st_feedback_2 is not None:
+      #       emptyable.empty()
+      #       user_feedback_2: str = ""bad"" if st_feedback_2 == 0 else ""good""
+      # else:
+      #   st_feedback_2: int = 0
+      #   user_feedback_2:str = ""bad"" ```",wcarpenter@targetedvictory.com,2024-08-23,:feelsbadboris:
+"Create Metrics table for reference texts",Ideation,1,"i have some existing code that could be easily ported over",achang@targetedvictory.com,2024-10-31,:metro:
+"TR: Add func that dynamically changes axis multiplier",Ideation,1,,achang@targetedvictory.com,2024-08-30,:heavy_multiplication_x:
+"TR: Add dynamic size to marks and the legend",Ideation,1,,achang@targetedvictory.com,2024-08-30,:skinny-legend:
+"Feeback: CwC",Done,3,"Change the question soon, waiting on Alisa",wcarpenter@targetedvictory.com,2024-08-16,:+1:
+"Change default model to Llama 3.1 405B for prompter and CwC",Done,4,"ENACT CHANGE BY MONDAY 8/5",wcarpenter@targetedvictory.com,2024-08-05,
+"Migrate to Account rollup table",Done,5,"the data is ready to go!",wcarpenter@targetedvictory.com,2024-08-02,:white_check_mark:
+"Revamp data cleaning around unicode",Done,3,"consult ""my projects"" google doc",achang@targetedvictory.com,2024-08-16,:angry-unicorn:
+"have a feature where users can be set to see every topic reporting individual account",Done,4,"should probably be true in the table or something idk will think about it.",wcarpenter@targetedvictory.com,2024-08-02,
+"spare time: Databricks SQL Python connector complex data types","Not started",1,"I'm beginning to realize that the wacky thing we do where we like print out the contents of a list into being an array literal in the SQL query isn't something we do because we lack moral character; it's because dealing with all of its own data types is a crucial missing feature in the Python SQL connector. So idk maybe I'll put fixing that some day into the spare time bucket. An issue, a pr.
+
+OK... it's literally already an open github issue for them: <https://github.com/databricks/databricks-sql-python/issues/377>",wcarpenter@targetedvictory.com,2024-08-30,:calendar:
+"Activity Log: structured from unstructured dashboard",Ideation,1,"need to get data out of the activity log",achang@targetedvictory.com,2024-08-30,:tablefilter:
+"show the project names in a popup or in a table underneath the scatter plot",Done,3,"i know we talked about this a lot but i forgot what we decided",achang@targetedvictory.com,2024-08-16,:popcorn:
+"Migrate to St.Feedback",Done,1,"Instead of the buttons, let's just use st.feedback (thumbs)",wcarpenter@targetedvictory.com,2024-08-16,":star2: "
+"Spare time: make google-auth-stubs comprehensive enough","In progress",1,"by adding type stubs for the, like, two things we use. I'm sure patches are welcome. <https://github.com/henribru/google-auth-stubs>",wcarpenter@targetedvictory.com,2024-08-30,:stubparrot:
+"Drop Table: default.User_pods",Done,1,,achang@targetedvictory.com,2024-08-02,:x:
+"Topic Reporting: Client Visibility",Done,4,"Gotta set it up so that individual people have specific client visibility in the topic reporting account dropdown. I'm envisioning another column in the user_pods table.",wcarpenter@targetedvictory.com,2024-08-02,:eyes:
+"Topic Reporting Permissioning page",Done,5,"Gonna create a separate topic reporting permissioning thing, but also gonna add a new column to the user pods table to show what accounts users can view in topic reporting.",achang@targetedvictory.com,,:chart_with_upwards_trend:
+"Model dropdown in CwC (dev mode only)",Done,1,"have a dropdown in both CwC pages that let us choose the model.",achang@targetedvictory.com,2024-08-16,:droplet:
+"Migrate to st.context.headers",Done,3,"The `_get_websocket_headers` function is deprecated and will be removed in a future version of Streamlit. Please use `st.context.headers` instead.",wcarpenter@targetedvictory.com,,:headphones:
+"Get lilac ai working in databricks","Not started",2,"Trying to get lilac to work so Ted can actually do stuff, we can meet with Ted about it next time youre free during work hours",wcarpenter@targetedvictory.com,2024-08-30,:lotus:
+"De-experimentalize st.dialog (https://github.com/streamlit/streamlit/releases/tag/1.37.0)",Done,2,"We're basically just waiting to make sure 1.37.0 is thoroughly tested, because making this change will lock us into it.",wcarpenter@targetedvictory.com,,:speech_balloon:
+"Create GOTV/Persuasion Data pipeline",Ideation,1,"uhh data",achang@targetedvictory.com,2024-09-27,:persuasion:
+"Weekly Recap of Activity",Ideation,1,"Send an email every Monday, recapping last week's usage of activity with lots of metrics and tables and all that",achang@targetedvictory.com,2024-08-30,:email:
+"PII Detector: Real Time Popup",Done,3,"If the user posts in some PII into the chatbot, have a popup that says ""Cicero detected you might have some PII in your prompt. Would you still like to submit it?"" and then a yes no",achang@targetedvictory.com,2024-08-09,:deaf_person:
+"Activity Log: Suspected PII input",Done,4,"If the user has a prompt that we suspect has PII, mark the column true (this would really only be applicable for chatbot usage, but its possible someone can put something into addtnl topics...",wcarpenter@targetedvictory.com,2024-08-16,:male-doctor:
+"Activity Log: add a column that notifies us if a user hits the readlink time limit",Done,3,"if you have strong feelings about this, lemme know, it doesn't necessarily need to be in the activity log but where else would be put it",wcarpenter@targetedvictory.com,2024-08-16,:timer_clock:
+"ReadLink Feature: 30 sec time limit between link reads",Done,4,"We're operating a software product, not a bot farm",wcarpenter@targetedvictory.com,2024-08-16,:clock1:
+"ReadLink Feature: Box of Text",Done,2,"Have an expandable text box that contains the text of the scraped page, defaults to minimized, dev mode only",wcarpenter@targetedvictory.com,2024-08-16,:mailbox:
+"CorpChat Feature: Paste Link",Done,3,"1. User Pastes Link
+2. Scrape html from page
+3 to n. remove all tags? ask LLM to extract relevant text? identify 5 longest paragraphs and just keep those?
+n+1. pass in remaining text and user instruction to LLM",wcarpenter@targetedvictory.com,,:triumph:
+"Create cicero.ref_tables.corp_acc table",Blocked,3,"need to get the actual accounts from corporate",achang@targetedvictory.com,2024-08-16,:shinto_shrine:
+"Add Account Field to Corpo Chat",Blocked,3,"This field will be read from the cicero.ref_tables.corp_acc table, which currently doesn't exist",wcarpenter@targetedvictory.com,2024-08-16,":man_in_business_suit_levitating: "
+"Incorporate Sender Name",Done,5,"1. Keep sender name field optional
+2. If Sender Name is blank, use the current prompt
+3. If sender name is filled out, change prompt to ""text messages for {client} sent from {sender_name}""
+4. Create yet another permission field to permission people to sender name field, just for an initial test, goal is for everyone to start using it",wcarpenter@targetedvictory.com,2024-07-26,:scroll:
+"Add permissioning for Corpo Chat",Done,5,,achang@targetedvictory.com,,
+"Redeploy Cicero Prod from achangtv to tv/cicero","In progress",5,"we tried to get this to work. it did not.",achang@targetedvictory.com,2024-09-30,:deployparrot:
+"Integrate Tool Calling into Cicero",Ideation,1,"I mean, it's a part of 3.1
+If we could integrate Brave Search... hmmm",wcarpenter@targetedvictory.com,2024-08-30,:hammer_and_wrench:
+"Migrate to Meta-Llama-3.1-70B-Instruct",Done,5,"<https://docs.databricks.com/en/machine-learning/foundation-models/index.html#use-foundation-model-apis>
+<https://llama.meta.com/docs/model-cards-and-prompt-formats/llama3_1>",wcarpenter@targetedvictory.com,,:llama:
