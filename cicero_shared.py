@@ -142,11 +142,13 @@ def assert_always(x: object, message_to_assert: str|None = None) -> None | NoRet
   return None
 
 # This is the 'big' of topics, the authoritative record of various facts and mappings about topics.
-Topics_Big_Payload = TypedDict("Topics_Big_Payload", {'color': str, 'internal name': str, 'show in prompter?': bool})
+Topics_Big_Payload = TypedDict("Topics_Big_Payload", {'color': str, 'show in prompter?': bool})
 topics_big: dict[str, Topics_Big_Payload] = (
-  {"All":{ "color":"#61A5A2", "internal name":"all", "show in prompter?": False}} # We need to add this in bespoke.
+  {"All":{ "color":"#61A5A2", "show in prompter?": False}} # This is added bespoke because it's not in the Cicero data #TODO: yet? could add this, and also the "Other" topic into the data, if we like.
   | # dict-combining operator
-  {external.title():{"color":color, "internal name":internal.removesuffix("_hook"), "show in prompter?": visible_frontend} for external, internal, color, visible_frontend in sql_call_cacheless('select tag_name, tag_column_name, color, visible_frontend FROM cicero.ref_tables.ref_tags WHERE tag_type == "Topic" and enabled ORDER BY tag_name ASC')}
+  {name: {"color":color, "show in prompter?": visible_frontend}
+  for name, color, visible_frontend
+  in sql_call_cacheless('SELECT tag_column_name, color, visible_frontend FROM cicero.ref_tables.ref_tags_new WHERE tag_type == "Topic" AND enabled ORDER BY tag_column_name ASC')}
 )
 #TODO: add "Other" topic as well, for anything with no topic (maybe not in the topics bigs, but somewhere.
 

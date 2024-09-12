@@ -28,9 +28,6 @@ from databricks.vector_search.client import VectorSearchClient
 def disable_submit_button_til_complete() -> None:
   st.session_state["submit_button_disabled"] = True
 
-def external_topic_names_to_internal_topic_names_list_mapping(external_topic_names: list[str]) -> list[str]:
-  return [topics_big[e]["internal name"].replace("_", " ").lower() for e in external_topic_names]
-
 @st.cache_data(show_spinner=False) #STREAMLIT-BUG-WORKAROUND: Necessity demands we do a manual cache of this function's result anyway in the one place we call it, but (for some reason) it seems like our deployed environment is messed up in some way I cannot locally replicate, which causes it to run this function once every five minutes. So, we cache it as well, to prevent waking up our server and costing us money.
 def count_from_activity_log_times_used_today(user_email: str) -> int:
   """Count the number of times the user has used the prompter.
@@ -514,7 +511,6 @@ with st.form('query_builder'):
   sender = st.text_input("Sender Name", key="sender")
   ask_type = st.selectbox("Ask Type", aa(Ask_Type), key="ask_type").lower()
   topics = st.multiselect("Topics", sorted([t for t, d in topics_big.items() if d["show in prompter?"]]), key="topics" )
-  topics = external_topic_names_to_internal_topic_names_list_mapping(topics)
   length_select = st.selectbox("Length", aa(Selectable_Length), key='lengths', format_func=lambda x: f"{x.capitalize()} ({'<160' if x == 'short' else '161-399' if x == 'medium' else '400+'} characters)")
   additional_topics = [x.strip().lower() for x in st.text_input("Additional Topics (examples: Biden, survey, deadline)", key="additional_topics" ).split(",") if x.strip()] # The list comprehension is to filter out empty strings on split, because otherwise this fails to make a truly empty list in the default case, instead having a list with an empty string in, because split changes its behavior when you give it arguments. Anyway, this also filters out trailing comma edge-cases and such.
   tones = st.multiselect("Tones", aa(Tone), key="tones")

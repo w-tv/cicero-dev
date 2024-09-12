@@ -1,5 +1,5 @@
 #!/usr/bin/env -S streamlit run
-"""This page performs a peculiar task known as "topic reporting", which is basically just summary statistics about various topic keywords (internally called "hooks").
+"""This page performs a peculiar task known as "topic reporting", which is basically just summary statistics about various topic keywords.
 
 List of derived quantities, left to right (does not include "topic", which is also there, but not derived per se):
   TV Funds: SUM of TV Funds
@@ -43,9 +43,6 @@ def external_account_name_to_internal_account_names(external_account_name: str) 
 def external_account_names_to_internal_account_names_list_mapping(external_account_names: list[str]) -> list[str]:
   return [ian for ean in external_account_names for ian in external_account_name_to_internal_account_names(ean)]
 
-def external_topic_names_to_internal_hooks_list_mapping(external_topic_names: list[str]) -> list[str]:
-  return [topics_big[e]["internal name"]+"_hook" for e in external_topic_names]
-
 def permissible_account_names(user_email: str) -> list[str]:
   """Note that these should be the "external" names (the short and more user-friendly ones, which map to a number of internal projects (or whatever) run by those people (or however that works).
   Note that all users are always allowed to see the aggregate of all things, as permitted by the page logic (tho not explicitly addressed in this function) largely because we don't really care."""
@@ -60,7 +57,7 @@ with st.expander("Topics..."):
   # Complicated logic just to have defaults and de/select all. Remember, the streamlit logic seems to be that the default value is overriden by user-selected values... unless the default value changes. Which makes sense, as these things go.
   # It's called an "opinion" and not a "state" because it doesn't directly mirror the state; it only changes when we need to change the state away from what the user has set. Thus, the program suddenly having an opinion about what should be selected, so to speak.
   #TODO: (urgent) whatever I did here, it's slightly wrong, because uhh sometimes when the user selects something just now and then clicks a button, the button doesn't override it. But another click of a button does it. So, I have to re-read the streamlit docs about this, because I guess my mental model (or code) is wrong.
-  topics_gigaselect_default_selected = ["biden", "border", "deadline", "murica", "faith", "commie", "control_of_congress", "scotus", "economy", "election_integrity"]
+  topics_gigaselect_default_selected = ["America", "Biden", "Border", "Communist", "Control Of Congress", "Deadline", "Economy", "Election Integrity", "Faith", "Scotus"]
   cols = st.columns(3)
   with cols[0]:
     if st.button("Select All"):
@@ -70,7 +67,7 @@ with st.expander("Topics..."):
       st.session_state["topics_gigaselect_opinion"] = {t: False for t in topics_big}
   with cols[2]:
     if st.button("Reset To Default Selection") or not st.session_state.get("topics_gigaselect_opinion"): # set the haver of opinions up by default
-      st.session_state["topics_gigaselect_opinion"] = {t: (topics_big[t]["internal name"] in topics_gigaselect_default_selected) for t in topics_big}
+      st.session_state["topics_gigaselect_opinion"] = {t: (t in topics_gigaselect_default_selected) for t in topics_big}
 
   topics_gigaselect = {}
   topic_check_cols = st.columns(len(topics_big)//14 + 1) #the items per column is chosen arbitrarily to kind of be good.
@@ -99,12 +96,12 @@ with col4:
   askgoal_string = {"Both": "true", "Hard/Medium Ask": "(GOAL = 'Fundraising' and FUNDRAISING_TYPE != 'Soft Ask)'", "Soft Ask/Listbuilding": "((GOAL = 'Fundraising' and FUNDRAISING_TYPE = 'Soft Ask') or GOAL = 'List Building')"}[askgoal]
 
 #To minimize RAM usage on the front end, most of the computation is done in the sql query, on the backend.
-topics = external_topic_names_to_internal_hooks_list_mapping(bool_dict_to_string_list(topics_gigaselect))
+topics = bool_dict_to_string_list(topics_gigaselect)
 summary_data_per_topic = sql_call(f"""
   WITH stats(topic, funds, sent, spend, project_count) AS (
     SELECT topic_tag, SUM(TV_FUNDS), SUM(SENT), SUM(SPEND_AMOUNT), COUNT(DISTINCT PROJECT_NAME)
-    FROM hook_reporting.default.gold_topic_data_array
-    CROSS JOIN LATERAL explode(concat(array("all_hook"), Topics_Array)) as t(topic_tag) -- this does, uh, the thing. it also adds the All pseudo-topic
+    FROM hook_reporting.default.gold_topic_data_array_new
+    CROSS JOIN LATERAL explode(concat(array("All"), Topics_Array)) as t(topic_tag) -- this does, uh, the thing. it also adds the All pseudo-topic
     WHERE {project_types_string} and {accounts_string} and {askgoal_string} and SEND_DATE >= CURRENT_DATE() - INTERVAL {past_days} DAY and SEND_DATE <= CURRENT_DATE() and topic_tag in {to_sql_tuple_string(topics)}
     GROUP BY topic_tag
   )
@@ -113,9 +110,9 @@ summary_data_per_topic = sql_call(f"""
 
 key_of_rows = ("Topic", "TV Funds ($)", "FPM ($)", "ROAS (%)", "Project count")
 dicted_rows = {key_of_rows[i]: [row[i] for row in summary_data_per_topic] for i, key in enumerate(key_of_rows)} #various formats probably work for this; this is just one of them.
-dicted_rows["color"] = [tb["color"] for t in dicted_rows["Topic"] for _, tb in topics_big.items() if tb["internal name"] == t.removesuffix("_hook")]
+dicted_rows["color"] = [tb["color"] for t in dicted_rows["Topic"] for name, tb in topics_big.items() if name == t]
 #COULD: set up some kind of function for these that decreases the multiplier as the max gets bigger
-fpm_max = max([val if val is not None else 0 for val in dicted_rows['FPM ($)']]) * 1.1
+fpm_max = max([val if val is not None else 0 for val in dicted_rows['FPM ($)']]) * 1.1 #TODO: fix occasional iterable error
 roas_max = max([val if val is not None else 0 for val in dicted_rows['ROAS (%)']]) * 1.05
 @st.fragment
 def malarky() -> None:
@@ -137,7 +134,7 @@ def malarky() -> None:
       if len(event['selection']['param_1']) > 0:
         selected_topics = event['selection']['param_1'][0]['Topic']
         st.header(selected_topics.title())
-        selected_topics_rows = sql_call(f"""SELECT {dev_str("account_name,")} project_name, send_date , project_type, sum(tv_funds) as tv_funds, clean_text FROM hook_reporting.default.gold_topic_data_array WHERE {project_types_string} and {accounts_string} and {askgoal_string} and SEND_DATE >= CURRENT_DATE() - INTERVAL {past_days} DAY and SEND_DATE <= CURRENT_DATE() and array_contains(topics_array, '{selected_topics}') GROUP BY {dev_str("account_name,")} project_name, send_date, project_type, clean_text""")
+        selected_topics_rows = sql_call(f"""SELECT {dev_str("account_name,")} project_name, send_date , project_type, sum(tv_funds) as tv_funds, clean_text FROM hook_reporting.default.gold_topic_data_array_new WHERE {project_types_string} and {accounts_string} and {askgoal_string} and SEND_DATE >= CURRENT_DATE() - INTERVAL {past_days} DAY and SEND_DATE <= CURRENT_DATE() and array_contains(topics_array, '{selected_topics}') GROUP BY {dev_str("account_name,")} project_name, send_date, project_type, clean_text""")
         column_names = {str(i): k for i, k in enumerate(selected_topics_rows[0].asDict())}
         st.dataframe(selected_topics_rows, column_config=column_names, use_container_width=True)
   else:
@@ -146,19 +143,18 @@ malarky()
 
 # Behold! Day (x) vs TV funds (y) line graph, per selected topic, which is what we decided was the only other important graph to keep from the old topic reporting application.
 topics = st.multiselect("Topics", topics_big, default="All", help="This control filters the below graph to only include results that have the selected topic.  If 'All' is one of the selected values, an aggregate sum of all the topics will be presented, as well.")
-topics = external_topic_names_to_internal_hooks_list_mapping(topics)
 # COULD: maybe have a radio button or something here that lets dev mode users switch between regex and contains
 search = st.text_input("Search", help="This box, if filled in, makes the below graph only include results that have text (in the clean_text or clean_email field) matching the contents of this box, case-insensitively. (If you enter text that doesn't match any text appearing anywhere then the below graph might become nonsensical.)")
 if search:
-  search_string = "(LOWER(clean_email) LIKE LOWER(CONCAT('%', :regexp, '%')) OR LOWER(clean_text) LIKE LOWER(CONCAT('%', :regexp, '%')))"
+  search_string = "(LOWER(clean_email) LIKE LOWER(CONCAT('%', :regexp, '%')) OR LOWER(clean_text) LIKE LOWER(CONCAT('%', :regexp, '%')))" #TODO: simplify this?
 else:
   search_string = "true"
 
 day_data_per_topic = sql_call(f"""
   WITH stats(date, funds, sent, spend, topic) AS (
     SELECT send_date, SUM(tv_funds), SUM(sent), SUM(spend_amount), topic_tag
-    FROM hook_reporting.default.gold_topic_data_array
-    CROSS JOIN LATERAL explode(concat(array("all_hook"), Topics_Array)) as t(topic_tag)
+    FROM hook_reporting.default.gold_topic_data_array_new
+    CROSS JOIN LATERAL explode(concat(array("All"), Topics_Array)) as t(topic_tag)
     WHERE {project_types_string} AND {accounts_string} AND topic_tag IN {to_sql_tuple_string(topics)} AND {askgoal_string} AND send_date >= NOW() - INTERVAL {past_days} DAY AND send_date < NOW() AND {search_string}
     GROUP BY send_date, topic_tag
   )
