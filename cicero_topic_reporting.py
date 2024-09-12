@@ -100,7 +100,7 @@ topics = bool_dict_to_string_list(topics_gigaselect)
 summary_data_per_topic = sql_call(f"""
   WITH stats(topic, funds, sent, spend, project_count) AS (
     SELECT topic_tag, SUM(TV_FUNDS), SUM(SENT), SUM(SPEND_AMOUNT), COUNT(DISTINCT PROJECT_NAME)
-    FROM hook_reporting.default.gold_topic_data_array_new
+    FROM topic_reporting.default.gold_topic_data_array
     CROSS JOIN LATERAL explode(concat(array("All"), Topics_Array)) as t(topic_tag) -- this does, uh, the thing. it also adds the All pseudo-topic
     WHERE {project_types_string} and {accounts_string} and {askgoal_string} and SEND_DATE >= CURRENT_DATE() - INTERVAL {past_days} DAY and SEND_DATE <= CURRENT_DATE() and topic_tag in {to_sql_tuple_string(topics)}
     GROUP BY topic_tag
@@ -134,7 +134,7 @@ def malarky() -> None:
       if len(event['selection']['param_1']) > 0:
         selected_topics = event['selection']['param_1'][0]['Topic']
         st.header(selected_topics.title())
-        selected_topics_rows = sql_call(f"""SELECT {dev_str("account_name,")} project_name, send_date , project_type, sum(tv_funds) as tv_funds, clean_text FROM hook_reporting.default.gold_topic_data_array_new WHERE {project_types_string} and {accounts_string} and {askgoal_string} and SEND_DATE >= CURRENT_DATE() - INTERVAL {past_days} DAY and SEND_DATE <= CURRENT_DATE() and array_contains(topics_array, '{selected_topics}') GROUP BY {dev_str("account_name,")} project_name, send_date, project_type, clean_text""")
+        selected_topics_rows = sql_call(f"""SELECT {dev_str("account_name,")} project_name, send_date , project_type, sum(tv_funds) as tv_funds, clean_text FROM topic_reporting.default.gold_topic_data_array WHERE {project_types_string} and {accounts_string} and {askgoal_string} and SEND_DATE >= CURRENT_DATE() - INTERVAL {past_days} DAY and SEND_DATE <= CURRENT_DATE() and array_contains(topics_array, '{selected_topics}') GROUP BY {dev_str("account_name,")} project_name, send_date, project_type, clean_text""")
         column_names = {str(i): k for i, k in enumerate(selected_topics_rows[0].asDict())}
         st.dataframe(selected_topics_rows, column_config=column_names, use_container_width=True)
   else:
@@ -153,7 +153,7 @@ else:
 day_data_per_topic = sql_call(f"""
   WITH stats(date, funds, sent, spend, topic) AS (
     SELECT send_date, SUM(tv_funds), SUM(sent), SUM(spend_amount), topic_tag
-    FROM hook_reporting.default.gold_topic_data_array_new
+    FROM topic_reporting.default.gold_topic_data_array
     CROSS JOIN LATERAL explode(concat(array("All"), Topics_Array)) as t(topic_tag)
     WHERE {project_types_string} AND {accounts_string} AND topic_tag IN {to_sql_tuple_string(topics)} AND {askgoal_string} AND send_date >= NOW() - INTERVAL {past_days} DAY AND send_date < NOW() AND {search_string}
     GROUP BY send_date, topic_tag
