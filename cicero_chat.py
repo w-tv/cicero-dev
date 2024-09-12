@@ -7,7 +7,7 @@ from streamlit.runtime.uploaded_file_manager import UploadedFile
 from datetime import datetime, timedelta
 import time
 from databricks_genai_inference import ChatSession, FoundationModelAPIException
-from cicero_shared import catstr, consul_show, is_dev, ssget, ssset, ssmut, sspop, get_base_url, popup, load_account_names, sql_call
+from cicero_shared import catstr, is_dev, ssget, ssset, ssmut, sspop, get_base_url, popup, load_account_names, sql_call
 from cicero_types import Short_Model_Name, short_model_names, short_model_name_default, short_model_name_to_long_model_name
 import bs4, requests, re # for some reason bs4 is how you import beautifulsoup smh smh
 from pathlib import Path

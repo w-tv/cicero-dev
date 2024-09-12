@@ -10,6 +10,9 @@ from streamlit import runtime
 from typing import Any, Callable, NoReturn, TypedDict
 import urllib.parse
 
+def labeled_table(rows: list[Row]) -> None:
+  st.table([x.asDict() for x in rows]) # for some reason, the asDict puts it in the right form to display the column headers. # possibly a streamlit-bug-workaround, although I've never looked into it.
+
 def catstr(*strables: object) -> str:
   """Not to be confused with its C-language cousin, `strcat()`."""
   return "".join([str(x) for x in strables])
