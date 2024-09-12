@@ -9,6 +9,8 @@ List of derived quantities, left to right (does not include "topic", which is al
   Result_Count: Count Distinct of Result Name
 
   (Since FPM is Funds per mille, I think the symbol should be $‰, but Alex nixed this idea.) TODO: float this idea to others once Alex is gone.
+  
+  “The enemy is within the gates; it is with our own luxury, our own folly, our own criminality that we have to contend.” —Cicero
 """
 import streamlit as st
 from typing import Sequence
