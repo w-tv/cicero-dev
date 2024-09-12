@@ -1,5 +1,5 @@
 #!/usr/bin/env -S streamlit run
-"""This page performs a peculiar task known as "topic reporting", which is basically just summary statistics about various topic keywords.
+"""This page performs a peculiar task known as "topic reporting", which is basically just summary statistics about various topic keywords. To minimize RAM usage on the front end, most of the computation & filtering is done in the sql query, on the backend (nb: this is how SQL is supposed to be used).
 
 List of derived quantities, left to right (does not include "topic", which is also there, but not derived per se):
   TV Funds: SUM of TV Funds
@@ -8,7 +8,7 @@ List of derived quantities, left to right (does not include "topic", which is al
   Sent: SUM of Sent
   Result_Count: Count Distinct of Result Name
 
-  (Since FPM is Funds per mille, I think the symbol should be $‰, but Alex nixed this idea.)
+  (Since FPM is Funds per mille, I think the symbol should be $‰, but Alex nixed this idea.) TODO: float this idea to others once Alex is gone.
 """
 import streamlit as st
 from typing import Sequence
@@ -47,16 +47,16 @@ def permissible_account_names(user_email: str) -> list[str]:
   """Note that these should be the "external" names (the short and more user-friendly ones, which map to a number of internal projects (or whatever) run by those people (or however that works).
   Note that all users are always allowed to see the aggregate of all things, as permitted by the page logic (tho not explicitly addressed in this function) largely because we don't really care."""
   result = sql_call("FROM cicero.ref_tables.user_pods SELECT user_permitted_to_see_these_accounts_in_topic_reporting WHERE user_email = :user_email", locals())[0][0]
-  return [r for r in result if isinstance(r, str)] if result is not None else [] # Unfortunately, it could be None, and thus not iterable, and the typechecker is no help here (since the database read loses type information).
+  return [r for r in result if isinstance(r, str)] if result is not None else [] # Unfortunately, it could be None, and thus not iterable, and the typechecker is no help here (since the database read loses type information). So, we have to do this awkward little dance.
 
 def lowalph(s: str) -> str:
-  """Given a string, return only its alphabetical characters, lowercased. This is especially useful when trying to string compare things that might have different punctuation. In our case, often en dashes vs hpyhens."""
+  """Given a string, return only its alphabetical characters, lowercased. This is especially useful when trying to string compare things that might have different punctuation. In our case, often en dashes vs hyphens."""
   return ''.join(filter(str.isalpha, s)).lower()
 
 with st.expander("Topics..."):
   # Complicated logic just to have defaults and de/select all. Remember, the streamlit logic seems to be that the default value is overriden by user-selected values... unless the default value changes. Which makes sense, as these things go.
   # It's called an "opinion" and not a "state" because it doesn't directly mirror the state; it only changes when we need to change the state away from what the user has set. Thus, the program suddenly having an opinion about what should be selected, so to speak.
-  #TODO: (urgent) whatever I did here, it's slightly wrong, because uhh sometimes when the user selects something just now and then clicks a button, the button doesn't override it. But another click of a button does it. So, I have to re-read the streamlit docs about this, because I guess my mental model (or code) is wrong.
+  #TODO: (semi-urgent) whatever I did here, it's slightly wrong, because uhh sometimes when the user selects something just now and then clicks a button, the button doesn't override it. But another click of a button does it. So, I have to re-read the streamlit docs about this, because I guess my mental model (or code) is wrong.
   topics_gigaselect_default_selected = ["America", "Biden", "Border", "Communist", "Control Of Congress", "Deadline", "Economy", "Election Integrity", "Faith", "Scotus"]
   cols = st.columns(3)
   with cols[0]:
@@ -95,7 +95,6 @@ with col4:
   askgoal = "Both" if len(askgoals)!=1 else askgoals[0] #We take a little shortcut here because both is the same as none in this one case.
   askgoal_string = {"Both": "true", "Hard/Medium Ask": "(GOAL = 'Fundraising' and FUNDRAISING_TYPE != 'Soft Ask)'", "Soft Ask/Listbuilding": "((GOAL = 'Fundraising' and FUNDRAISING_TYPE = 'Soft Ask') or GOAL = 'List Building')"}[askgoal]
 
-#To minimize RAM usage on the front end, most of the computation is done in the sql query, on the backend.
 topics = bool_dict_to_string_list(topics_gigaselect)
 summary_data_per_topic = sql_call(f"""
   WITH stats(topic, funds, sent, spend, project_count) AS (
@@ -112,7 +111,7 @@ key_of_rows = ("Topic", "TV Funds ($)", "FPM ($)", "ROAS (%)", "Project count")
 dicted_rows = {key_of_rows[i]: [row[i] for row in summary_data_per_topic] for i, key in enumerate(key_of_rows)} #various formats probably work for this; this is just one of them.
 dicted_rows["color"] = [tb["color"] for t in dicted_rows["Topic"] for name, tb in topics_big.items() if name == t]
 #COULD: set up some kind of function for these that decreases the multiplier as the max gets bigger
-fpm_max = max([val if val is not None else 0 for val in dicted_rows['FPM ($)']]) * 1.1 #TODO: fix occasional iterable error
+fpm_max = max([val if val is not None else 0 for val in dicted_rows['FPM ($)']]) * 1.1 #TODO: fix iterable empty error here that occurs when you deselect all
 roas_max = max([val if val is not None else 0 for val in dicted_rows['ROAS (%)']]) * 1.05
 @st.fragment
 def malarky() -> None:
@@ -125,7 +124,7 @@ def malarky() -> None:
         alt.X("ROAS (%)", scale=alt.Scale(domain=(0, roas_max))),
         alt.Y("FPM ($)", scale=alt.Scale(domain=(0, fpm_max))),
         alt.Color("Topic", scale=alt.Scale(domain=dicted_rows["Topic"], range=dicted_rows["color"]), legend=None), #todo: I don't think the current legend displays all the values, if more than about 13, because the text box for it is too small ¯\_(ツ)_/¯
-        alt.Size(field="Project count", scale=alt.Scale(range=[150, 500]), legend=alt.Legend(title='Project Count', symbolFillColor='red', symbolStrokeColor='red')), #TODO: add a new column to dicted_rows to generate this legend, the thing is i want this to be dynamic, so we'll talk.
+        alt.Size(field="Project count", scale=alt.Scale(range=[150, 500]), legend=alt.Legend(title='Project Count', symbolFillColor='red', symbolStrokeColor='red')),
         opacity = alt.condition(single, alt.value(1.0), alt.value(0.4)),
         tooltip=key_of_rows
       ).add_params( single )
@@ -141,7 +140,7 @@ def malarky() -> None:
     st.info("No data points are selected by the values indicated by the controls. Therefore, there is nothing to graph. Please broaden your criteria.")
 malarky()
 
-# Behold! Day (x) vs TV funds (y) line graph, per selected topic, which is what we decided was the only other important graph to keep from the old topic reporting application.
+# Behold! Day (x) vs TV funds / FPM / ROAS (y) line graphs, per selected topic
 topics = st.multiselect("Topics", topics_big, default="All", help="This control filters the below graph to only include results that have the selected topic.  If 'All' is one of the selected values, an aggregate sum of all the topics will be presented, as well.")
 # COULD: maybe have a radio button or something here that lets dev mode users switch between regex and contains
 search = st.text_input("Search", help="This box, if filled in, makes the below graph only include results that have text (in the clean_text or clean_email field) matching the contents of this box, case-insensitively. (If you enter text that doesn't match any text appearing anywhere then the below graph might become nonsensical.)")
@@ -169,46 +168,26 @@ if len(day_data_per_topic):
   fpm_df = pd.DataFrame([(row[0], row[2], row[4]) for row in day_data_per_topic], columns=['Day', 'FPM ($)', 'Topic'])
   roas_df = pd.DataFrame([(row[0], row[3], row[4]) for row in day_data_per_topic], columns=['Day', 'ROAS (%)', 'Topic'])
 
-  tv_funds_chart = (
-    alt.Chart(data=tv_funds_df)
-    .mark_line(size=5)
-    .encode(
-      alt.X("Day"),
-      alt.Y("TV Funds ($)"),
-      alt.Color("Topic", legend=None)
-      )
+  tv_funds_chart = alt.Chart(data=tv_funds_df).mark_line(size=5).encode(
+    alt.X("Day"),
+    alt.Y("TV Funds ($)"),
+    alt.Color("Topic", legend=None)
   )
 
-  fpm_chart = (
-    alt.Chart(data=fpm_df)
-    .mark_line(size=5)
-    .encode(
-      alt.X("Day"),
-      alt.Y("FPM ($)"),
-      alt.Color("Topic", legend=None)
-      )
+  fpm_chart = alt.Chart(data=fpm_df).mark_line(size=5).encode(
+    alt.X("Day"),
+    alt.Y("FPM ($)"),
+    alt.Color("Topic", legend=None)
   )
 
-  roas_chart = (
-    alt.Chart(data=roas_df)
-    .mark_line(size=5)
-    .encode(
-      alt.X("Day"),
-      alt.Y("ROAS (%)"),
-      alt.Color("Topic", legend=None)
-      )
+  roas_chart = alt.Chart(data=roas_df).mark_line(size=5).encode(
+    alt.X("Day"),
+    alt.Y("ROAS (%)"),
+    alt.Color("Topic", legend=None)
   )
 
   st.altair_chart(tv_funds_chart, use_container_width=True)
   st.altair_chart(fpm_chart, use_container_width=True)
   st.altair_chart(roas_chart, use_container_width=True)
-
-  # tv_funds_graph = [(row[0], row[1], row[4]) for row in day_data_per_topic] # a list of tuples
-  # fpm_graph = [(row[0], row[2], row[4]) for row in day_data_per_topic]
-  # roas_graph = [(row[0], row[3], row[4]) for row in day_data_per_topic]
-
-  # st.line_chart(to_graphable_dict(fpm_graph, "Day", "FPM ($)", "Topic"), x='Day', y='FPM ($)', color='Topic', height=500) #COULD: make colors match above. Not sure if it's important.
-  # st.line_chart(to_graphable_dict(roas_graph, "Day", "ROAS (%)", "Topic"), x='Day', y='ROAS (%)', color='Topic', height=500)
-  # st.line_chart(to_graphable_dict(tv_funds_graph, "Day", "TV Funds ($)", "Topic"), x='Day', y='TV Funds ($)', color='Topic', height=500)
 else:
   st.info("No data points are selected by the values indicated by the controls. Therefore, there is nothing to graph. Please broaden your criteria.")
