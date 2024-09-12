@@ -146,20 +146,23 @@ topics = st.multiselect("Topics", topics_big, default="All", help="This control 
 # COULD: maybe have a radio button or something here that lets dev mode users switch between regex and contains
 search = st.text_input("Search", help="This box, if filled in, makes the below graph only include results that have text (in the clean_text or clean_email field) matching the contents of this box, case-insensitively. (If you enter text that doesn't match any text appearing anywhere then the below graph might become nonsensical.)")
 if search:
-  search_string = "(LOWER(clean_email) LIKE LOWER(CONCAT('%', :regexp, '%')) OR LOWER(clean_text) LIKE LOWER(CONCAT('%', :regexp, '%')))" #TODO: simplify this?
+  search_string = "(LOWER(clean_email) LIKE LOWER(CONCAT('%', :regexp, '%')) OR LOWER(clean_text) LIKE LOWER(CONCAT('%', :regexp, '%')))"
 else:
   search_string = "true"
 
-day_data_per_topic = sql_call(f"""
-  WITH stats(date, funds, sent, spend, topic) AS (
-    SELECT send_date, SUM(tv_funds), SUM(sent), SUM(spend_amount), topic_tag
-    FROM topic_reporting.default.gold_topic_data_array
-    CROSS JOIN LATERAL explode(concat(array("All"), Topics_Array)) as t(topic_tag)
-    WHERE {project_types_string} AND {accounts_string} AND topic_tag IN {to_sql_tuple_string(topics)} AND {askgoal_string} AND send_date >= NOW() - INTERVAL {past_days} DAY AND send_date < NOW() AND {search_string}
-    GROUP BY send_date, topic_tag
-  )
-  SELECT date, funds, CAST( TRY_DIVIDE(funds, sent)*1000*100 as INT )/100, CAST( TRY_DIVIDE(funds, spend)*100 as INT ), topic FROM stats
-""")
+day_data_per_topic = sql_call(
+  f"""
+    WITH stats(date, funds, sent, spend, topic) AS (
+      SELECT send_date, SUM(tv_funds), SUM(sent), SUM(spend_amount), topic_tag
+      FROM topic_reporting.default.gold_topic_data_array
+      CROSS JOIN LATERAL explode(concat(array("All"), Topics_Array)) as t(topic_tag)
+      WHERE {project_types_string} AND {accounts_string} AND topic_tag IN {to_sql_tuple_string(topics)} AND {askgoal_string} AND send_date >= NOW() - INTERVAL {past_days} DAY AND send_date < NOW() AND {search_string}
+      GROUP BY send_date, topic_tag
+    )
+    SELECT date, funds, CAST( TRY_DIVIDE(funds, sent)*1000*100 as INT )/100, CAST( TRY_DIVIDE(funds, spend)*100 as INT ), topic FROM stats
+  """,
+  {"regexp": search}
+)
 
 if len(day_data_per_topic):
   tv_funds_df = pd.DataFrame([(row[0], row[1], row[4]) for row in day_data_per_topic], columns=['Day', 'TV Funds ($)', 'Topic'])
