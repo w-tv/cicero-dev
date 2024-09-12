@@ -97,3 +97,5 @@ And remember: the first thing to do is get the best of both worlds. You can!
 ## Footnotes
 
 ¹ Scholars debate whether the i in Cicero's name would have been pronounced like the i in igloo or the ee in eek. Personally, I find the ee idea more plausible. However, all scholars agree that the Cs in Cicero's name are pronounced like Ks. In contrast, the conventional english name for Cicero is pronounced as though they were Ss. All of these variations may acceptably be used to refer to this project.
+
+And for any future developers: Alex Chang made this!
