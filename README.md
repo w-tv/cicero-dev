@@ -6,7 +6,7 @@
 >
 > —Cicero
 
-Cicero (pronounced "KICKer owe"¹) is an app we built using, and currently hosted by, streamlit; it's a frontend that we use to construct and send prompts to our backend. It should hopefully be easy to use for an end-user who doesn't know much about technology but is familiar with this industry. It's currently available on https://cicero.streamlit.app/ although this may not be true later.
+Cicero (pronounced "KICKer owe"¹) is an app we built² using, and currently hosted by, streamlit; it's a frontend that we use to construct and send prompts to our backend. It should hopefully be easy to use for an end-user who doesn't know much about technology but is familiar with this industry. It's currently available on https://cicero.streamlit.app/ although this may not be true later.
 
 UPDATE/TODO: we should add a section to this document explaining cicero.targetedvictory.com and cicero-dev.targetedvictory.com; the trgdv-msvc stuff; the secrets in the secrets-toml (and how you need to ask SMC to get added to the list of people who can view and edit the secrets); how you have to ask Maxwell Oppong to add people to okta app access so they can get there; and maybe how the docker file works; and maybe all the knowledge transfer stuff Sean talked about in the recorded meeting; and, once it settles, all the different branches and repos we keep track of, and how the deploys to tv.com are so long that if you deploy to tv prod during business hours this causes people random errors ("This page does not exist, redirecting you to the main page" or something like that) for like the following hour. Don't deploy to prod during business hours 9am-5pm ET (unless there's a crucial error in prod and someone asks you to); push to prod on like thursdays after work, usually.
 
@@ -98,4 +98,4 @@ And remember: the first thing to do is get the best of both worlds. You can!
 
 ¹ Scholars debate whether the i in Cicero's name would have been pronounced like the i in igloo or the ee in eek. Personally, I find the ee idea more plausible. However, all scholars agree that the Cs in Cicero's name are pronounced like Ks. In contrast, the conventional english name for Cicero is pronounced as though they were Ss. All of these variations may acceptably be used to refer to this project.
 
-And for any future developers: Alex Chang made this!
+² And for any future developers: Alex Chang worked on this project!
