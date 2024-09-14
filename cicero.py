@@ -95,8 +95,8 @@ with Profiler():
         Time to display: {(perf_counter_ns()-nanoseconds_base)/1000/1000/1000} seconds.<br>
         Python version: {platform.python_version()}<br>
         Streamlit version: {st.__version__}<br>
-        Cicero version (git HEAD hash) on disk on startup: {ssget("git_head_hash_on_startup")}<br>
-        Cicero version (git HEAD hash) currently on disk: {get_git_head_hash()}<br>
+        Cicero version (git HEAD hash) on disk on startup: `{ssget("git_head_hash_on_startup")}`<br>
+        Cicero version (git HEAD hash) currently on disk: `{get_git_head_hash()}`<br>
         Base url: {get_base_url()}
       """, unsafe_allow_html=True)
       st.button("disable Developer Mode", on_click=disable_developer_mode, help="Click this button to disable developer mode, allowing you to see and interact with the app as a basic user would. You can refresh the page in your browser to re-enable developer mode.") #this is a callback for streamlit ui update-flow reasons.
