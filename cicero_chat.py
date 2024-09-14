@@ -110,7 +110,7 @@ def grow_chat(streamlit_key_suffix: str = "", alternate_content: str|UploadedFil
         """,
         {"account": account}
       )
-      sys_prompt += " Here are some example texts from the client; use them as inspiration but do not copy them directly nor mention their existence:" + ' | '.join(row[0] for row in texts_from_account)
+      sys_prompt += " Here are some example texts from the client; use them as inspiration but do not copy them directly nor mention their existence: " + ' | '.join(row[0] for row in texts_from_account)
   if not ssget("chat", streamlit_key_suffix):
     ssset( "chat", streamlit_key_suffix, ChatSession(model=short_model_name_to_long_model_name(short_model_name), system_message=sys_prompt, max_tokens=4096) ) # Keep in mind that unless DATABRICKS_HOST and DATABRICKS_TOKEN are in the environment (streamlit does this with secret value by default), then this line of code will fail with an extremely cryptic error asking you to run this program with a `setup` command line argument (which won't do anything)
   chat = st.session_state.chat[streamlit_key_suffix] # Note that, as an object reference, updating and accessing chat will continue to update and access the same object.
@@ -203,10 +203,10 @@ def grow_chat(streamlit_key_suffix: str = "", alternate_content: str|UploadedFil
           raise e
 
 def reset_chat(streamlit_key_suffix: str = "") -> None:
-  ssset("chat", streamlit_key_suffix, None)
-  ssset("messages", "streamlit_key_suffix", None)
-  ssset("outstanding_activity_log_payload", streamlit_key_suffix, None) # Don't force the user to up/down the cleared message if they reset the chat.
-  ssset("outstanding_activity_log_payload2", streamlit_key_suffix, None)
+  sspop("chat", streamlit_key_suffix)
+  sspop("messages", streamlit_key_suffix)
+  sspop("outstanding_activity_log_payload", streamlit_key_suffix) # Don't force the user to up/down the cleared message if they reset the chat.
+  sspop("outstanding_activity_log_payload2", streamlit_key_suffix)
 
 def cicero_feedback_widget(streamlit_key_suffix: str, feedback_suffix: str, feedback_message: str) -> None:
   """ '' is the feedback suffix we started with, so probably the one you want to use.
