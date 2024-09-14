@@ -31,6 +31,7 @@ def to_sql_tuple_string(x: Sequence[str]) -> str:
 def bool_dict_to_string_list(dict_of_strings_to_bool: dict[str, bool]) -> list[str]:
   return [s for s, value in dict_of_strings_to_bool.items() if value]
 
+#TODO: I think the implementation of whatever functions we call has change, such that we could potentially refactor this out.
 def to_graphable_dict[T](values: Sequence[Sequence[T]], x:str='x', y:str='y', color:str='color') -> list[dict[str, T]]:
   if len(values) == 3: #it's a 3-list of n-lists
     return [{x: values[0][i], y:values[1][i], color:values[2][i]} for i, _ in enumerate(values[0])]
@@ -170,19 +171,19 @@ if len(day_data_per_topic):
   fpm_df = pd.DataFrame([(row[0], row[2], row[4]) for row in day_data_per_topic], columns=['Day', 'FPM ($)', 'Topic'])
   roas_df = pd.DataFrame([(row[0], row[3], row[4]) for row in day_data_per_topic], columns=['Day', 'ROAS (%)', 'Topic'])
 
-  tv_funds_chart = alt.Chart(data=tv_funds_df).mark_line(size=5).encode(
+  tv_funds_chart = alt.Chart(data=tv_funds_df).mark_line(size=2, point=True).encode(
     alt.X("Day"),
     alt.Y("TV Funds ($)"),
     alt.Color("Topic", legend=None)
   )
 
-  fpm_chart = alt.Chart(data=fpm_df).mark_line(size=5).encode(
+  fpm_chart = alt.Chart(data=fpm_df).mark_line(size=2, point=True).encode(
     alt.X("Day"),
     alt.Y("FPM ($)"),
     alt.Color("Topic", legend=None)
   )
 
-  roas_chart = alt.Chart(data=roas_df).mark_line(size=5).encode(
+  roas_chart = alt.Chart(data=roas_df).mark_line(size=2, point=True).encode(
     alt.X("Day"),
     alt.Y("ROAS (%)"),
     alt.Color("Topic", legend=None)
