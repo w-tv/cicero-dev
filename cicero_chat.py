@@ -7,7 +7,7 @@ from streamlit.runtime.uploaded_file_manager import UploadedFile
 from datetime import datetime, timedelta
 import time
 from databricks_genai_inference import ChatSession, FoundationModelAPIException
-from cicero_shared import catstr, is_dev, ssget, ssset, ssmut, sspop, get_base_url, popup, load_account_names, sql_call, sql_call_cacheless
+from cicero_shared import catstr, is_dev, ssget, ssset, ssmut, sspop, get_base_url, popup, load_account_names, sql_call_cacheless
 from cicero_types import Short_Model_Name, short_model_names, short_model_name_default, short_model_name_to_long_model_name
 import bs4, requests, re # for some reason bs4 is how you import beautifulsoup smh smh
 from pathlib import Path
@@ -262,10 +262,12 @@ def main(streamlit_key_suffix: str = "") -> None: # It's convenient to import ci
     account = st.selectbox("Account (required)", load_account_names(), key="account") if streamlit_key_suffix!="_corporate" else None
     if account != None:
       texts_from_account = sql_call_cacheless(
-        f"""WITH t AS ( -- first (conceptually first) we need to actually get the data, because we can't just tablesample on a query directly I guess idk why not
-          SELECT DISTINCT clean_text FROM cicero.text_data.gold_text_outputs WHERE client_name = '{account}'
-        ) SELECT * FROM t TABLESAMPLE (100 PERCENT) LIMIT 5 -- tablesample randomizes, then the limit 5 is taken; see https://docs.databricks.com/en/sql/language-manual/sql-ref-syntax-qry-select-sampling.html for more info (like why we can't just use (5 ROWS) (not random) (at least as of 2024-09-14)
         """
+          WITH t AS ( -- first (conceptually first) we need to actually get the data, because we can't just tablesample on a query directly I guess idk why not
+            SELECT DISTINCT clean_text FROM cicero.text_data.gold_text_outputs WHERE client_name = :account
+          ) SELECT * FROM t TABLESAMPLE (100 PERCENT) LIMIT 5 -- tablesample randomizes, then the limit 5 is taken; see https://docs.databricks.com/en/sql/language-manual/sql-ref-syntax-qry-select-sampling.html for more info (like why we can't just use (5 ROWS) (not random) (at least as of 2024-09-14)
+        """,
+        {"account": account}
       )
       texts_from_account_list = []
       for row in texts_from_account:
