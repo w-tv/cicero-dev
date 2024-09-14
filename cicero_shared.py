@@ -144,12 +144,12 @@ def assert_always(x: object, message_to_assert: str|None = None) -> None | NoRet
     raise AssertionError(message_to_assert or x)
   return None
 
-# This is the 'big' of topics, the authoritative record of various facts and mappings about topics.
+# This is the 'big' of topics, the authoritative record of various facts and mappings about topics. "All" is added bespoke because it's not in the Cicero data #TODO: ...yet? could add that, and also the "Other" topic into the data, if we like.
 Topics_Big_Payload = TypedDict("Topics_Big_Payload", {'color': str, 'show in prompter?': bool})
 topics_big: dict[str, Topics_Big_Payload] = (
-  {"All":{ "color":"#61A5A2", "show in prompter?": False}} # This is added bespoke because it's not in the Cicero data #TODO: ...yet? could add this, and also the "Other" topic into the data, if we like.
+  {"All": Topics_Big_Payload({"color": "#61A5A2", "show in prompter?": False})}
   | # dict-combining operator
-  {name: {"color":color, "show in prompter?": visible_frontend}
+  {name: Topics_Big_Payload({"color":color, "show in prompter?": visible_frontend})
   for name, color, visible_frontend
   in sql_call_cacheless('SELECT tag_name, color, visible_frontend FROM cicero.ref_tables.ref_tags_new WHERE tag_type == "Topic" AND enabled ORDER BY tag_name ASC')}
 )
