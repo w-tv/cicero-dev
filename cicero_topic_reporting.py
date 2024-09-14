@@ -168,11 +168,14 @@ day_data_per_topic = sql_call(
 
 if len(day_data_per_topic):
   def display_per_day_graph(index: int, dependent_variable_name: str) -> None:
+    """Note that this has undeclared dependenies on day_data_per_topic and topics, variable made above."""
     df = pd.DataFrame([(row[0], row[index], row[4]) for row in day_data_per_topic], columns=['Day', dependent_variable_name, 'Topic'])
+    color_domain = topics
+    color_range = [topics_big[c]["color"] for c in color_domain]
     chart = alt.Chart(data=df).mark_line(size=2, point=True).encode(
       alt.X("Day"),
       alt.Y(dependent_variable_name),
-      alt.Color("Topic", legend=None).scale(domain=topics_big.keys(), range=[v["color"] for v in topics_big.values()])
+      alt.Color("Topic").scale(domain=color_domain, range=color_range)
     )
     st.altair_chart(chart, use_container_width=True)
   display_per_day_graph(1, 'TV Funds ($)')
