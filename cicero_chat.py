@@ -101,6 +101,16 @@ def grow_chat(streamlit_key_suffix: str = "", alternate_content: str|UploadedFil
     sys_prompt = "You are a helpful, expert marketer. Do not mention that you are a helpful, expert marketer."+" The system interfacing you can expand links into document contents, after the user enters them but before you see them; but do not mention this unless it is relevant."
   else:
     sys_prompt = "You are an expert copywriter who specializes in writing fundraising and engagement texts and emails for conservative political candidates in the United States of America. Make sure all messages are in English. Be direct with your responses, and avoid extraneous messages like 'Hello!' and 'I hope this helps!'. These text messages and emails tend to be more punchy and engaging than normal marketing material. Focus on these five fundraising elements when writing content: the Hook, Urgency, Agency, Stakes, and the Call to Action (CTA). Do not make up facts or statistics. Do not mention that you are a helpful, expert copywriter. Do not use emojis or hashtags in your messages. Make sure each written message is unique. Write the exact number of messages asked for."
+    if account is not None:
+      texts_from_account = sql_call_cacheless(
+        """
+          WITH t AS ( -- first (conceptually first) we need to actually get the data, because we can't just tablesample on a query directly I guess idk why not
+            SELECT DISTINCT clean_text FROM cicero.text_data.gold_text_outputs WHERE client_name = :account
+          ) SELECT * FROM t TABLESAMPLE (100 PERCENT) LIMIT 5 -- tablesample randomizes, then the limit 5 is taken; see https://docs.databricks.com/en/sql/language-manual/sql-ref-syntax-qry-select-sampling.html for more info (like why we can't just use (5 ROWS) (not random) (at least as of 2024-09-14)
+        """,
+        {"account": account}
+      )
+      sys_prompt += " Here are some example texts from the client; use them as inspiration but do not copy them directly nor mention their existence:" + ' | '.join(row[0] for row in texts_from_account)
   if not ssget("chat", streamlit_key_suffix):
     ssset( "chat", streamlit_key_suffix, ChatSession(model=short_model_name_to_long_model_name(short_model_name), system_message=sys_prompt, max_tokens=4096) ) # Keep in mind that unless DATABRICKS_HOST and DATABRICKS_TOKEN are in the environment (streamlit does this with secret value by default), then this line of code will fail with an extremely cryptic error asking you to run this program with a `setup` command line argument (which won't do anything)
   chat = st.session_state.chat[streamlit_key_suffix] # Note that, as an object reference, updating and accessing chat will continue to update and access the same object.
@@ -260,21 +270,6 @@ def main(streamlit_key_suffix: str = "") -> None: # It's convenient to import ci
   account = st.text_input("Account") if streamlit_key_suffix=="_corporate" else None
   if is_dev():
     account = st.selectbox("Account (required)", load_account_names(), key="account") if streamlit_key_suffix!="_corporate" else None
-    if account != None:
-      texts_from_account = sql_call_cacheless(
-        """
-          WITH t AS ( -- first (conceptually first) we need to actually get the data, because we can't just tablesample on a query directly I guess idk why not
-            SELECT DISTINCT clean_text FROM cicero.text_data.gold_text_outputs WHERE client_name = :account
-          ) SELECT * FROM t TABLESAMPLE (100 PERCENT) LIMIT 5 -- tablesample randomizes, then the limit 5 is taken; see https://docs.databricks.com/en/sql/language-manual/sql-ref-syntax-qry-select-sampling.html for more info (like why we can't just use (5 ROWS) (not random) (at least as of 2024-09-14)
-        """,
-        {"account": account}
-      )
-      texts_from_account_list = []
-      for row in texts_from_account:
-        texts_from_account_list.append(row[0])
-      texts_from_account_str = ' | '.join(texts_from_account_list)
-      st.write(texts_from_account_str)
-    # TODO: get the clean texts into the prompt, and edit the prompt such that its like, hey here are some references texts to look at
     uploaded_file = st.file_uploader(label="Upload a file", type=['csv', 'docx', 'html', 'txt', 'xls', 'xlsx'], accept_multiple_files=False)
     if uploaded_file is not None and not ssget("chat_file_uploader"):
       ssmut(lambda x: x+1 if x else 1, "chat_file_uploader")
