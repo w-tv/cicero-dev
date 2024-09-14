@@ -79,7 +79,6 @@ with Profiler():
       pages += [ st.Page(lambda: cicero_chat("_corporate"), title="💼 Chat with Cicero", url_path="chat_with_cicero_corporate") ]
   if is_dev():
     pages += [
-      st.Page("cicero_tr_refactor.py", title="📈 Refactor"),
       st.Page("cicero_response_lookup.py", title="🔍 Response Lookup"),
       st.Page("cicero_pod_key.py", title="🫛 Pod Key"),
       st.Page("cicero_activity_looker.py", title="👁️ Activity Looker"),
