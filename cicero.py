@@ -16,6 +16,10 @@ from google.oauth2 import id_token
 from wfork_streamlit_profiler import Profiler
 from datetime import datetime
 
+if not ssget("git_head_hash"):
+  # The idea is that we set this only once until the program completely resets, so that the version of Cicero that is active in RAM won't read the wrong version off of the disk storage (thereby ruining the entire point of displaying the head hash value), which may or may not have been the cause of a problem we were running into. (Note that during local development the active code won't match the head hash anyway, since it's running from the working tree, instead; but that doesn't matter.)
+  ssset( "git_head_hash", open(".git/refs/heads/master", "r").read()[:7] )
+
 with Profiler():
   st.set_page_config(layout="wide", page_title="Cicero", page_icon=r"assets/CiceroLogo_Favicon.png") # Use wide mode in Cicero, mostly so that results display more of their text by default. Also, set title and favicon. #NOTE: "`set_page_config()` can only be called once per app page, and must be called as the first Streamlit command in your script."
 
@@ -88,7 +92,7 @@ with Profiler():
         Time to display: {(perf_counter_ns()-nanoseconds_base)/1000/1000/1000} seconds.<br>
         Python version: {platform.python_version()}<br>
         Streamlit version: {st.__version__}<br>
-        Cicero version (git HEAD hash): {open(".git/refs/heads/master", "r").read()[:7]}<br>
+        Cicero version (git HEAD hash): {ssget("git_head_hash")}<br>
         Base url: {get_base_url()}
       """, unsafe_allow_html=True)
       st.button("disable Developer Mode", on_click=disable_developer_mode, help="Click this button to disable developer mode, allowing you to see and interact with the app as a basic user would. You can refresh the page in your browser to re-enable developer mode.") #this is a callback for streamlit ui update-flow reasons.
