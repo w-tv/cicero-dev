@@ -167,30 +167,16 @@ day_data_per_topic = sql_call(
 )
 
 if len(day_data_per_topic):
-  tv_funds_df = pd.DataFrame([(row[0], row[1], row[4]) for row in day_data_per_topic], columns=['Day', 'TV Funds ($)', 'Topic'])
-  fpm_df = pd.DataFrame([(row[0], row[2], row[4]) for row in day_data_per_topic], columns=['Day', 'FPM ($)', 'Topic'])
-  roas_df = pd.DataFrame([(row[0], row[3], row[4]) for row in day_data_per_topic], columns=['Day', 'ROAS (%)', 'Topic'])
-
-  tv_funds_chart = alt.Chart(data=tv_funds_df).mark_line(size=2, point=True).encode(
-    alt.X("Day"),
-    alt.Y("TV Funds ($)"),
-    alt.Color("Topic", legend=None)
-  )
-
-  fpm_chart = alt.Chart(data=fpm_df).mark_line(size=2, point=True).encode(
-    alt.X("Day"),
-    alt.Y("FPM ($)"),
-    alt.Color("Topic", legend=None)
-  )
-
-  roas_chart = alt.Chart(data=roas_df).mark_line(size=2, point=True).encode(
-    alt.X("Day"),
-    alt.Y("ROAS (%)"),
-    alt.Color("Topic", legend=None)
-  )
-
-  st.altair_chart(tv_funds_chart, use_container_width=True)
-  st.altair_chart(fpm_chart, use_container_width=True)
-  st.altair_chart(roas_chart, use_container_width=True)
+  def display_per_day_graph(index: int, dependent_variable_name: str) -> None:
+    df = pd.DataFrame([(row[0], row[index], row[4]) for row in day_data_per_topic], columns=['Day', dependent_variable_name, 'Topic'])
+    chart = alt.Chart(data=df).mark_line(size=2, point=True).encode(
+      alt.X("Day"),
+      alt.Y(dependent_variable_name),
+      alt.Color("Topic", legend=None)
+    )
+    st.altair_chart(chart, use_container_width=True)
+  display_per_day_graph(1, 'TV Funds ($)')
+  display_per_day_graph(2, 'FPM ($)')
+  display_per_day_graph(3, 'ROAS (%)')
 else:
   st.info("No data points are selected by the values indicated by the controls. Therefore, there is nothing to graph. Please broaden your criteria.")
