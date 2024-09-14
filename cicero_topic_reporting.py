@@ -147,17 +147,12 @@ malarky()
 topics = st.multiselect("Topics", topics_big, default="All", help="This control filters the below graph to only include results that have the selected topic.  If 'All' is one of the selected values, an aggregate sum of all the topics will be presented, as well.")
 # COULD: maybe have a radio button or something here that lets dev mode users switch between regex and contains
 filter_search = st.text_input("Filter by text content", help="This box, if filled in, makes the below graph only include results that have text (in the clean_text or clean_email field) matching the contents of this box, case-insensitively. (If you enter text that doesn't match any text appearing anywhere then the below graph might become nonsensical.)")
-if filter_search: #TODO: (refactor) come to think of it, this is no longer a regexp.
-  search_string = "(LOWER(clean_email) LIKE LOWER(CONCAT('%', :regexp, '%')) OR LOWER(clean_text) LIKE LOWER(CONCAT('%', :regexp, '%')))"
+if filter_search:
+  search_string = "(LOWER(clean_email) LIKE LOWER(CONCAT('%', :filter_search, '%')) OR LOWER(clean_text) LIKE LOWER(CONCAT('%', :filter_search, '%')))"
 else:
   search_string = "true"
 
-#TODO: there should probably be like 3 or N of these. Will need a refactor.
-custom_topic_1 = st.text_input("Custom topics", help="This box, if filled in, makes the below graph include a custom pseudo-topic of every message that has text (in the clean_text or clean_email field) matching the contents of this box, case-insensitively.")
-if custom_topic_1:
-  custom_topic_search_string = "(LOWER(clean_email) LIKE LOWER(CONCAT('%', :regexp, '%')) OR LOWER(clean_text) LIKE LOWER(CONCAT('%', :regexp, '%')))"
-else:
-  custom_topic_search_string = "true"
+custom_topics = [x for x in st.text_input("Custom topics", help="This box, if filled in, makes the below graph include a custom pseudo-topic of every message that has text (in the clean_text or clean_email field) matching the contents of this box, case-insensitively. You may create multiple pseudo-topics by separating them with commas (eg `speech, cats, this great nation`). The filter above also applies to these custom topics!").split(",") if x.strip()]
 
 day_data_per_topic = sql_call(
   f"""
@@ -170,36 +165,37 @@ day_data_per_topic = sql_call(
     )
     SELECT date, funds, CAST( TRY_DIVIDE(funds, sent)*1000*100 as INT )/100, CAST( TRY_DIVIDE(funds, spend)*100 as INT ), topic FROM stats
   """,
-  {"regexp": filter_search}
+  {"filter_search": filter_search}
 )
-
-day_data_per_topic += sql_call( #TODO: this is a proof-of-concept
-  f"""
-    WITH stats(date, funds, sent, spend, topic) AS (
-      SELECT send_date, SUM(tv_funds), SUM(sent), SUM(spend_amount), :regexp
-      FROM topic_reporting.default.gold_topic_data_array
-      WHERE {project_types_string} AND {accounts_string} AND {askgoal_string} AND send_date >= NOW() - INTERVAL {past_days} DAY AND send_date < NOW() AND {custom_topic_search_string}
-      GROUP BY send_date
+if custom_topics:
+  for custom_topic in custom_topics:
+    day_data_per_topic += sql_call(
+      f"""
+        WITH stats(date, funds, sent, spend, topic) AS (
+          SELECT send_date, SUM(tv_funds), SUM(sent), SUM(spend_amount), :custom_topic
+          FROM topic_reporting.default.gold_topic_data_array
+          WHERE {project_types_string} AND {accounts_string} AND {askgoal_string} AND send_date >= NOW() - INTERVAL {past_days} DAY AND send_date < NOW() AND  {search_string} AND (
+            LOWER(clean_email) LIKE LOWER(CONCAT('%', :custom_topic, '%')) OR LOWER(clean_text) LIKE LOWER(CONCAT('%', :custom_topic, '%')) -- this is the special part for the custom topic
+          )
+          GROUP BY send_date
+        )
+        SELECT date, funds, CAST( TRY_DIVIDE(funds, sent)*1000*100 as INT )/100, CAST( TRY_DIVIDE(funds, spend)*100 as INT ), topic FROM stats
+      """,
+      {"custom_topic": custom_topic, "filter_search": filter_search}
     )
-    SELECT date, funds, CAST( TRY_DIVIDE(funds, sent)*1000*100 as INT )/100, CAST( TRY_DIVIDE(funds, spend)*100 as INT ), topic FROM stats
-  """,
-  {"regexp": custom_topic_1}
-)
 
 
 if len(day_data_per_topic):
   def display_per_day_graph(index: int, dependent_variable_name: str) -> None:
     """Note that this has undeclared dependencies on day_data_per_topic and topics, variable made above."""
     df = pd.DataFrame([(row[0], row[index], row[4]) for row in day_data_per_topic], columns=['Day', dependent_variable_name, 'Topic'])
-    color_domain = topics.copy()
-    color_range = [topics_big[c]["color"] for c in color_domain]
-    if custom_topic_1:
-      color_domain += [custom_topic_1]
-      color_range += ["white"]
     chart = alt.Chart(data=df).mark_line(size=2, point=True).encode(
       alt.X("Day"),
       alt.Y(dependent_variable_name),
-      alt.Color("Topic").scale(domain=color_domain, range=color_range)
+      alt.Color("Topic").scale(
+        domain = topics + custom_topics,
+        range = [topics_big[c]["color"] for c in topics] + [f"#{abs(hash(t)):X}"[:7] for t in custom_topics]
+      )
     )
     st.altair_chart(chart, use_container_width=True)
   display_per_day_graph(1, 'TV Funds ($)')
