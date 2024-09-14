@@ -8,7 +8,7 @@ List of derived quantities, left to right (does not include "topic", which is al
   Sent: SUM of Sent
   Result_Count: Count Distinct of Result Name
 
-  (Since FPM is Funds per mille, I think the symbol should be $‰, but Alex nixed this idea.)
+  (Since FPM is Funds per mille, I think the symbol should be $‰, but Alisa (and, earlier, Alex) nixed this idea; displaying the quantity with the unit $ is a company-wide standard.)
 """
 import streamlit as st
 from typing import Sequence
