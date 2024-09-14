@@ -172,7 +172,7 @@ if len(day_data_per_topic):
     chart = alt.Chart(data=df).mark_line(size=2, point=True).encode(
       alt.X("Day"),
       alt.Y(dependent_variable_name),
-      alt.Color("Topic", legend=None)
+      alt.Color("Topic", legend=None).scale(domain=topics_big.keys(), range=[v["color"] for v in topics_big.values()])
     )
     st.altair_chart(chart, use_container_width=True)
   display_per_day_graph(1, 'TV Funds ($)')
