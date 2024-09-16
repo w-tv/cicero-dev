@@ -7,7 +7,7 @@ torch == 2.3.0 # For some reason, 2.3.1 of this has some bug that makes torch no
 transformers == 4.42.4 # Previous patch version of this seems to cause a weird error in the backup similarity search, so we avoid that ¯\_(ツ)_/¯
 cryptography #needed for google-auth's JWT's ES256
 google-auth
-databricks-genai-inference >= 0.2.3
+databricks-genai-inference >= 0.2.3 # Currently, we pull down version 0.2.3 of databricks-genai-inference (the latest available as of time of writing, 2024-09-16). This, in turn, requires databricks-sdk 0.19.1 internally. Under python 12, databricks-sdk suffers from a minor defect that produces some warning messages from python: https://github.com/databricks/databricks-sdk-py/issues/508 . This was fixed in version 0.31.0 of databricks-sdk. Hopefully, a later version of databricks-genai-inference will allow a later version of databricks-sdk. However, given that the pypi page for databricks-genai-inference says "[!IMPORTANT] We're preparing to release version 1.0 of the Databricks GenerativeAI Inference Python library.", it may be a while before we get a later version — I mean, on the other hand, it has said that on the page since literally the first release. But maybe they've gotten serious about it now. Also, it's free software but they don't list it on github or anywhere so I can't do a pr on it or anything.
 databricks-sql-connector >= 3.1.2
 num2words >= 0.5.13
 langchain == 0.1.20
