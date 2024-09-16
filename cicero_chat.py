@@ -243,7 +243,11 @@ def display_chat(streamlit_key_suffix: str = "", account: str|None = None, short
   """Display chat messages from history on app reload; this is how we get the messages to display, and then the chat box.
   The streamlit_key_suffix is only necessary because we use this code in two places. But that does make it necessary, for every widget in this function. If streamlit_key_suffix is "", we infer we're in the chat page, and if otherwise we infer we're being used on a different page (so far, the only thing that does this is prompter).
 
-  *A computer can never be held accountable. Therefore a computer must never make a management decision.*[꙳](https://twitter.com/bumblebike/status/832394003492564993)"""
+  *A computer can never be held accountable. Therefore a computer must never make a management decision.*[꙳](https://twitter.com/bumblebike/status/832394003492564993)
+  
+  the computer knows something we don't
+  we must let it make management decisions
+  —Alex Chang"""
   pii = ssget("pii_interrupt_state", streamlit_key_suffix)
   if pii and pii[0] is True: # We're in a pii situation and the user has chosen to press on. So we have to send that chat message before we display the chat history.
     grow_chat(**pii[2])
