@@ -1,1 +1,2 @@
 __pycache__/*
+run.bat # I usually like to make this a symlink to run_locally.bat, but you wouldn't want to get people confused about that. (run_locally.bat is not suitable for use as an entry point in a production application)
