@@ -8,6 +8,7 @@ from time import perf_counter_ns
 nanoseconds_base : int = perf_counter_ns()
 import streamlit as st
 import os, psutil, platform
+from sys import argv
 from cicero_chat import main as cicero_chat
 from cicero_shared import ensure_existence_of_activity_log, exit_error, get_base_url, is_dev, sql_call, sql_call_cacheless, ssget, ssset, st_print
 from databricks.sql.types import Row
@@ -15,6 +16,9 @@ from google.auth.transport import requests
 from google.oauth2 import id_token
 from wfork_streamlit_profiler import Profiler
 from datetime import datetime
+
+if argv[1:]:
+  print(f"Running Cicero with command-line arguments: {argv[1:]}")
 
 def get_git_head_hash() -> str:
   return open(".git/refs/heads/master", "r").read()[:7]
@@ -44,10 +48,13 @@ with Profiler():
       st_print(e)
 
   if st.session_state['email'] == 'None':
-    st.write("Your user email is None, which implies we are currently running publicly on Streamlit Community Cloud. https://docs.streamlit.io/library/api-reference/personalization/st.experimental_user#public-app-on-streamlit-community-cloud. This app is configured to function only privately and permissionedly, so we will now exit. Good day.")
+    st_print("Your user email is None, which implies we are currently running publicly on Streamlit Community Cloud. https://docs.streamlit.io/library/api-reference/personalization/st.experimental_user#public-app-on-streamlit-community-cloud. This app is configured to function only privately and permissionedly, so we will now exit. Good day.")
     exit_error(34)
-  if st.session_state['email'] == 'test@example.com' and not st.secrets.get("email_spoof"): # In this case, the streamlit app is running "locally", which means everywhere but the streamlit community cloud. email_spoof is a value in the secrets file to help me locally test-run the program without an IAP. This should be added to the secrets.toml. The value doesn't matter, so long as it's truthy. Do NOT add this value to the secrets.toml of production.
-      st.write("Your user email is test@example.com, which implies we are currently running publicly, and not on Streamlit Community Cloud. https://docs.streamlit.io/library/api-reference/personalization/st.experimental_user#public-app-on-streamlit-community-cloud. This app is configured to function only privately and permissionedly, so we will now exit. Good day.")
+  if st.session_state['email'] == 'test@example.com': # In this case, the streamlit app is running "locally", which means everywhere but the streamlit community cloud.
+    if "--disable_user_authentication_requirement_DO_NOT_USE_THIS_FLAG_WITH_PUBLIC_INSTANCES_OF_CICERO_ITS_ONLY_FOR_LOCAL_TESTING_USE" in argv:
+      pass # The command-line flag we check for here lets you locally test-run the program without an IAP. Do NOT add this flag to any instance of Cicero running publicly, such as the production or development environments. In deployed environments, the other authentication methods are enabled.
+    else:
+      st_print("Your user email is test@example.com, which implies we are currently running publicly, and not on Streamlit Community Cloud. https://docs.streamlit.io/library/api-reference/personalization/st.experimental_user#public-app-on-streamlit-community-cloud. This app is configured to function only privately and permissionedly, so we will now exit. Good day.")
       exit_error(35)
 
   title_and_loading_columns = st.columns(2)
