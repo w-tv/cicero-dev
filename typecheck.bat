@@ -2,7 +2,7 @@
 uv --version || pip install uv --disable-pip-version-check --break-system-packages
 uv run ruff check --select F --exclude cicero_empty_template.py .
 set PYRIGHT_PYTHON_FORCE_VERSION=latest
-export PYRIGHT_PYTHON_FORCE_VERSION=latest # One of these two lines will work...
+export PYRIGHT_PYTHON_FORCE_VERSION=latest # One of these two lines will work, depending on your operating system...
 uv run -- pyright --version || echo "Detected that pyright isn't installed. This implies the rest of the venv likely isn't ready yet either. Run the run.bat, which will install everything, and then try this again." && exit
 uv run pyright
 echo "-------- Mypy, non-interactively installing types..."
