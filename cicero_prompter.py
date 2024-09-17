@@ -226,7 +226,6 @@ def execute_prompting(model: Long_Model_Name, account: str, sender: str|None, as
   # Setup Vector Search Client that we will use in the loop.
   vsc = VectorSearchClient( personal_access_token=st.secrets["DATABRICKS_TOKEN"], workspace_url=st.secrets['DATABRICKS_HOST'], disable_notice=True )
   text_index = vsc.get_index(endpoint_name="rag_llm_vector", index_name="cicero.text_data.gold_text_outputs_index")
-  # Get a list of all existing tagged topics #COULD: cache. but probably will refactor instead
   used_similarity_search_backup = "no"
   for c in combos:
     if "topics" not in c: #TODO: Perhaps one could replace all this regex with several sql CONTAINS statements some day?
@@ -236,7 +235,7 @@ def execute_prompting(model: Long_Model_Name, account: str, sender: str|None, as
       tagged_topics = []
       new_topics = []
       for t in c["topics"]:
-        if t in topics_big: # this checks if t is in the keys of topics_big
+        if t in topics_big: # this checks if t is in the keys of topics_big #TODO(refactor): it's crazy; this just segregates the additional topics back out?
           tagged_topics.append(t)
         else:
           new_topics.append(t)
