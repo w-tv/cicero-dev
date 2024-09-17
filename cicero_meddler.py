@@ -37,13 +37,9 @@ with st.expander("Bios"):
       sql_call_cacheless("INSERT INTO cicero.ref_tables.ref_bios (Candidate, Bio) VALUES (acct, bio)", {"acct": bio_name, "bio": bio}) # This also probably does not work
   labeled_table(sql_call_cacheless("SELECT Candidate, Bio FROM cicero.ref_tables.ref_bios ORDER BY Candidate ASC"))
 
-with st.expander("Topics"):
-  st.write("You can look at the topics here, but you should edit them using the workflow that create the topics, instead of in here.")
-  c = st.columns(2)
-  with c[0]:
-    labeled_table(sql_call("SELECT * FROM cicero.ref_tables.ref_tags"))
-  with c[1]:
-    labeled_table(sql_call("SELECT * FROM cicero.ref_tables.ref_tags_new"))
+with st.expander("Tags (asks, topics, tones)"):
+  st.write("You can look at the tags here, but you should edit them using the workflow that create the tags, instead of in here.")
+  labeled_table(sql_call("SELECT * FROM cicero.ref_tables.ref_tags"))
 
 with st.expander("Misc"):
   st.write("Put code here to evaluate it and see what happens. (I'm not including an eval here because lol don't use eval.)")

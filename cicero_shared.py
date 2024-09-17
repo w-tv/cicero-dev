@@ -151,7 +151,7 @@ topics_big: dict[str, Topics_Big_Payload] = (
   | # dict-combining operator
   {name: Topics_Big_Payload({"color":color, "show in prompter?": visible_frontend})
   for name, color, visible_frontend
-  in sql_call_cacheless('SELECT tag_name, color, visible_frontend FROM cicero.ref_tables.ref_tags_new WHERE tag_type == "Topic" AND enabled ORDER BY tag_name ASC')}
+  in sql_call_cacheless('SELECT tag_name, color, visible_frontend FROM cicero.ref_tables.ref_tags WHERE tag_type == "Topic" AND enabled ORDER BY tag_name ASC')}
 )
 #TODO: add "Other" topic as well, for anything with no topic (maybe not in the topics bigs, but somewhere.
 
