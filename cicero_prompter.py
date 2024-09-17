@@ -151,6 +151,10 @@ def sample_dissimilar_texts(population: list[ReferenceTextElement], k: int, max_
   return random.sample(final_arr, k=len(final_arr))
 
 def execute_prompting(model: Long_Model_Name, account: str, sender: str|None, ask_type: Ask_Type, topics: list[str], additional_topics: list[str], tones: list[Tone], text_len: Selectable_Length, headline: str|None, num_outputs: Num_Outputs, model_temperature: float = 0.8, bio: str|None = None, max_tokens: int = 4096, topic_weight: float = 4, tone_weight: float = 1, client_weight: float = 6, ask_weight: float = 2, text_len_weight: float = 3, doc_pool_size: int = 30, num_examples: int = 10) -> tuple[str, list[str], str, str, str]:
+  """This does the prompting. First, it finds similar texts to give context to the model. Then, it submits that + the prompt.
+  It returns a number of things, and also takes a number of arguments. To many to keep track of ha ha.
+  The function is also about 300 lines longer than it should be.
+  It's understandable that the old author of this code did it, inefficiently, in Python, instead of learning the annals of SQL to do it on the SQL side. I'm traversing the annals of SQL right now in order to do it and I don't care for it."""
   score_threshold = 0.5 # Document Similarity Score Acceptance Threshold
   consul_show(f"{score_threshold=}, {doc_pool_size=}, {num_examples=}")
   assert_always(num_examples <= doc_pool_size, "You can't ask to provide more examples than there are documents in the pool! Try again with a different value.")
@@ -161,6 +165,18 @@ def execute_prompting(model: Long_Model_Name, account: str, sender: str|None, as
 
   # Create a target prompt that is used during the vector index similarity search to score retrieved texts.
   target_prompt = f"A {text_len} {ask_type} text message from {account}" + f" about {topics_str}"*bool(topics) + f" written with an emphasis on {tones_str}"*bool(tones)
+  
+  #TODO(refactor): here is some example code we will probably use something along the lines of when we refactor this to be one sql query:
+    """SELECT *, 
+  CASE 
+    WHEN array_contains(Topics_List, 'Trump') THEN 1 ELSE 0 
+  END + size(Topics_List)
+  AS score
+FROM cicero.text_data.gold_text_outputs
+ORDER BY score ASC
+LIMIT 10;
+
+-- see also, SELECT size(array_intersect(array1, array2)) AS overlap_count FROM your_table_name"""
 
   #### Create All Possible Filter Combinations and Sort By Importance ###
 
