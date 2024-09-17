@@ -167,7 +167,7 @@ def execute_prompting(model: Long_Model_Name, account: str, sender: str|None, as
   target_prompt = f"A {text_len} {ask_type} text message from {account}" + f" about {topics_str}"*bool(topics) + f" written with an emphasis on {tones_str}"*bool(tones)
   
   #TODO(refactor): here is some example code we will probably use something along the lines of when we refactor this to be one sql query:
-    """SELECT *, 
+  """SELECT *, 
   CASE 
     WHEN array_contains(Topics_List, 'Trump') THEN 1 ELSE 0 
   END + size(Topics_List)
