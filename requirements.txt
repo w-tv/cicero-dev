@@ -1,6 +1,6 @@
 altair == 5.4.1, >= 5.4.0 # I'm pretty sure streamlit automatically installs this, but we want to use a type-bug-fix that was first realized in 5.4.0. So, hopefully...
 streamlit == 1.38.0 # We use a name or two from 1.37.0 and a typing from 1.38.0
-pandas
+pandas == 2.1.4 # avoid https://github.com/pandas-dev/pandas/issues/56995
 psutil
 python-docx
 torch == 2.3.0 # For some reason, 2.3.1 of this has some bug that makes torch not be found properly or something? So we import this explicitly here to avoid that (sentence-transformers depends on torch)
