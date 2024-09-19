@@ -1,0 +1,40 @@
+Sometime, uh, well, definitely prior to 2024-09-19, but probably also mostly in 2023, this other Canvas, in the Analytics channel, was used, in order for Alex to keep track of stuff.
+
+CICERO
+
+* Logo
+    * Replace with colorful version
+* Favicon
+    * Replace with black-white columns image
+* Chat Feature Icon
+    * Replace with columns on an angle
+* Okta
+    * Replace with colorful logo
+    * Title with “AI Copywriting”
+* Tabs
+    * Leave tabs bar off of prod
+    * Only rollout “Prompter”
+* Login email
+    * Only show “You are logged in as abrady@targetedvictory.com. You have prompted 1 time(s) today.”
+    * Remind me what our current daily limit is for CS / OG users? 100?
+* “News Headlines” / “Copywriting Model” headings
+    * Possible to update to Helvetica Neue font? Lmk if not available
+* News Headlines
+    * Did we intentionally drop the literal search (vs. semantic search) checkbox?
+* Copywriting Model
+    * Model dropdown to not be displayed in Prod; displayed in Dev only
+    * Structure Ask Type & Length drop downs to also show “Choose an option” when blank
+    * Should we add “Witch Hunt” to the dropdown since it covers Trump arrests / trials more generally and not as narrowly as “Trump Arrest” or is it all rolled up?
+    * Length dropdown should include approx. character counts as Ted outlined
+        * “Short (<160 characters)”
+        * “Medium (161-399 characters)”
+        * “Long (400+ characters)”
+    * Show # of outputs as dropdown
+        * Rename “# Outputs”
+        * Options 1, 3, 5, 10
+        * Ideally dropdown in shorter width than the other selections
+    * Possible to show Output Variance slider as less wide than the rest of the page? Maybe with a max absolute width?
+    * Make accent color match hex code #FD4844 (accent color currently used for highlighting dropdowns, for dropdown selections)
+    * Make submit button hex code #FD4844
+    * Change chat function image to lightning bolt (currently impossible)
+    * Change chat function text to “Edit with Cicero” instead of “Send down to Cicero”
