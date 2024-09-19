@@ -1,5 +1,68 @@
 2024:
 
+2024-09-19 and earlier ("the Chang era"):
+
+* (alex chang:) leave the company
+* Any further onboarding and knowledge sharing for databricks. possibly record these, for the future
+* chat with cicero, reset didn't fully clear out the entries. "on the chat version when i hit reset it doesn't clear everything out." Has replicated, don't know why it's happening. probably just some logic error.
+* Chat with Cicero (regular, not corporate), Account dropdown, RAG, system prompt don't copy just use as inspiration. (chang did half of this). To complete, do the following: get random texts from query (select Rand, see https://stackoverflow.com/questions/580639/how-to-randomly-select-rows-in-sql). get the texts into the system prompt/perhaps utilize an initial prompt? talk with ted for more guidance if needed (impl was different than expect but it's done now)
+* (wyatt:) Use git features (optional method) to investigate, integrate, and delete tr_refactor.py
+* on the free input search line thing, let the user put in multiple different lines so they can be compared to each other.
+* ted: get it off of regex and have it actually search the content (using/instead of? keywords) . But that's real nlp done by real humans. (chang: yeah i think ted misspoke a bit here) (ok but did we actually do what he wanted? I think his point was he wanted an include (or three) not an exclude... I guess that's also the previous (directly above) list item. So, that's that.)
+* For line-graphs, add topic legend (ideally when more than one topic is selected) (the "non-ideal" version was implemented)
+* For line-graphs, make the color of the line graph be the same color as the dots
+* For Line-Graphs, maybe have it be a line with some shape to indicate whether that day has value? right now its ambiguous. (Maybe make it a scatter plot I guess) (fixed by "Add points to by-day line charts")
+* For line-graphs, change X-axis to be just days, and not include the time of day at all (this was already true when I, wyatt, checked. I mean, it's a property of the date type so yeah I guess it always worked idk what he's talking about)
+* (chang:) delete the slack list now that I've put it in the old action items folder as a csv. Or don't; whatever. Uhh just let me know either way.
+* (chang:) in ref_tags_new a lot of the colors are grey now :/ (now fixed)
+* (chang:) in ref_tags_new the tag names now erroneously have underscores instead of spaces, again?
+* (chang:) in ref_tags_new I'm thinking you change tag_column_name to tag_name. Unless it's critical to have column in there for reasons I don't understand (I already know it's a column :shrug:)
+* (chang:) Chang wanted to drop some data from the tables (using databricks sql query dashboard, or spark in a notebook, I guess). "some like test rows in the chatbot activity log and some rows with missing data in the prompter activity log that i want to drop (from like when we first made the table)" "eh whatever" - chang
+* pillage the slack task board and put its tasks here and in the completed task text file.
+* Download the Slack "list" Cicero Tracker (kanban/whatever type board thing) as CSV and then delete it in slack. (Also: wyatt couldn't actually delete it, due to not having perms to do so)
+* deal with pins that are actually action items
+* also i want you to change the emoji for the pod key page to the :hot_pepper: emoji (feature dropped as Chang, the requester, is leaving) (nooooooo)
+* oh yeah and then another tab that will let us: add account(s) and rollup name(s); add a bio (corresponding to a rollup name); add/remove client from the account list dropdown — and maybe some other stuff if you can think of anything (does this actually have everything we need?) (this is The Meddler and it's now just built out as needed)
+* could we just round this to 4 digits. shoot 2 digits (I mean we could but I just ignore the subsequent digits. No more feature requests from you, traitor boy! Lol) (nooooo. you'll have to pry Cicero from my cold, quitter hands GIT RESET HARD GIT RESET HARD) (feature dropped as Chang, the requester, is leaving)
+* Directly change the "Connection failed with status 0." error message in streamlit to say "the session timed out and your state was lost" or whatever. (feature dropped as Chang, the requester, is leaving)
+* Different way of doing popups? That can support multiple popups? (feature dropped as we only need one popup now)
+* make the dots in topic reporting not change color from run to run (use correct colors?) (maybe this actually is already fixed?)
+* (waiting on Chang's changes elsewhere:) (ok, now blue-greening in lockstep with Wyatt and Chang) edit topic_reporting.py to conform with new topics table (unpivoted! also, new name: topic data prod instead of hook data prod) // harmonize the topic names, across everything, by getting rid of the fricking _hook thing. And also use spaces instead of underscores. // change all the topic names, because cicero internal names are behind, and also we can modify everything so that they no longer (end in _hook and use underscores and aren’t capitalized) // yeah I think from here on out we just get rid of the pivoted topic table, but keep the code in there because in the future if we need it it'll be right there. Here's the notebook for reference https://dbc-ca8d208b-aaa9.cloud.databricks.com/?o=8188181812650195#notebook/682953011965817
+* the topic reporting migration part 2
+* disable zooming on the TR charts (w: seems like a good action item for chang to take in spare time?) (a: will keep trying) (w: also, like... why?)
+* (for chang:) then chang needs to write some kind of reporting thingy for pii concern column
+* (for chang:) then chang needs to write some kind of reporting thingy for the winred.com concern column
+* (for chang:) then chang needs to write some kind of reporting thingy for the fec.gov concern column
+* then deactivate the forbidden url toasts
+* (for chang:) oh, also you can delete the activity_log _old_copy things. If you're confident you won't need them later (I (Wyatt) am). (Wyatt then got perms to do this and so did.)
+* (for chang:) OK, now that we've made that recent change, I guess you should delete models.lovelytics.ref_account_rollup (and if anything was using that, have it use cicero.ref_tables.ref_account_rollup
+* the topic reporting migration part 1: (needs chang input?) unify topics regex dict and topics big. Possbly adding an "enabled" column so we can disable topics we no-longer use without deleting them.
+* (for chang:)  in the meddler tab I have code that reads in the current topics_big and the ref_tags table, maybe you can look over that to make sure the change-over to the latter is all good. (maybe this isn't something to worry about idk) (this was actually done a long time ago).
+* (for wyatt:) the new  the "Stagwell Global - New Security Awareness Training Enrollment! - Targeted Victory" 
+* add PII detection to Edit with Cicero (it was already in there, in fact!)
+* winred.com concern column in activity log (possibly just a dumb string contains)
+* fec.gov concern column in activity log (possibly just a dumb string contains)
+* pii concern column in activity log
+* fix fileupload, at least a bit
+* can we set up a separate pop up and flag if https://www.fec.gov/ or a similar link is included in the prompt? (do we still need the flag part? and what is a flag in this context?) (a: nvm about the flag)
+* change chat funcs to accept file_upload contents
+* make the content of the url show up not all the way at the top of the page
+* put the URL forbidden checker before the pii detector, but if not feasible/too hard don't do it, i (Chang) have already rejigged the regex
+* Activity Log: add a column that notifies us if a user hits the readlink time limit (ehhh maybe we don't need this) (ehhh maybe we do)
+* do the double feedback for CwCorpo, and add on another activity log column to record it
+* Account selection not working (could not reproduce. seems to work fine for me. hoping it was just a fluke on chang's end, circle back to me on that.)
+* make search bar case-insensitive, and also not regex (chang did this)
+* user_pod table row with a page access array, baby!
+* like an onclick thing for the dots in the scatterplot, want to be able to bring up a popup of like at least the project names that make up the dot. i'd like for users to at least be able to copy from it. reach goal, is jamming an st.dataframe or st.table into the popup with a bunch of useful columns in there so they can just download it.  i guess we could just put another table below the scatterplot (chang did this)
+* rm typesafe_selectbox once the new type changes on selectbox in streamlit come through.
+* Deprecated in `altair=5.0.0`. Use add_params instead. How did chang get these deprecation warnings to show? (chang changed the code here to fix these and use the new version)
+* FEC.gov / winred.com flag, "The website you have linked is not currently supported", no option for the user to send the prompt, it must block this prompt, maybe just to be safe we put something right in one of the url reader funcs
+* readlink: limit of 1 url per prompt, don't want to read more than 1 website at a time, maybe have a popup that says "1 website at a time please" something like that
+* Remove the topic legend (but keep the size legend) (chang did this)
+* ensure the project count legend works in dark mode (right now its just black circles on a slightly less dark background) as well as light mode (if it can't be done we can just drop the legend and the size thing) (chang did this)
+* Ensure that the account dropdown in Topic Reporting matches the account list in prompter (they were the same variable so it worked)
+* fix the list index out of range error, because it keeps happening
+
 2024-08-16 and earlier:
 
 * st feedback bug report or fix.
