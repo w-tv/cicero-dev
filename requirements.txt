@@ -33,7 +33,7 @@ pyright >= 1.1.377, >= 1.1.374 #in general we like to keep this up to date, but 
 
 ## type stubs that aren't installed by mypy --install-types for whatever reason
 
-google-auth-stubs >= 0.3.0 # These have a couple of type annotations we want for using google-auth, starting in 0.3.0 (technically google-auth tries to be typed as well, but apparently not very hard...
+google-auth-stubs >= 0.3.0 # These have a couple of type annotations we want for using google-auth, starting in 0.3.0 (technically google-auth tries to be typed as well, but apparently not very hard... (Later versions of the official library may have all of the types we need, in which case this logic will be removed from here. google-auth-library-python-BUG-WORKAROUND (in the sense that they don't provide types, but have a py.typed); after https://github.com/googleapis/google-auth-library-python/pull/1588 is merged, we can remove the google-auth-stubs dep and just use the regular dep (see also: typecheck.bat))
 types-beautifulsoup4 # This doesn't seem to be installed by --install-types, for whatever reason, even though it looks like it should be from the fact that it's called types-.
 
 ## These are typically installed by mypy --install-types if you don't install them here.
