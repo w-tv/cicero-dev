@@ -12,5 +12,5 @@ uv run pyright
 echo "-------- Mypy, non-interactively installing types..."
 uv run mypy --install-types --non-interactive
 echo "-------- Mypy --strict typechecking, ignoring missing imports (I have no idea why so many of our imports are missing types, but I am not going to spend time fixing that, so we use --ignore-missing-imports):"
-uv run mypy cicero.py --strict --ignore-missing-imports --pretty --enable-incomplete-feature=NewGenericSyntax
+uv run mypy cicero.py --strict --ignore-missing-imports --pretty --enable-incomplete-feature=NewGenericSyntax #mypy-BUG-WORKAROUND: I expect the --enable-incomplete-feature=NewGenericSyntax flag to be unneeded in mypy 1.12 and beyond. Unfortunately, as of 2024-09-19 we only have 1.11.2
 uv run python -c "input('Press enter to exit...')"
