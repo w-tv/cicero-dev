@@ -31,7 +31,7 @@ def to_sql_tuple_string(x: Sequence[str]) -> str:
 def bool_dict_to_string_list(dict_of_strings_to_bool: dict[str, bool]) -> list[str]:
   return [s for s, value in dict_of_strings_to_bool.items() if value]
 
-#TODO: (refactor) I think the implementation of whatever functions we call has changed, such that we could potentially refactor this out.
+#TODO: this is kind of a bug work-around, one of our feature enhancements would obsolete it
 def to_graphable_dict[T](values: Sequence[Sequence[T]], x:str='x', y:str='y', color:str='color') -> list[dict[str, T]]:
   if len(values) == 3: #it's a 3-list of n-lists
     return [{x: values[0][i], y:values[1][i], color:values[2][i]} for i, _ in enumerate(values[0])]
