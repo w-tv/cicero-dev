@@ -56,6 +56,8 @@ About 50% of the type errors we find are spurious and busywork and 50% are legit
 
 The python type system is relatively recent and not entirely complete, so sometimes it's impossible or very convenient to do something with the type signatures that we would like to do. Oh well.
 
+In part, we try to be rigorous about typechecking because we are very lax about testing. We currently subscribe to the [raw code](https://x.com/qntm/status/949070111083778050) ideology. It's been working fairly well. Ideally, we will change that soon.
+
 ## Labels of irksomeness
 
 Various ridiculous workarounds in the code have been labeled FOO-BUG-WORKAROUND, where FOO is the name of the dependency to blame, in comments in the code. Eventually you may have the pleasure of removing these! You can grep for these.
