@@ -20,6 +20,7 @@ REM /B is a cmd-ism, but bash's exit will harmlessly ignore it probably.
 uv run pyright
 echo ---- MYPY:
 uv run mypy --install-types --non-interactive
+REM This should be `mypy .`, or something like that; alas, mypy does not support, uh, some improperly-encoded quotes deep within torch or something. MYPY-BUG-WORKAROUND TODO: fix this by upgrading torch maybe?
 uv run mypy cicero.py --strict --ignore-missing-imports --pretty --enable-incomplete-feature=NewGenericSyntax
 REM mypy-BUG-WORKAROUND: I expect the --enable-incomplete-feature=NewGenericSyntax flag to be unneeded in mypy 1.12 and beyond. Unfortunately, as of 2024-09-19 we only have 1.11.2
 echo ---- PYTYPE:
