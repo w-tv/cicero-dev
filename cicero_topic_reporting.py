@@ -198,8 +198,8 @@ if len(day_data_per_topic):
       )
     )
     st.altair_chart(chart, use_container_width=True)
-  display_per_day_graph(1, 'TV Funds ($)')
   display_per_day_graph(2, 'FPM ($)')
   display_per_day_graph(3, 'ROAS (%)')
+  display_per_day_graph(1, 'TV Funds ($)')
 else:
   st.info("No data points are selected by the values indicated by the controls. Therefore, there is nothing to graph. Please broaden your criteria.")
