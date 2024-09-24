@@ -144,15 +144,18 @@ def malarky() -> None:
 malarky()
 
 # Behold! Day (x) vs TV funds / FPM / ROAS (y) line graphs, per selected topic
-topics = st.multiselect("Topics", topics_big, default="All", help="This control filters the below graph to only include results that have the selected topic.  If 'All' is one of the selected values, an aggregate sum of all the topics will be presented, as well.")
-# COULD: maybe have a radio button or something here that lets dev mode users switch between regex and contains
-filter_search = st.text_input("Filter by text content", help="This box, if filled in, makes the below graph only include results that have text (in the clean_text or clean_email field) matching the contents of this box, case-insensitively. (If you enter text that doesn't match any text appearing anywhere then the below graph might become nonsensical.)")
-if filter_search:
-  search_string = "(LOWER(clean_email) LIKE LOWER(CONCAT('%', :filter_search, '%')) OR LOWER(clean_text) LIKE LOWER(CONCAT('%', :filter_search, '%')))"
-else:
-  search_string = "true"
-
-custom_topics = [x for x in st.text_input("Custom topics", help="This box, if filled in, makes the below graph include a custom pseudo-topic of every message that has text (in the clean_text or clean_email field) matching the contents of this box, case-insensitively. You may create multiple pseudo-topics by separating them with commas (eg `speech, cats, this great nation`). The filter above also applies to these custom topics!").split(",") if x.strip()]
+with st.form("Day line graph controls", border=False):
+  #STREAMLIT-BUG-WORKAROUND: I can't replicate it with simple code like `import streamlit as st; from time import sleep; st.multiselect("a", ["a", "b", "c"]); sleep(5); st.write("OK")`, but Ted identified a bug I WAS able to replicate here where if this isn't in an st.form, you can add a bunch of topics to the multiselect, and then click off, and it clears all of your input to the multiselect. So, we use a form to avoid that behavior, whatever it is.
+  st.caption("Day line graph controls")
+  topics = st.multiselect("Topics", topics_big, default="All", help="This control filters the below graph to only include results that have the selected topic.  If 'All' is one of the selected values, an aggregate sum of all the topics will be presented, as well.")
+  # COULD: maybe have a radio button or something here that lets dev mode users switch between regex and contains
+  filter_search = st.text_input("Filter by text content", help="This box, if filled in, makes the below graph only include results that have text (in the clean_text or clean_email field) matching the contents of this box, case-insensitively. (If you enter text that doesn't match any text appearing anywhere then the below graph might become nonsensical.)")
+  if filter_search:
+    search_string = "(LOWER(clean_email) LIKE LOWER(CONCAT('%', :filter_search, '%')) OR LOWER(clean_text) LIKE LOWER(CONCAT('%', :filter_search, '%')))"
+  else:
+    search_string = "true"
+  custom_topics = [x for x in st.text_input("Custom topics", help="This box, if filled in, makes the below graph include a custom pseudo-topic of every message that has text (in the clean_text or clean_email field) matching the contents of this box, case-insensitively. You may create multiple pseudo-topics by separating them with commas (eg `speech, cats, this great nation`). The filter above also applies to these custom topics!").split(",") if x.strip()]
+  st.form_submit_button("Apply")
 
 day_data_per_topic = sql_call(
   f"""
