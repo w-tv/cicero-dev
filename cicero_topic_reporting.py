@@ -73,10 +73,10 @@ with st.expander("Topics..."):
       st.session_state["topics_gigaselect_opinion"] = {t: (t in topics_gigaselect_default_selected) for t in topics_big}
 
   topics_gigaselect = {}
-  topic_check_cols = st.columns(len(topics_big)//14 + 1) #the items per column is chosen arbitrarily to kind of be good.
+  topic_check_cols = st.columns(8) # The number of columns is chosen arbitrarily to kind of be good; this should awkwardly mid⹀word‐wrap NO characters in the topic names on most displays (unless someone adds a longer topic name later). Of course, on some displays, it still will wrap.
   for i, t in enumerate(topics_big): #In even cols, including 0, put a color square
-    with topic_check_cols[i//14]:
-      col1, col2 = st.columns([0.1, 0.9])
+    with topic_check_cols[i//(len(topics_big)//8)]:
+      col1, col2 = st.columns([0.03, 0.9])
       with col1:
         color_code = topics_big[t]["color"]
         st.markdown(f' <div style="color:{color_code}" title="{t}, {color_code}">&#9632;</div>', unsafe_allow_html=True)
