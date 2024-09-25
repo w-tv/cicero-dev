@@ -193,7 +193,7 @@ if len(day_data_per_topic):
     """Note that this has undeclared dependencies on day_data_per_topic and topics, variable made above."""
     df = pd.DataFrame([(row[0], row[index], row[4]) for row in day_data_per_topic], columns=['Day', dependent_variable_name, 'Topic'])
     chart = alt.Chart(data=df).mark_line(size=2, point=True).encode(
-      alt.X("Day"),
+      alt.X("monthdate(Day)"),
       alt.Y(dependent_variable_name),
       alt.Color("Topic").scale(
         domain = topics + custom_topics,
