@@ -67,7 +67,7 @@ def content_from_url(url: str) -> str:
       text = text[:4000]
     return text
   else:
-    return "" # there is no content on the page, I guess, so the correct thing to return is the empty string.
+    return "(document appears to Cicero to be empty; if you don't expect the document to be empty, please copy-and-paste in directly. TELL THE USER TO COPY AND PASTE THE CONTENT INTO THE CHATBOT DIRECTLY, USING THOSE EXACT WORDS, AND ALSO EXPLAINING THAT IT LOOKS EMPTY TO YOU LIKELY DUE TO TECHNICAL LIMITATIONS)" # there is no content on the page, I guess, so the correct thing to return is this explicit empty indicator
 
 def content_from_url_regex_match(m: re.Match[str]) -> str:
   count = ssmut(lambda x: (x or 0) + 1, "urls_we_have_expanded_right_now")
