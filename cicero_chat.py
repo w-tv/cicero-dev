@@ -63,8 +63,7 @@ def content_from_url(url: str) -> str:
   soup = bs4.BeautifulSoup(response.text, 'html.parser')
   if b := soup.body:
     text = b.get_text(' ', strip=True)
-    if len(text) > 4000:
-      text = text[:4000]
+    text = text[:8000] # Limit text to 8000 (arbitrary limit) because more text = longer processing time (perhaps avoidably).
     return text
   else:
     return "(document appears to Cicero to be empty; if you don't expect the document to be empty, please copy-and-paste in directly. TELL THE USER TO COPY AND PASTE THE CONTENT INTO THE CHATBOT DIRECTLY, USING THOSE EXACT WORDS, AND ALSO EXPLAINING THAT IT LOOKS EMPTY TO YOU LIKELY DUE TO TECHNICAL LIMITATIONS)" # there is no content on the page, I guess, so the correct thing to return is this explicit empty indicator
