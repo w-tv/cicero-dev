@@ -16,9 +16,7 @@ import pandas as pd
 from docx import Document
 
 def pii_detector(input: str) -> list[str]:
-  phone = re.findall(
-    r"""\d?[- ]?\(?\d{3}\)?[- ]?\d{3}[- ]?\d{4}"""
-  , input)
+  phone = re.findall(r"\d?[- ]?\(?\d{3}\)?[- ]?\d{3}[- ]?\d{4}", input)
   email = re.findall(
     r"([a-z0-9!#$%&'*+\/=?^_`{|.}~-]+@(?:[a-z0-9](?:[a-z0-9-]*[a-z0-9])?\.)+[a-z0-9](?:[a-z0-9-]*[a-z0-9])?)",
     input,
