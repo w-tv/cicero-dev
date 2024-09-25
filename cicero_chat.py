@@ -24,7 +24,7 @@ def pii_detector(input: str) -> list[str]:
     input,
     re.IGNORECASE,
   )
-  credit_card = re.findall(r"((?:(?:\\d{4}[- ]?){3}\\d{4}|\\d{15,16}))(?![\\d])", input)
+  credit_card = re.findall(r"((?:(?:\d{4}[- ]?){3}\d{4}|\d{15,16}))(?![\d])", input)
   street_address = re.findall(
     r"\d{1,4} (?:\w+ ){0,4}(?:street|st|avenue|ave|road|rd|highway|hwy|square|sq|trail|trl|drive|dr|court|ct|park|parkway|pkwy|circle|cir|boulevard|blvd)\b",
     input,
