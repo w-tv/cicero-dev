@@ -142,11 +142,12 @@ def malarky() -> None:
   else:
     st.info("No data points are selected by the values indicated by the controls. Therefore, there is nothing to graph. Please broaden your criteria.")
 malarky()
+st.caption("*<center>Reflects performance of all Salesforce projects, not just Cicero projects.</center>*", unsafe_allow_html=True)
 
 # Behold! Day (x) vs TV funds / FPM / ROAS (y) line graphs, per selected topic
 with st.form("Day line graph controls", border=False):
   #STREAMLIT-BUG-WORKAROUND: I can't replicate it with simple code like `import streamlit as st; from time import sleep; st.multiselect("a", ["a", "b", "c"]); sleep(5); st.write("OK")`, but Ted identified a bug I WAS able to replicate here where if this isn't in an st.form, you can add a bunch of topics to the multiselect, and then click off, and it clears all of your input to the multiselect. So, we use a form to avoid that behavior, whatever it is.
-  st.caption("Day line graph controls")
+  st.write("**Day line graph controls**")
   topics = st.multiselect("Topics", topics_big, default="All", help="This control filters the below graph to only include results that have the selected topic.  If 'All' is one of the selected values, an aggregate sum of all the topics will be presented, as well.")
   # COULD: maybe have a radio button or something here that lets dev mode users switch between regex and contains
   filter_search = st.text_input("Filter by text content", help="This box, if filled in, makes the below graph only include results that have text (in the clean_text or clean_email field) matching the contents of this box, case-insensitively. (If you enter text that doesn't match any text appearing anywhere then the below graph might become nonsensical.)")
