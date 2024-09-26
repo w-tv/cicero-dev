@@ -130,6 +130,7 @@ if len(summary_data_per_topic):
       tooltip=key_of_rows
     ).add_params( single )
   event = st.altair_chart(chart, use_container_width=True, on_select="rerun")
+  st.caption("*<center>Reflects performance of all Salesforce projects, not just Cicero projects. Performance shown when no account is selected reflects all TV (not just accounts you are permitted to see).</center>*", unsafe_allow_html=True) # You could also do this in-chart using https://altair-viz.github.io/user_guide/customization.html#adjusting-the-title , and it would probably even look better. But we arbitrarily happened to choose to go the other way.
   if "selection" in event and (is_dev() or len(accounts) == 1): #on click we "drill down"
     if len(event['selection']['param_1']) > 0:
       selected_topics = event['selection']['param_1'][0]['Topic']
@@ -137,7 +138,6 @@ if len(summary_data_per_topic):
       selected_topics_rows = sql_call(f"""SELECT {dev_str("account_name,")} project_name, send_date , project_type, sum(tv_funds) as tv_funds, clean_text FROM topic_reporting.default.gold_topic_data_array WHERE {project_types_string} and {accounts_string} and {askgoal_string} and SEND_DATE >= CURRENT_DATE() - INTERVAL {past_days} DAY and SEND_DATE <= CURRENT_DATE() and array_contains(topics_array, '{selected_topics}') GROUP BY {dev_str("account_name,")} project_name, send_date, project_type, clean_text""")
       column_names = {str(i): k for i, k in enumerate(selected_topics_rows[0].asDict())}
       st.dataframe(selected_topics_rows, column_config=column_names, use_container_width=True)
-  st.caption("*<center>Reflects performance of all Salesforce projects, not just Cicero projects. Performance shown when no account is selected reflects all TV (not just accounts you are permitted to see).</center>*", unsafe_allow_html=True) # You could also do this in-chart using https://altair-viz.github.io/user_guide/customization.html#adjusting-the-title , and it would probably even look better. But we arbitrarily happened to choose to go the other way.
 else:
   st.info("No data points are selected by the values indicated by the controls. Therefore, there is nothing to graph. Please broaden your criteria.")
 
