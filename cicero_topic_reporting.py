@@ -107,7 +107,7 @@ summary_data_per_topic = sql_call(f"""
     WHERE {project_types_string} and {accounts_string} and {askgoal_string} and SEND_DATE >= CURRENT_DATE() - INTERVAL {past_days} DAY and SEND_DATE <= CURRENT_DATE() and topic_tag in {to_sql_tuple_string(topics)}
     GROUP BY topic_tag
   )
-  SELECT topic, funds, cast( try_divide(funds, sent)*1000*100 as int )/100, cast( try_divide(funds, spend)*100 as int ), project_count from stats
+  SELECT topic, cast( funds as int ), cast( try_divide(funds, sent)*1000 as int ), cast( try_divide(funds, spend)*100 as int ), project_count from stats
 """)
 
 key_of_rows = ("Topic", "TV Funds ($)", "FPM ($)", "ROAS (%)", "Project count")
