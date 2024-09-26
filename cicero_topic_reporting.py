@@ -116,33 +116,30 @@ dicted_rows["color"] = [tb["color"] for t in dicted_rows["Topic"] for name, tb i
 #COULD: set up some kind of function for these that decreases the multiplier as the max gets bigger
 fpm_max = max([val if val is not None else 0 for val in dicted_rows['FPM ($)']], default=0) * 1.1
 roas_max = max([val if val is not None else 0 for val in dicted_rows['ROAS (%)']], default=0) * 1.05
-@st.fragment
-def malarky() -> None:
-  """This code displays a graph and lets the user select a point to drill down on its values. However, selecting the point reruns the page (this is unavoidable due to streamlit), and it seems like the way we get the points that go into this graph is a little unstable, so a rerun would often change the data slightly (order?) and change the colors of the graph and prevent the drilldown from appearing. So, we have to wrap it in a fragment. This is just another thing I hope to sort out in a refactor once the topic reporting is all moved over. TODO."""
-  if len(summary_data_per_topic):
-    single = alt.selection_point()
-    chart = alt.Chart( pd.DataFrame( { key:pd.Series(value) for key, value in dicted_rows.items() } ) )\
-      .mark_circle(size=400)\
-      .encode(
-        alt.X("ROAS (%)", scale=alt.Scale(domain=(0, roas_max))),
-        alt.Y("FPM ($)", scale=alt.Scale(domain=(0, fpm_max))),
-        alt.Color("Topic", scale=alt.Scale(domain=dicted_rows["Topic"], range=dicted_rows["color"]), legend=None), #todo: I don't think the current legend displays all the values, if more than about 13, because the text box for it is too small ¯\_(ツ)_/¯
-        alt.Size(field="Project count", scale=alt.Scale(range=[150, 500]), legend=None),
-        opacity = alt.condition(single, alt.value(1.0), alt.value(0.4)),
-        tooltip=key_of_rows
-      ).add_params( single )
-    event = st.altair_chart(chart, use_container_width=True, on_select="rerun")
-    if "selection" in event and (is_dev() or len(accounts) == 1): #on click we "drill down"
-      if len(event['selection']['param_1']) > 0:
-        selected_topics = event['selection']['param_1'][0]['Topic']
-        st.header(selected_topics.title())
-        selected_topics_rows = sql_call(f"""SELECT {dev_str("account_name,")} project_name, send_date , project_type, sum(tv_funds) as tv_funds, clean_text FROM topic_reporting.default.gold_topic_data_array WHERE {project_types_string} and {accounts_string} and {askgoal_string} and SEND_DATE >= CURRENT_DATE() - INTERVAL {past_days} DAY and SEND_DATE <= CURRENT_DATE() and array_contains(topics_array, '{selected_topics}') GROUP BY {dev_str("account_name,")} project_name, send_date, project_type, clean_text""")
-        column_names = {str(i): k for i, k in enumerate(selected_topics_rows[0].asDict())}
-        st.dataframe(selected_topics_rows, column_config=column_names, use_container_width=True)
-    st.caption("*<center>Reflects performance of all Salesforce projects, not just Cicero projects. Performance shown when no account is selected reflects all TV (not just accounts you are permitted to see).</center>*", unsafe_allow_html=True) # You could also do this in-chart using https://altair-viz.github.io/user_guide/customization.html#adjusting-the-title , and it would probably even look better. But we arbitrarily happened to choose to go the other way.
-  else:
-    st.info("No data points are selected by the values indicated by the controls. Therefore, there is nothing to graph. Please broaden your criteria.")
-malarky()
+
+if len(summary_data_per_topic):
+  single = alt.selection_point()
+  chart = alt.Chart( pd.DataFrame( { key:pd.Series(value) for key, value in dicted_rows.items() } ) )\
+    .mark_circle(size=400)\
+    .encode(
+      alt.X("ROAS (%)", scale=alt.Scale(domain=(0, roas_max))),
+      alt.Y("FPM ($)", scale=alt.Scale(domain=(0, fpm_max))),
+      alt.Color("Topic", scale=alt.Scale(domain=dicted_rows["Topic"], range=dicted_rows["color"]), legend=None), #todo: I don't think the current legend displays all the values, if more than about 13, because the text box for it is too small ¯\_(ツ)_/¯
+      alt.Size(field="Project count", scale=alt.Scale(range=[150, 500]), legend=None),
+      opacity = alt.condition(single, alt.value(1.0), alt.value(0.4)),
+      tooltip=key_of_rows
+    ).add_params( single )
+  event = st.altair_chart(chart, use_container_width=True, on_select="rerun")
+  if "selection" in event and (is_dev() or len(accounts) == 1): #on click we "drill down"
+    if len(event['selection']['param_1']) > 0:
+      selected_topics = event['selection']['param_1'][0]['Topic']
+      st.header(selected_topics.title())
+      selected_topics_rows = sql_call(f"""SELECT {dev_str("account_name,")} project_name, send_date , project_type, sum(tv_funds) as tv_funds, clean_text FROM topic_reporting.default.gold_topic_data_array WHERE {project_types_string} and {accounts_string} and {askgoal_string} and SEND_DATE >= CURRENT_DATE() - INTERVAL {past_days} DAY and SEND_DATE <= CURRENT_DATE() and array_contains(topics_array, '{selected_topics}') GROUP BY {dev_str("account_name,")} project_name, send_date, project_type, clean_text""")
+      column_names = {str(i): k for i, k in enumerate(selected_topics_rows[0].asDict())}
+      st.dataframe(selected_topics_rows, column_config=column_names, use_container_width=True)
+  st.caption("*<center>Reflects performance of all Salesforce projects, not just Cicero projects. Performance shown when no account is selected reflects all TV (not just accounts you are permitted to see).</center>*", unsafe_allow_html=True) # You could also do this in-chart using https://altair-viz.github.io/user_guide/customization.html#adjusting-the-title , and it would probably even look better. But we arbitrarily happened to choose to go the other way.
+else:
+  st.info("No data points are selected by the values indicated by the controls. Therefore, there is nothing to graph. Please broaden your criteria.")
 
 # Behold! Day (x) vs TV funds / FPM / ROAS (y) line graphs, per selected topic
 with st.form("Day line graph controls", border=False):
