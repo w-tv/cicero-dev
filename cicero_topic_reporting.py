@@ -142,7 +142,7 @@ def malarky() -> None:
   else:
     st.info("No data points are selected by the values indicated by the controls. Therefore, there is nothing to graph. Please broaden your criteria.")
 malarky()
-st.caption("*<center>Reflects performance of all Salesforce projects, not just Cicero projects.</center>*", unsafe_allow_html=True)
+st.caption("*<center>Reflects performance of all Salesforce projects, not just Cicero projects. Performance shown when no account is selected reflects all TV (not just accounts you are permitted to see).</center>*", unsafe_allow_html=True)
 
 # Behold! Day (x) vs TV funds / FPM / ROAS (y) line graphs, per selected topic
 with st.form("Day line graph controls", border=False):
