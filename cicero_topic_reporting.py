@@ -127,7 +127,7 @@ def malarky() -> None:
         alt.X("ROAS (%)", scale=alt.Scale(domain=(0, roas_max))),
         alt.Y("FPM ($)", scale=alt.Scale(domain=(0, fpm_max))),
         alt.Color("Topic", scale=alt.Scale(domain=dicted_rows["Topic"], range=dicted_rows["color"]), legend=None), #todo: I don't think the current legend displays all the values, if more than about 13, because the text box for it is too small ¯\_(ツ)_/¯
-        alt.Size(field="Project count", scale=alt.Scale(range=[150, 500]), legend=alt.Legend(title='Project Count', symbolFillColor='red', symbolStrokeColor='red')),
+        alt.Size(field="Project count", scale=alt.Scale(range=[150, 500]), legend=None),
         opacity = alt.condition(single, alt.value(1.0), alt.value(0.4)),
         tooltip=key_of_rows
       ).add_params( single )
