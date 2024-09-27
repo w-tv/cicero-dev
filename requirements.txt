@@ -3,8 +3,6 @@ streamlit == 1.38.0 # We use a name or two from 1.37.0 and a typing from 1.38.0
 pandas == 2.1.4 # avoid https://github.com/pandas-dev/pandas/issues/56995
 psutil
 python-docx
-torch == 2.4.1, > 2.3.0, != 2.3.1 # For some reason, 2.3.1 of this has some bug that makes torch not be found properly or something? So we import this explicitly here to avoid that (sentence-transformers depends on torch) # 2.3.0 and before suffers from this strange character-encoding mistake that interacts poorly with mypy: https://github.com/pytorch/pytorch/issues/124897 https://github.com/python/mypy/issues/17189
-transformers == 4.42.4 # Previous patch version of this seems to cause a weird error in the backup similarity search, so we avoid that ¯\_(ツ)_/¯
 cryptography #needed for google-auth's JWT's ES256
 google-auth
 databricks-genai-inference >= 0.2.3 # Currently, we pull down version 0.2.3 of databricks-genai-inference (the latest available as of time of writing, 2024-09-16). This, in turn, requires databricks-sdk 0.19.1 internally. Under python 12, databricks-sdk suffers from a minor defect that produces some warning messages from python: https://github.com/databricks/databricks-sdk-py/issues/508 . This was fixed in version 0.31.0 of databricks-sdk. Hopefully, a later version of databricks-genai-inference will allow a later version of databricks-sdk. However, given that the pypi page for databricks-genai-inference says "[!IMPORTANT] We're preparing to release version 1.0 of the Databricks GenerativeAI Inference Python library.", it may be a while before we get a later version — I mean, on the other hand, it has said that on the page since literally the first release. But maybe they've gotten serious about it now. Also, it's free software but they don't list it on github or anywhere so I can't do a pr on it or anything.
@@ -15,7 +13,7 @@ setuptools # This needs to be installed explicitly for mlflow and databricks-vec
 databricks-vectorsearch >= 0.36
 mlflow # For some reason, you need to explicitly install this to get langchain-community to work.
 langchain-community
-sentence-transformers == 3.0.1 # Needed for HuggingFaceEmbeddings(model_name="sentence-transformers/all-MiniLM-L12-v2") call, apparently. # 3.0.0 of this seems to cause a weird error in the backup similarity search, so we avoid that ¯\_(ツ)_/¯
+sentence-transformers >= 3.1.1 # Needed for HuggingFaceEmbeddings(model_name="sentence-transformers/all-MiniLM-L12-v2") call, apparently. # 3.0.0 of this seems to cause a weird error in the backup similarity search, so we avoid that ¯\_(ツ)_/¯
 faiss-cpu # needed for faiss. There's also a faiss-gpu but that seems like more of a gamble
 jellyfish # Needed for cross-document similarity comparisons
 wfork-streamlit-profiler # This is a fork of streamlit-profiler 0.2.4 that works on later streamlits. Some day we may move back to the original streamlit-profiler once it incorporates https://github.com/jrieke/streamlit-profiler/pull/4
