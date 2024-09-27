@@ -15,8 +15,9 @@ from io import StringIO
 import pandas as pd
 from docx import Document
 
-def pii_detector(input: str) -> list[str]:
+def pii_detector(input: str) -> dict[str, list[object]]:
   phone = re.findall(r"\d?[- ]?\(?\d{3}\)?[- ]?\d{3}[- ]?\d{4}", input)
+  # reveal_type(re.findall) # this seems to be declared (in typeshed I guess, with a return type of list[Any], which I consider ultimately bad practice although there are probably overwhelming practical reasons to declare it so. So, anyway, that's why we treat it as though it returns object. possibly you could consider this a TYPESHED-BUG-WORKAROUND, although it would probably take multiple typing PEPs to fix the assumptions of the type system that produce this corner case. Possibly even dependent typing.
   email = re.findall(
     r"([a-z0-9!#$%&'*+\/=?^_`{|.}~-]+@(?:[a-z0-9](?:[a-z0-9-]*[a-z0-9])?\.)+[a-z0-9](?:[a-z0-9-]*[a-z0-9])?)",
     input,
@@ -28,15 +29,19 @@ def pii_detector(input: str) -> list[str]:
     input,
     re.IGNORECASE,
   )
-  pii_list: list[str] = phone + email + credit_card + street_address
-  return pii_list
+  return ( {}
+    | {'phone': phone} if phone else {}
+    | {'email': email} if email else {}
+    | {'credit card': credit_card} if credit_card else {}
+    | {'street address': street_address} if street_address else {}
+  )
 
 @st.dialog(title='PII detected!', width="large")
-def pii_dialog(input: str, pii_list: list[str], streamlit_key_suffix: str, keyword_arguments: dict[str, str|None]) -> None:
+def pii_dialog(input: str, pii_list: object, streamlit_key_suffix: str, keyword_arguments: dict[str, str|None]) -> None:
   st.write("Cicero noticed that there might be PII in your message!\n\nMessage:")
   st.code(input)
   st.write("Potential PII:")
-  st.code(pii_list)
+  st.write(pii_list)
   st.write('Would you still like to submit the prompt?')
   col1, col2, _col3, _col4 = st.columns(spec=[.17, .23, .30, .30], gap='small', vertical_alignment='center')
   with col1:
