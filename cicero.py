@@ -10,7 +10,7 @@ import streamlit as st
 import os, psutil, platform
 from sys import argv
 from cicero_chat import main as cicero_chat
-from cicero_shared import ensure_existence_of_activity_log, exit_error, get_base_url, is_dev, sql_call, sql_call_cacheless, ssget, ssset, st_print
+from cicero_shared import ensure_existence_of_activity_log, exit_error, get_base_url, is_dev, sql_call_cacheless, ssget, ssset, st_print
 from databricks.sql.types import Row
 from google.auth.transport import requests
 from google.oauth2 import id_token
