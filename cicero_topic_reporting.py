@@ -111,11 +111,11 @@ summary_data_per_topic = sql_call(f"""
 """)
 
 key_of_rows = ("Topic", "TV Funds ($)", "FPM ($)", "ROAS (%)", "Project count")
-dicted_rows = {key_of_rows[i]: [row[i] for row in summary_data_per_topic] for i, key in enumerate(key_of_rows)} #various formats probably work for this; this is just one of them.
+dicted_rows = {key_of_rows[i]: [f'{row[i]:,}' if i==1 else row[i] for row in summary_data_per_topic] for i, key in enumerate(key_of_rows)} #various formats probably work for this; this is just one of them. # The f-string makes the TV Funds have comma thousands-delimiters.
 dicted_rows["color"] = [tb["color"] for t in dicted_rows["Topic"] for name, tb in topics_big.items() if name == t]
 #COULD: set up some kind of function for these that decreases the multiplier as the max gets bigger
-fpm_max = max([val if val is not None else 0 for val in dicted_rows['FPM ($)']], default=0) * 1.1
-roas_max = max([val if val is not None else 0 for val in dicted_rows['ROAS (%)']], default=0) * 1.05
+fpm_max = max([row[2] for row in summary_data_per_topic], default=0) * 1.1
+roas_max = max([row[3] for row in summary_data_per_topic], default=0) * 1.05
 
 if len(summary_data_per_topic):
   single = alt.selection_point()
