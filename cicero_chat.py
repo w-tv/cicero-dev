@@ -16,8 +16,10 @@ import pandas as pd
 from docx import Document
 
 def pii_detector(input: str) -> dict[str, list[object]]:
-  phone = re.findall(r"\d?[- ]?\(?\d{3}\)?[- ]?\d{3}[- ]?\d{4}", input)
-  # reveal_type(re.findall) # this seems to be declared (in typeshed I guess, with a return type of list[Any], which I consider ultimately bad practice although there are probably overwhelming practical reasons to declare it so. So, anyway, that's why we treat it as though it returns object. possibly you could consider this a TYPESHED-BUG-WORKAROUND, although it would probably take multiple typing PEPs to fix the assumptions of the type system that produce this corner case. Possibly even dependent typing.
+  """Check for phone numbers, email addresses, credit card numbers, and street addresses in the text, and return a dict of what of those we've found.
+  re.findall seems to be declared (in typeshed I guess) with a return type of `list[Any]`, which I consider ultimately bad practice although there are probably overwhelming practical reasons in this case to declare it so. So, anyway, that's why we treat it (and, therefore, this function) as though it returns `list[object]`. Possibly you could consider this a TYPESHED-BUG-WORKAROUND, although it would probably take multiple typing PEPs to fix the assumptions of the type system that produce this corner case. Possibly even dependent typing (but probably not). We could also have done some str calls to return list[str], but it didn't end up mattering.
+  Actually checking for all phone number types ( such as those covered by https://en.wikipedia.org/wiki/List_of_country_calling_codes ) would be extremely arduous and possibly lead to unwanted to false-positives with other numbers. So we basically just check for american phone numbers and maybe some other ones that happen to have a similar form. Similar story with credit card numbers and the various forms in https://en.wikipedia.org/wiki/Payment_card_number#Structure ."""
+  phone = re.findall(r"(?<!\d)\d?[- ]?\(?\d{3}\)?[- ]?\d{3}[- ]?\d{4}(?!\d)", input)
   email = re.findall(
     r"([a-z0-9!#$%&'*+\/=?^_`{|.}~-]+@(?:[a-z0-9](?:[a-z0-9-]*[a-z0-9])?\.)+[a-z0-9](?:[a-z0-9-]*[a-z0-9])?)",
     input,
