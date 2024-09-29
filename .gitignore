@@ -1,3 +1,5 @@
 __pycache__/*
 run.bat
-# I usually like to make run.bat a symlink to run_locally.bat, but you wouldn't want to get people confused about that. (run_locally.bat is not suitable for use as an entry point in a production application)
+# I usually like to make run.bat a symlink to run_locally.bat, but you wouldn't want to get people confused about that. (run_locally.bat is not suitable for use as an entry point in a production/publicly-accessible instance, so we wouldn't want to imply it's a generally-applicable run script)
+cicero-backend
+# I like to make cicero-backend a symlink to cicero-backend so I can get there quickly (oddly enough, the need to get to cicero quickly from the cicero-backend folder has never presented itself). However, there's no particular place the cicero-backend folder has to live on your system, and symlinks are slightly system-dependent in that windows won't let you use forward slashes in a symlink (?!), so it's up to each user to make their own cicero-backend symlink to where they want, if they want.
