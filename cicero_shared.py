@@ -153,5 +153,4 @@ topics_big: dict[str, Topics_Big_Payload] = (
   for name, color, visible_frontend
   in sql_call_cacheless('SELECT tag_name, color, visible_frontend FROM cicero.ref_tables.ref_tags WHERE tag_type == "Topic" AND enabled ORDER BY tag_name ASC')}
 )
-#TODO: add "Other" topic as well, for anything with no topic (maybe not in the topics bigs, but somewhere.
-
+#TODO: add "Other" topic as well, for anything with no topic (maybe not in the topics bigs, but somewhere).
