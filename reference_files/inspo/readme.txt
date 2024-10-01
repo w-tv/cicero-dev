@@ -31,3 +31,5 @@ cicero sigma male rome.png Screenshot of YouTube search results, by Jason Gray. 
 cicero head with tv triangle eyes.png Edit of Cicero-head.png and the old favicon by Wyatt S Carpenter
 
 lenna.png https://en.wikipedia.org/wiki/File:Lenna_(test_image).png photographed by Dwight Hooker / Fair Use
+
+i guess that's the price you pay for being based.jpg.me.png an edit by Wyatt S Carpenter of a photograph by unknown of a frame of Phil Fish from Indie Game The Movie
