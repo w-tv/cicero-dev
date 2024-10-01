@@ -15,6 +15,7 @@ List of derived quantities, left to right (does not include "topic", which is al
 import streamlit as st
 from typing import Sequence
 from cicero_shared import dev_str, is_dev, load_account_names, sql_call, topics_big
+from math import ceil
 
 import pandas as pd
 import altair as alt
@@ -52,9 +53,19 @@ def permissible_account_names(user_email: str) -> list[str]:
   result = sql_call("FROM cicero.ref_tables.user_pods SELECT user_permitted_to_see_these_accounts_in_topic_reporting WHERE user_email = :user_email", locals())[0][0]
   return [r for r in result if isinstance(r, str)] if result is not None else [] # Unfortunately, it could be None, and thus not iterable, and the typechecker is no help here (since the database read loses type information). So, we have to do this awkward little dance.
 
-def lowalph(s: str) -> str:
-  """Given a string, return only its alphabetical characters, lowercased. This is especially useful when trying to string compare things that might have different punctuation. In our case, often en dashes vs hyphens."""
-  return ''.join(filter(str.isalpha, s)).lower()
+def lowalph[S: (str, list[str])](s: S) -> S:
+  """Given a string, return only its alphabetical characters, lowercased. Given a list of strings, return a list of such. This is especially useful when trying to string compare things that might have different punctuation. In our case, often en dashes vs hyphens."""
+  if isinstance(s, str):
+    return ''.join(filter(str.isalpha, s)).lower()
+  else:
+    return list(map(lowalph, s))
+
+def lowalph_in(s: str, l: list[str]) -> bool:
+  return lowalph(s) in lowalph(l)
+
+specially_requested_exclude_list = ["Covid", "Campaign Message", "Announcement", "SOTU", "Ben Carson", "Stacey Abrams", "Hillary Clinton", "Jamaal Bowman", "Tammy Baldwin", "Chris Wray", "Sherrod Brown", "Jon tester", "Don Beyer", "Cori Bush", "Bob Casey", "Ted Lieu", "Warnock", "Demmings"]
+
+topics_big = {k: v for k, v in topics_big.items() if not lowalph_in(k, specially_requested_exclude_list)}
 
 with st.expander("Topics..."):
   # Complicated logic just to have defaults and de/select all. Remember, the streamlit logic seems to be that the default value is overriden by user-selected values... unless the default value changes. Which makes sense, as these things go.
@@ -73,9 +84,11 @@ with st.expander("Topics..."):
       st.session_state["topics_gigaselect_opinion"] = {t: (t in topics_gigaselect_default_selected) for t in topics_big}
 
   topics_gigaselect = {}
-  topic_check_cols = st.columns(8) # The number of columns is chosen arbitrarily to kind of be good; this should awkwardly mid⹀word‐wrap NO characters in the topic names on most displays (unless someone adds a longer topic name later). Of course, on some displays, it still will wrap.
+  number_of_columns = 8 # The number of columns is chosen arbitrarily to kind of be good; this should awkwardly mid⹀word‐wrap NO characters in the topic names on most displays (unless someone adds a longer topic name later). Of course, on some displays, it still will wrap.
+  number_of_topics_per_column = ceil(len(topics_big)/8) # Note that we use ceil here because if the average number of topics per column is, say, 12.3, then we need to err on the side of 13 instead of 12, or we run out of slots! # This more-complicated way of doing the layout math is only necessary because we want alphabetical runs of topics (sometimes: topics with the same first word) laid out in a straight line — and with our current scheme, the row alignment can get much less uniform than the column alignment.
+  topic_check_cols = st.columns(number_of_columns)
   for i, t in enumerate(topics_big): #In even cols, including 0, put a color square
-    with topic_check_cols[i//(len(topics_big)//8)]:
+    with topic_check_cols[i//number_of_topics_per_column]:
       col1, col2 = st.columns([0.03, 0.9])
       with col1:
         color_code = topics_big[t]["color"]
@@ -87,7 +100,10 @@ col1, col2, col3, col4 = st.columns(4)
 with col1:
   past_days = st.radio("Date range", [1, 7, 14, 30, 180], index=1, format_func=lambda x: "Yesterday" if x == 1 else f"Last {x} days", horizontal=True, help="The date range from which to display data. This will display data from any calendar day greater than or equal to (the present day minus the number of days specified). That is, 'Yesterday' will display data from both yesterday and today (and possibly, in rare circumstances, from the future).")
 with col2:
-  permitted_accounts = load_account_names() if "everything" in permissible_account_names(st.session_state["email"]) else [ x for x in load_account_names() if lowalph(x) in map(lowalph, permissible_account_names(st.session_state["email"])) ]
+  if "everything" in permissible_account_names(st.session_state["email"]):
+    permitted_accounts = load_account_names()
+  else:
+    permitted_accounts = [ x for x in load_account_names() if lowalph_in(x, permissible_account_names(st.session_state["email"])) ]
   accounts = st.multiselect("Account", permitted_accounts, help=f"This control allows you to filter on the account name. If nothing is selected in this control all of the accounts will be presented (however, you will not be able to drill down on a topic without first selecting an account {dev_str('; unless you are in developer mode, which you are')}). Also, you must be individually permissioned for access to account names, so you may not have the ability to select additional ones.")
   accounts_string = "true" if not accounts else f"account_name in {to_sql_tuple_string(external_account_names_to_internal_account_names_list_mapping(accounts))}"
 with col3:
