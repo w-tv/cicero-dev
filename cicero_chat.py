@@ -183,10 +183,10 @@ def grow_chat(streamlit_key_suffix: str = "", alternate_content: str|UploadedFil
   # Get some sample texts from the account, perhaps similar to the current prompt.
   if account is not None:
     texts_from_account = sql_call_cacheless(
-      "SELECT DISTINCT clean_text FROM cicero.text_data.gold_text_outputs WHERE client_name = :account SORT BY levenshtein(clean_text, :prompt) LIMIT 5",
+      "SELECT DISTINCT clean_text FROM cicero.text_data.gold_text_outputs WHERE client_name = :account SORT BY levenshtein(clean_text, :prompt)/len(clean_text) ASC LIMIT 5",
       {"account": account, "prompt": p}
     )
-    p = "(Here are some example texts from the client; use them as inspiration but do not copy them directly nor mention their existence: " + ' | '.join(row[0] for row in texts_from_account) + ")" + p
+    p = "(Here are some example texts from the client; you can use them as inspiration but do not copy them directly nor mention their existence: " + ' | '.join(row[0] for row in texts_from_account) + ")" + p
     dev_box("p with retrieved account context", p)
   if continue_prompt:
     old_chat = chat.chat_history.copy()
