@@ -70,6 +70,10 @@ def dev_str(value: object) -> str:
     (You see, you would obviously want to write dev_str("some string") and expect it to not appear if dev mode is off. But instead the word "None" would appear!) """
   return str(value) if is_dev() else ""
 
+def dev_box(expander_box_title: str, contents: object) -> None:
+  if is_dev():
+    st.expander("ⓓ "+expander_box_title).write(contents)
+
 def st_print(*args: object) -> None:
   print(*args)
   st.write(*args)

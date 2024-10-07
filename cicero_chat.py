@@ -7,7 +7,7 @@ from streamlit.runtime.uploaded_file_manager import UploadedFile
 from datetime import datetime, timedelta
 import time
 from databricks_genai_inference import ChatSession, FoundationModelAPIException
-from cicero_shared import catstr, is_dev, ssget, ssset, ssmut, sspop, get_base_url, popup, load_account_names, sql_call_cacheless
+from cicero_shared import catstr, dev_box, is_dev, ssget, ssset, ssmut, sspop, get_base_url, popup, load_account_names, sql_call_cacheless
 from cicero_types import Short_Model_Name, short_model_names, short_model_name_default, short_model_name_to_long_model_name
 import bs4, requests, re # for some reason bs4 is how you import beautifulsoup smh smh
 from pathlib import Path
@@ -105,18 +105,8 @@ def grow_chat(streamlit_key_suffix: str = "", alternate_content: str|UploadedFil
     sys_prompt = "You are a helpful, expert copywriter who specializes in writing fundraising text messages and emails for conservative candidates and causes. Be direct with your responses, and avoid extraneous messages like 'Hello!' and 'I hope this helps!'. These text messages and emails tend to be more punchy and engaging than normal marketing material. Do not mention that you are a helpful, expert copywriter."
   elif streamlit_key_suffix=="_corporate":
     sys_prompt = "You are a helpful, expert marketer. Do not mention that you are a helpful, expert marketer."+" The system interfacing you can expand links into document contents, after the user enters them but before you see them; but do not mention this unless it is relevant."
-  else:
+  else: #regular chatbot
     sys_prompt = "You are an expert copywriter who specializes in writing fundraising and engagement texts and emails for conservative political candidates in the United States of America. Make sure all messages are in English. Be direct with your responses, and avoid extraneous messages like 'Hello!' and 'I hope this helps!'. These text messages and emails tend to be more punchy and engaging than normal marketing material. Focus on these five fundraising elements when writing content: the Hook, Urgency, Agency, Stakes, and the Call to Action (CTA). Do not make up facts or statistics. Do not mention that you are a helpful, expert copywriter. Do not use emojis or hashtags in your messages. Make sure each written message is unique. Write the exact number of messages asked for."
-    if account is not None:
-      texts_from_account = sql_call_cacheless(
-        """
-          WITH t AS ( -- first (conceptually first) we need to actually get the data, because we can't just tablesample on a query directly I guess idk why not
-            SELECT DISTINCT clean_text FROM cicero.text_data.gold_text_outputs WHERE client_name = :account
-          ) SELECT * FROM t TABLESAMPLE (100 PERCENT) LIMIT 5 -- tablesample randomizes, then the limit 5 is taken; see https://docs.databricks.com/en/sql/language-manual/sql-ref-syntax-qry-select-sampling.html for more info (like why we can't just use (5 ROWS) (not random) (at least as of 2024-09-14)
-        """,
-        {"account": account}
-      )
-      sys_prompt += " Here are some example texts from the client; use them as inspiration but do not copy them directly nor mention their existence: " + ' | '.join(row[0] for row in texts_from_account)
   if not ssget("chat", streamlit_key_suffix):
     ssset( "chat", streamlit_key_suffix, ChatSession(model=short_model_name_to_long_model_name(short_model_name), system_message=sys_prompt, max_tokens=4096) ) # Keep in mind that unless DATABRICKS_HOST and DATABRICKS_TOKEN are in the environment (streamlit does this with secret value by default), then this line of code will fail with an extremely cryptic error asking you to run this program with a `setup` command line argument (which won't do anything)
   chat = st.session_state.chat[streamlit_key_suffix] # Note that, as an object reference, updating and accessing chat will continue to update and access the same object.
@@ -189,7 +179,15 @@ def grow_chat(streamlit_key_suffix: str = "", alternate_content: str|UploadedFil
       ssset( "pii_interrupt_state", streamlit_key_suffix, [None, "", {}] ) #reset the field, since the dialog is about to set it, and this prevents funny business from x-ing the dialogue.
       pii_dialog(p, possible_pii, streamlit_key_suffix, keyword_arguments)
       continue_prompt = False
-
+  
+  # Get some sample texts from the account, perhaps similar to the current prompt.
+  if account is not None:
+    texts_from_account = sql_call_cacheless(
+      "SELECT DISTINCT clean_text FROM cicero.text_data.gold_text_outputs WHERE client_name = :account SORT BY levenshtein(clean_text, :prompt) LIMIT 5",
+      {"account": account, "prompt": p}
+    )
+    p = "(Here are some example texts from the client; use them as inspiration but do not copy them directly nor mention their existence: " + ' | '.join(row[0] for row in texts_from_account) + ")" + p
+    dev_box("p with retrieved account context", p)
   if continue_prompt:
     old_chat = chat.chat_history.copy()
     while True:
@@ -262,8 +260,8 @@ def display_chat(streamlit_key_suffix: str = "", account: str|None = None, short
     for message in ms:
       with st.chat_message(message["role"], avatar=message.get("avatar")):
         st.markdown(message["content"].replace("$", r"\$").replace("[", r"\["))
-  if (s := sspop("last_url_content")) and is_dev():
-    st.expander("Developer Mode Message (will disappear on next page load): url content").caption(s)
+  if (s := sspop("last_url_content")):
+    dev_box("Developer Mode Message (will disappear on next page load): url content", s)
   if ssget("outstanding_activity_log_payload", streamlit_key_suffix):
     cicero_feedback_widget(streamlit_key_suffix, "", "***Did Cicero understand your request? Let us know to continue chatting.***")
   if ssget("outstanding_activity_log_payload2", streamlit_key_suffix):

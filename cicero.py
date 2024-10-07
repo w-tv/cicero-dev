@@ -10,7 +10,7 @@ import streamlit as st
 import os, psutil, platform
 from sys import argv
 from cicero_chat import main as cicero_chat
-from cicero_shared import ensure_existence_of_activity_log, exit_error, get_base_url, is_dev, sql_call_cacheless, ssget, ssset, st_print
+from cicero_shared import dev_box, ensure_existence_of_activity_log, exit_error, get_base_url, is_dev, sql_call_cacheless, ssget, ssset, st_print
 from databricks.sql.types import Row
 from google.auth.transport import requests
 from google.oauth2 import id_token
@@ -95,7 +95,7 @@ with Profiler():
   loading_message.empty() # At this point, we no longer need to display a loading message, once we've gotten here and displayed everything above.
 
   if is_dev(): # Developer information about the app (performance, etc).
-    st.expander("Developer Mode Message: the entire session_state").write(st.session_state)
+    dev_box("Developer Mode Message: the entire session_state", st.session_state)
     with st.sidebar:
       st.caption(f"""Streamlit app memory usage: {psutil.Process(os.getpid()).memory_info().rss // 1024 ** 2} MiB.<br>
         Time to display: {(perf_counter_ns()-nanoseconds_base)/1000/1000/1000} seconds.<br>
