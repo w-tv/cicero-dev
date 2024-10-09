@@ -1,3 +1,4 @@
 {
-  "enableTypeIgnoreComments": false
+  "enableTypeIgnoreComments": false,
+  //"typeCheckingMode": "strict" //far too many complaints about types being "partially unknown" for us to use this, at least at the moment.
 }
