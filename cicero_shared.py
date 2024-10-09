@@ -142,7 +142,7 @@ def sql_call_cacheless(query: str, sql_params_dict: TParameterCollection|None = 
 def load_account_names() -> list[str]:
   return [row[0] for row in sql_call("SELECT DISTINCT rollup_name FROM cicero.ref_tables.ref_account_rollup WHERE visible_frontend ORDER BY rollup_name ASC")]
 
-def assert_always(x: object, message_to_assert: str|None = None) -> None | NoReturn: #COULD: currently this enjoys no type-narrowing properties, alas. #TODO: actually the whole point of this is to try to provide an assert() that can be used for static typing that won't fail at runtime if python optimization is ever turned on. But this seems like something to take up with the python community and possibly the typing guy (make them add an assert_always, basically).
+def assert_always(x: object, message_to_assert: str|None = None) -> None | NoReturn: #COULD: currently this enjoys no type-narrowing properties, alas. Possibly TypeIs does what we want here? #TODO: actually the whole point of this is to try to provide an assert() that can be used for static typing that won't fail at runtime if python optimization is ever turned on. But this seems like something to take up with the python community and possibly the typing guy (make them add an assert_always, basically).
   """This function is equivalent to assert, but cannot be disabled by -O"""
   if not x:
     raise AssertionError(message_to_assert or x)
@@ -157,4 +157,3 @@ topics_big: dict[str, Topics_Big_Payload] = (
   for name, color, visible_frontend, regex
   in sql_call_cacheless('SELECT tag_name, color, visible_frontend, regex_pattern FROM cicero.ref_tables.ref_tags WHERE tag_type == "Topic" AND enabled ORDER BY tag_name ASC')}
 )
-#TODO: add "Other" topic as well, for anything with no topic (maybe not in the topics bigs, but somewhere).
