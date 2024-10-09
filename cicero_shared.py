@@ -82,7 +82,7 @@ def get_base_url() -> str:
   """Gets the url where the streamlit app is currently running, not including any page paths underneath. In testing, for example, this value is probably http://localhost:8501 . This function is from BramVanroy https://github.com/streamlit/streamlit/issues/798#issuecomment-1647759949 , with modifications. “WARNING: I found that in multi-page apps, this will always only return the base url and not the sub-page URL with the page appended to the end.”"""
   try:
     session = runtime.get_instance()._session_mgr.list_active_sessions()[0] # There's occasionally a harmless IndexError: list index out of range from this line of code on Streamlit Community Cloud, which I'd like to suppress via this try-catch for the convenience of the reader of the logs.
-    r = session.client.request #type: ignore[attr-defined] #MYPY-BUG-WORKAROUND mypy has various bugs about abstract classes and dataclasses, possibly this one: https://github.com/python/mypy/issues/16613 # To be fair to mypy, I also have no idea what's going on here, class-wise.
+    r = session.client.request #type: ignore[attr-defined] #pyright: ignore # There's some kind of crazy runtime class-swapping behavior or something here that means both mypy and pyright don't know what to make of this.
     if r.protocol == "http" and not r.host.startswith("localhost:"): # STREAMLIT-BUG-WORKAROUND (?) for some reason even when we're in an https connection the r.protocol is http. https://github.com/streamlit/streamlit/issues/8600
       r.protocol = "https"
     return str(
