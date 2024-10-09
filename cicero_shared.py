@@ -149,12 +149,12 @@ def assert_always(x: object, message_to_assert: str|None = None) -> None | NoRet
   return None
 
 # This is the 'big' of topics, the authoritative record of various facts and mappings about topics. "All" is added bespoke because it's not in the Cicero data #TODO: ...yet? could add that, and also the "Other" topic into the data, if we like.
-Topics_Big_Payload = TypedDict("Topics_Big_Payload", {'color': str, 'show in prompter?': bool})
+Topics_Big_Payload = TypedDict("Topics_Big_Payload", {'color': str, 'show in prompter?': bool, 'regex': str})
 topics_big: dict[str, Topics_Big_Payload] = (
-  {"All": Topics_Big_Payload({"color": "#61A5A2", "show in prompter?": False})}
+  {"All": Topics_Big_Payload({"color": "#61A5A2", "show in prompter?": False, "regex": r"[\s\S]*"})}
   | # dict-combining operator
-  {name: Topics_Big_Payload({"color":color, "show in prompter?": visible_frontend})
-  for name, color, visible_frontend
-  in sql_call_cacheless('SELECT tag_name, color, visible_frontend FROM cicero.ref_tables.ref_tags WHERE tag_type == "Topic" AND enabled ORDER BY tag_name ASC')}
+  {name: Topics_Big_Payload({"color":color, "show in prompter?": visible_frontend, "regex": regex})
+  for name, color, visible_frontend, regex
+  in sql_call_cacheless('SELECT tag_name, color, visible_frontend, regex_pattern FROM cicero.ref_tables.ref_tags WHERE tag_type == "Topic" AND enabled ORDER BY tag_name ASC')}
 )
 #TODO: add "Other" topic as well, for anything with no topic (maybe not in the topics bigs, but somewhere).
