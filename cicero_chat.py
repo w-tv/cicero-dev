@@ -183,7 +183,24 @@ def grow_chat(streamlit_key_suffix: str = "", alternate_content: str|UploadedFil
   # Get some sample texts from the account, perhaps similar to the current prompt.
   if account is not None:
     texts_from_account = sql_call_cacheless(
-      "SELECT DISTINCT clean_text FROM cicero.text_data.gold_text_outputs WHERE client_name = :account SORT BY levenshtein(clean_text, :prompt)/len(clean_text) ASC LIMIT 5",
+      """ -- I got this from the Databricks AI, it seems to mostly do the job.
+        WITH QueryTopics AS (
+          SELECT rt.Tag_Name
+          FROM cicero.ref_tables.ref_tags rt
+          WHERE :prompt RLIKE rt.Regex_Pattern
+          AND rt.Enabled = TRUE -- Unclear if we should honor Enabled in this query…
+        ),
+        MatchingTexts(text, count) AS (
+            SELECT gto.Clean_Text, COUNT(*)
+            FROM cicero.text_data.gold_text_outputs gto
+            JOIN cicero.ref_tables.ref_tags rt ON gto.Clean_Text RLIKE rt.Regex_Pattern
+            JOIN QueryTopics qt ON rt.Tag_Name = qt.Tag_Name
+            WHERE client_name = :account
+            AND rt.Enabled = TRUE
+            GROUP BY gto.Clean_Text
+        )
+        SELECT DISTINCT text, count FROM MatchingTexts ORDER BY count DESC LIMIT 5;
+      """,
       {"account": account, "prompt": p}
     )
     p = "(Here are some example texts from the client; you can use them as inspiration but do not copy them directly nor mention their existence: " + ' | '.join(row[0] for row in texts_from_account) + ")" + p

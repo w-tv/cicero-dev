@@ -96,6 +96,7 @@ def consul_show(x: object) -> None:
   if is_dev():
     st.sidebar.caption(f"Developer (“Consul”) mode diagnostic: {x}")
 
+# COULD: use an on_exit thing, and maybe counsel the user that they can usually refresh and retry if they hit an error?
 def exit_error(exit_code: int) -> NoReturn:
   st.write("*Ego vero consisto. Accede, veterane, et, si hoc saltim potes recte facere, incide cervicem.*")
   exit(exit_code)
@@ -103,7 +104,7 @@ def exit_error(exit_code: int) -> NoReturn:
 @st.dialog("Database error")
 def die_with_database_error_popup(e_args: tuple[object, ...]) -> NoReturn:
   print("Database error", e_args)
-  st.write("There was a database error, and the application could not continue. Sorry.")
+  st.write("There was a database error, and the application could not continue. Sorry. Try refreshing the page and trying again.")
   st.code(e_args)
   exit_error(4)
 
