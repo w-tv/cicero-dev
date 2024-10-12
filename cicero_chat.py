@@ -191,13 +191,13 @@ def grow_chat(streamlit_key_suffix: str = "", alternate_content: str|UploadedFil
           AND rt.Enabled = TRUE -- Unclear if we should honor Enabled in this query…
         ),
         MatchingTexts(text, count) AS (
-            SELECT gto.Clean_Text, COUNT(*)
-            FROM cicero.text_data.gold_text_outputs gto
-            JOIN cicero.ref_tables.ref_tags rt ON gto.Clean_Text RLIKE rt.Regex_Pattern
-            JOIN QueryTopics qt ON rt.Tag_Name = qt.Tag_Name
-            WHERE client_name = :account
-            AND rt.Enabled = TRUE
-            GROUP BY gto.Clean_Text
+          SELECT gto.Clean_Text, COUNT(*)
+          FROM cicero.text_data.gold_text_outputs gto
+          JOIN cicero.ref_tables.ref_tags rt ON gto.Clean_Text RLIKE rt.Regex_Pattern
+          JOIN QueryTopics qt ON rt.Tag_Name = qt.Tag_Name
+          WHERE client_name = :account
+          AND rt.Enabled = TRUE
+          GROUP BY gto.Clean_Text
         )
         SELECT DISTINCT text, count FROM MatchingTexts ORDER BY count DESC LIMIT 5;
       """,

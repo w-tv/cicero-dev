@@ -537,7 +537,7 @@ with st.form('query_builder'):
   if is_dev():
     st.session_state["use_backup_similarity_search_library"] = st.selectbox("(developer mode option) trigger a fake error in the appropriate place in this run to use backup similarity search library", [False, True])
 if is_dev():
-  if st.button("Developer mode special button for testing: “***I'm feeling (un)lucky***”"):
+  if st.button("Developer mode special button for testing: “***I'm feeling (un)lucky***”", key="unlucky"):
     st.session_state["submit_button_disabled"] = True
     account = "AAF" # Just a testing value.
 
