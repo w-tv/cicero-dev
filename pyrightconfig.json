@@ -1,4 +1,4 @@
 {
-  "enableTypeIgnoreComments": false,
+  "enableTypeIgnoreComments": false, //pyright doesn't respect type: ignore codes, because no PEP yet forces it to, even lines like # type: ignore[x] just ignore everything. I personally consider this a pyright-bug-workaround and possibly a pep-bug-workaround. Anyway, the thing to do about it is disable type-ignores here, and add special pyright: ignores to lines if needed (inshallah some day none of these ignores will be needed)
   //"typeCheckingMode": "strict" //far too many complaints about types being "partially unknown" for us to use this, at least at the moment.
 }
