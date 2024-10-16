@@ -212,9 +212,12 @@ def grow_chat(streamlit_key_suffix: str = "", alternate_content: str|UploadedFil
         chat.reply(p)
         messages.append({"role": "user", "content": display_p})
         messages.append({"avatar": "assets/CiceroChat_800x800.jpg", "role": "assistant", "content": chat.last})
-        st.session_state["activity_log_payload"] = {"user_email": st.session_state["email"], "prompter_or_chatbot": 'chatbot'+streamlit_key_suffix, "prompt_sent": p, "response_given": chat.last, "model_name": short_model_name, "model_url": chat.model, "model_parameters": str(chat.parameters), "system_prompt": chat.system_message, "base_url": get_base_url(), "used_similarity_search_backup": "no"} | ({"user_feedback": "not asked", "user_feedback_satisfied": "not asked"} if streamlit_key_suffix == "_prompter" else {"user_feedback": "not received", "user_feedback_satisfied": "not received"} if streamlit_key_suffix == "_corporate" else {"user_feedback": "not received", "user_feedback_satisfied": "not asked"}) | {"hit_readlink_time_limit": hit_readlink_time_limit} | {"pii_concern": bool(pii and pii[0]), "winred_concern": winred_concern, "fec_concern": fec_concern}
-        if not streamlit_key_suffix == "_prompter":
+        st.session_state["activity_log_payload"] = {"user_email": st.session_state["email"], "prompter_or_chatbot": 'chatbot'+streamlit_key_suffix, "prompt_sent": p, "response_given": chat.last, "model_name": short_model_name, "model_url": chat.model, "model_parameters": str(chat.parameters), "system_prompt": chat.system_message, "base_url": get_base_url(), "used_similarity_search_backup": "no"} | ({"user_feedback": "not asked", "user_feedback_satisfied": "not asked"} if streamlit_key_suffix == "_prompter" else {"user_feedback": "not received", "user_feedback_satisfied": "not received"} if streamlit_key_suffix == "_corporate" else {"user_feedback": "not asked", "user_feedback_satisfied": "not received"}) | {"hit_readlink_time_limit": hit_readlink_time_limit} | {"pii_concern": bool(pii and pii[0]), "winred_concern": winred_concern, "fec_concern": fec_concern}
+        if streamlit_key_suffix == "_corporate":
           ssset("outstanding_activity_log_payload", streamlit_key_suffix, st.session_state["activity_log_payload"])
+        elif streamlit_key_suffix == "":
+          ssset("outstanding_activity_log_payload2", streamlit_key_suffix, st.session_state["activity_log_payload"])
+        # note that "_prompter" is deliberately absent, because we don't require anything from it.
         break
       except FoundationModelAPIException as e:
         if e.message.startswith('{"error_code":"REQUEST_LIMIT_EXCEEDED","message":"REQUEST_LIMIT_EXCEEDED: Exceeded workspace rate limit for'): # Could: test to see if this Exception ever happens still, and remove this code if not.
