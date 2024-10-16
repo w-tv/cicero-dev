@@ -130,7 +130,7 @@ with Profiler():
     ensure_existence_of_activity_log()
     sql_call_cacheless(
       # Note: we are gambling that the user_pod and timestamp will never be necessary in practice to have in here, because getting them would be inconvenient. Theoretically, an exact replica circumstance could occur, without those disambiguators. But this is so unlikely; it's probably fine.
-      "UPDATE cicero.default.activity_log SET user_feedback = :user_feedback, user_feedback_satisfied = :user_feedback_satisfied WHERE user_email = :user_email AND prompter_or_chatbot = :prompter_or_chatbot AND prompt_sent = :prompt_sent AND response_given = :response_given AND model_name = :model_name AND model_url = :model_url AND model_parameters = :model_parameters AND system_prompt = :system_prompt AND base_url = :base_url;",
+      "UPDATE cicero.default.activity_log SET user_feedback = :user_feedback WHERE user_email = :user_email AND prompter_or_chatbot = :prompter_or_chatbot AND prompt_sent = :prompt_sent AND response_given = :response_given AND model_name = :model_name AND model_url = :model_url AND model_parameters = :model_parameters AND system_prompt = :system_prompt AND base_url = :base_url;",
       ssget("activity_log_update")
     )
     ssset("activity_log_update", None)

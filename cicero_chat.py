@@ -235,6 +235,7 @@ def reset_chat(streamlit_key_suffix: str = "") -> None:
 def cicero_feedback_widget(streamlit_key_suffix: str, feedback_suffix: str, feedback_message: str) -> None:
   """ '' is the feedback suffix we started with, so probably the one you want to use.
   This function returns nothing, and (tees up a state that) writes to the activity log. It also manipulates the session state to remove the session state that leads to its running."""
+  # The code that controls the feedback widget and logging is all over the place (in this file, and also in cicero.py). Would be a fine thing to refactor. But it's easy enough to leave it as-is for now. We have higher priorities, and this works the way it is.
   st_feedback: int|None = None # This is "declared" up here to appease possibly-unbound analysis.
   emptyable = st.empty()
   ss_feedback_key = "feedback" + streamlit_key_suffix + feedback_suffix
