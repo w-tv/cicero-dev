@@ -21,7 +21,10 @@ if argv[1:]:
   print(f"Running Cicero with command-line arguments: {argv[1:]}")
 
 def get_git_head_hash() -> str:
-  return open(".git/refs/heads/master", "r").read()[:7]
+  try:
+    return open(".git/refs/heads/master", "r").read()[:7]
+  except FileNotFoundError as e:
+    return e
 
 if not ssget("git_head_hash_on_startup"):
   # The idea is that we set this only once until the program completely resets, so that the version of Cicero that is active in RAM won't read the wrong version off of the disk storage (thereby ruining the entire point of displaying the head hash value), which may or may not have been the cause of a problem we were running into. (Note that during local development the active code won't match the head hash anyway, since it's running from the working tree, instead; but that doesn't matter.)
