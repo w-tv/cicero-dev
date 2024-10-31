@@ -220,8 +220,8 @@ def grow_chat(streamlit_key_suffix: str = "", alternate_content: str|UploadedFil
         # note that "_prompter" is deliberately absent, because we don't require anything from it.
         break
       except FoundationModelAPIException as e:
-        if e.message.startswith('{"error_code":"REQUEST_LIMIT_EXCEEDED","message":"REQUEST_LIMIT_EXCEEDED: Exceeded workspace rate limit for'): # Could: test to see if this Exception ever happens still, and remove this code if not.
-          print("!!! chat rate limit hit; retrying...", e)
+        if "API request timed out" in e.message or e.message.startswith('{"error_code":"REQUEST_LIMIT_EXCEEDED","message":"REQUEST_LIMIT_EXCEEDED: Exceeded workspace rate limit for'): # Could: test to see if this Exception ever happens still, and remove this code if not.
+          print("!!! chat rate limit or api timeout hit; retrying...", e)
           chat.chat_history = old_chat #remove failed prompt. But, there is no break statement after this because we just want to try again. The rate-limit is 2 per second so there's a good chance this works.
         else: # I guess it's some other error, so crash 🤷
           raise e
