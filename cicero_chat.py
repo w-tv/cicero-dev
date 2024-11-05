@@ -286,7 +286,7 @@ def display_chat(streamlit_key_suffix: str = "", account: str|None = None, short
   if ssget("outstanding_activity_log_payload", streamlit_key_suffix):
     cicero_feedback_widget(streamlit_key_suffix, "", "***Did Cicero understand your request? Let us know to continue chatting.***")
   if ssget("outstanding_activity_log_payload2", streamlit_key_suffix):
-    cicero_feedback_widget(streamlit_key_suffix, "_satisfied", "***Are you satisfied with this output? Let us know to continue chatting.***")
+    cicero_feedback_widget(streamlit_key_suffix, "_satisfied", "***Like this output?  Let us know to continue chatting.***")
   if not ( ssget("outstanding_activity_log_payload", streamlit_key_suffix) or ssget("outstanding_activity_log_payload2", streamlit_key_suffix) ):
     if pii and pii[0] is False: # We're in a pii situation and the user has chosen to press on. So we have to show them the message they just had.
       st.info("Message you were editing (may contain PII):")
