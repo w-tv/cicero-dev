@@ -17,7 +17,7 @@ if query:
         'E': "col == :query",
         'S': "col LIKE CONCAT('%', :query, '%')",
         'C': "col ILIKE CONCAT('%', :query, '%')",
-        'L': "levenshtein(col, :query) < len(col) * .69 SORT BY levenshtein(col, :query) DESC -- the * .69 thing is just an arbitrary heuristic; a little over half of the length of the response. Brief and non-exhaustive empirical investigation yielded this number; it could probably be refined.",
+        'L': "levenshtein(col, :query) < len(col) * .69 ORDER BY levenshtein(col, :query) DESC -- the * .69 thing is just an arbitrary heuristic; a little over half of the length of the response. Brief and non-exhaustive empirical investigation yielded this number; it could probably be refined.",
         'N': "true -- N is an extremely obscure edge-case I don't even know how to trigger, but true is a sensible default for it I suppose"
       }[r]
     }""",

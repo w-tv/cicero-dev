@@ -178,7 +178,7 @@ def execute_prompting(model: Long_Model_Name, account: str, sender: str|None, as
 
 # -- see also, SELECT size(array_intersect(array1, array2)) AS overlap_count FROM your_table_name"""
 
-  #### Create All Possible Filter Combinations and Sort By Importance ###
+  #### Create All Possible Filter Combinations and Order By Importance ###
 
   ### Tag importance from most important to least
   # Topics (Tp)

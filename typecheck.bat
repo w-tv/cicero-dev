@@ -24,5 +24,8 @@ uv run mypy . --strict --ignore-missing-imports --pretty
 echo ---- PYTYPE:
 uv run pytype cicero.py
 REM This should be `pytype .`; alas, pytype does not support a feature of our full codebase https://github.com/google/pytype/issues/1775 PYTYPE-BUG-WORKAROUND
+echo ---- SORT BY:
+echo "SORT BY has betrayed me once before, which is enough. Use ORDER BY instead, if there are any results below:"
+git grep -i "sort by" ":(exclude)typecheck.bat"
 echo ---- fin
 pause
