@@ -20,7 +20,7 @@ from datetime import datetime
 if argv[1:]:
   print(f"Running Cicero with command-line arguments: {argv[1:]}")
 
-def get_git_head_hash() -> str:
+def get_git_head_hash() -> str|FileNotFoundError:
   try:
     return open(".git/refs/heads/master", "r").read()[:7]
   except FileNotFoundError as e:
