@@ -92,6 +92,10 @@ All Type-ignores Are Errors. ATAE. (Usually errors in the typechecker that aren'
 
 Occasionally, about 1 in 20 times or so, this project will fail to launch because an internal component of a dependency throws an indecipherable error. This is from pytz and probably a fault of the databrick python sql connector. BUG-WORKAROUND: just reboot the process. Further development: actually, this might be a result of the email being None sometimes, on subsidiary pages, which the database doesn't like? Perhaps.
 
+## An annoyance: dapi
+
+dapi360d025c9e135c809de05abbf3196a06 is an old token we invalidated, and in fact put into source control because we knew we were going to do that, so it would be ok. Regardless, github secrets scanning will probably bug you about objects such as 29f0ba44c73d10d7955d22666561c91caad45350 because they contain this. But you can just do the bypass, it's fine.
+
 ## Signoff
 
 And remember: the first thing to do is get the best of both worlds. You can!
