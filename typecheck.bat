@@ -13,7 +13,7 @@ python -c "from os import remove as r; r('.venv/Lib/site-packages/google/auth/py
 echo ---------- END OF HARMLESS ERRORS
 echo .
 echo ---- RUFF:
-uv run ruff check --select F --exclude cicero_empty_template.py .
+uv run ruff check --no-cache --select F --exclude cicero_empty_template.py .
 echo ---- PYRIGHT:
 uv run -- pyright --version || echo "Detected that pyright isn't installed. This implies the rest of the venv likely isn't ready yet either. Run the run.bat, which will install everything, and then try this again." && pause && exit /B 2
 REM /B is a cmd-ism, but bash's exit will harmlessly ignore it probably.
