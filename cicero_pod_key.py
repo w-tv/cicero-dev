@@ -170,3 +170,8 @@ with st.expander("Activity log", expanded=True):
   st.write(f"""activity log entries where the pod is "Pod unknown", suggesting you need to run the retroactive application (above) if there are any: ***{sql_call_cacheless("SELECT count( distinct user_email) FROM cicero.default.activity_log WHERE user_pod = 'Pod unknown'")[0][0]}***""")
   activity_log_results = sql_call_cacheless("SELECT DISTINCT user_email, user_pod FROM cicero.default.activity_log")
   labeled_table(activity_log_results)
+
+st.write("## Manipulate the table using SQL directly:")
+cool_pod_query = st.text_area(label="Arbitrary SQL", value="SELECT * FROM cicero.ref_tables.user_pods")
+if st.button("Go! (sql query)"):
+  st.write(sql_call_cacheless(cool_pod_query))
