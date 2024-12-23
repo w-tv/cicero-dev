@@ -8,7 +8,7 @@ from datetime import datetime, timedelta
 import time
 from databricks_genai_inference import ChatSession, FoundationModelAPIException
 from cicero_shared import catstr, dev_box, is_dev, ssget, ssset, ssmut, sspop, get_base_url, popup, load_account_names, sql_call_cacheless
-from cicero_types import Short_Model_Name, short_model_names, short_model_name_default, short_model_name_to_long_model_name, Disposition, dispositions
+from cicero_types import Short_Model_Name, short_model_names, short_model_name_default, short_model_name_to_long_model_name, Disposition, dispositions, dispositions_default
 from cicero_disposition_map import disposition_map
 import bs4, requests, re # for some reason bs4 is how you import beautifulsoup smh smh
 from pathlib import Path
@@ -96,7 +96,7 @@ def expand_url_content(s: str) -> str:
   """Expand the urls in a string to the content of their contents (placing said contents back into the same containing string."""
   return re.sub(pattern=url_regex, repl=content_from_url_regex_match, string=s)
 
-def grow_chat(streamlit_key_suffix: str = "", alternate_content: str|UploadedFile|None = None, account: str|None = None, short_model_name: Short_Model_Name = short_model_name_default, disposition: Disposition|None = None) -> None:
+def grow_chat(streamlit_key_suffix: str = "", alternate_content: str|UploadedFile|None = None, account: str|None = None, short_model_name: Short_Model_Name = short_model_name_default, disposition: Disposition = dispositions_default) -> None:
   """Note that this function will do something special to the prompt if alternate_content is supplied.
   Also, the streamlit_key_suffix is only necessary because we use this code in two places. If streamlit_key_suffix is "", we infer we're in the chat page, and if otherwise we infer we're being used on a different page (so far, the only thing that does this is prompter).
   Random fyi: chat.history is an alias for chat.chat_history (you can mutate chat.chat_history but not chat.history, btw). Internally, it's, like: [{'role': 'system', 'content': 'You are a helpful assistant.'}, {'role': 'user', 'content': 'Knock, knock.'}, {'role': 'assistant', 'content': "Hello! Who's there?"}, {'role': 'user', 'content': 'Guess who!'}, {'role': 'assistant', 'content': "Okay, I'll play along! Is it a person, a place, or a thing?"}]"""
@@ -105,8 +105,8 @@ def grow_chat(streamlit_key_suffix: str = "", alternate_content: str|UploadedFil
   if streamlit_key_suffix=="_prompter":
     sys_prompt = "You are a helpful, expert copywriter who specializes in writing fundraising text messages and emails for conservative candidates and causes. Be direct with your responses, and avoid extraneous messages like 'Hello!' and 'I hope this helps!'. These text messages and emails tend to be more punchy and engaging than normal marketing material. Do not mention that you are a helpful, expert copywriter."
   elif streamlit_key_suffix=="_corporate":
-    if disposition not in [None, "Default"]:
-      sys_prompt = disposition_map[disposition] #type: ignore #pyright: ignore #PYRIGHT-BUG-WORKAROUND: https://github.com/microsoft/pyright/issues/9338 #MYPY-BUG-WORKAROUND: https://github.com/python/mypy/issues/3229
+    if disposition != dispositions_default:
+      sys_prompt = disposition_map[disposition]
     else:
       sys_prompt = "You are a helpful, expert marketer. Do not mention that you are a helpful, expert marketer."+" The system interfacing you can expand links into document contents, after the user enters them but before you see them; but do not mention this unless it is relevant."
   else: #regular chatbot
@@ -303,7 +303,7 @@ def display_chat(streamlit_key_suffix: str = "", account: str|None = None, short
 
 def main(streamlit_key_suffix: str = "") -> None: # It's convenient to import cicero_chat in other files, to use its function in them, so we do a main() here so we don't run this code on startup.
   st.write("**Chat freeform with Cicero directly ChatGPT-style!**")
-  disposition = None
+  disposition = dispositions_default
   if streamlit_key_suffix=="":
     st.write("Here are some ideas: rewrite copy, make copy longer, convert a text into an email, or write copy based off a starter phrase/quote.")
   elif streamlit_key_suffix=="_corporate":

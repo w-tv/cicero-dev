@@ -20,3 +20,4 @@ def short_model_name_to_long_model_name(short_model_name: Short_Model_Name) -> L
 
 type Disposition = Literal["Default", "A16Z"]
 dispositions: tuple[Disposition, ...] = aa(Disposition)
+dispositions_default = dispositions[0]
