@@ -8,7 +8,7 @@ from datetime import datetime, timedelta
 import time
 from databricks_genai_inference import ChatSession, FoundationModelAPIException
 from cicero_shared import catstr, dev_box, is_dev, ssget, ssset, ssmut, sspop, get_base_url, popup, load_account_names, sql_call_cacheless
-from cicero_types import Short_Model_Name, short_model_names, short_model_name_default, short_model_name_to_long_model_name
+from cicero_types import Short_Model_Name, short_model_names, short_model_name_default, short_model_name_to_long_model_name, Disposition, dispositions
 import bs4, requests, re # for some reason bs4 is how you import beautifulsoup smh smh
 from pathlib import Path
 from io import StringIO
@@ -95,7 +95,7 @@ def expand_url_content(s: str) -> str:
   """Expand the urls in a string to the content of their contents (placing said contents back into the same containing string."""
   return re.sub(pattern=url_regex, repl=content_from_url_regex_match, string=s)
 
-def grow_chat(streamlit_key_suffix: str = "", alternate_content: str|UploadedFile|None = None, account: str|None = None, short_model_name: Short_Model_Name = short_model_name_default) -> None:
+def grow_chat(streamlit_key_suffix: str = "", alternate_content: str|UploadedFile|None = None, account: str|None = None, short_model_name: Short_Model_Name = short_model_name_default, disposition: Disposition|None = None) -> None:
   """Note that this function will do something special to the prompt if alternate_content is supplied.
   Also, the streamlit_key_suffix is only necessary because we use this code in two places. If streamlit_key_suffix is "", we infer we're in the chat page, and if otherwise we infer we're being used on a different page (so far, the only thing that does this is prompter).
   Random fyi: chat.history is an alias for chat.chat_history (you can mutate chat.chat_history but not chat.history, btw). Internally, it's, like: [{'role': 'system', 'content': 'You are a helpful assistant.'}, {'role': 'user', 'content': 'Knock, knock.'}, {'role': 'assistant', 'content': "Hello! Who's there?"}, {'role': 'user', 'content': 'Guess who!'}, {'role': 'assistant', 'content': "Okay, I'll play along! Is it a person, a place, or a thing?"}]"""
@@ -104,7 +104,10 @@ def grow_chat(streamlit_key_suffix: str = "", alternate_content: str|UploadedFil
   if streamlit_key_suffix=="_prompter":
     sys_prompt = "You are a helpful, expert copywriter who specializes in writing fundraising text messages and emails for conservative candidates and causes. Be direct with your responses, and avoid extraneous messages like 'Hello!' and 'I hope this helps!'. These text messages and emails tend to be more punchy and engaging than normal marketing material. Do not mention that you are a helpful, expert copywriter."
   elif streamlit_key_suffix=="_corporate":
-    sys_prompt = "You are a helpful, expert marketer. Do not mention that you are a helpful, expert marketer."+" The system interfacing you can expand links into document contents, after the user enters them but before you see them; but do not mention this unless it is relevant."
+    if disposition == "A16Z":
+      sys_prompt = "You must talk like a pirate. eg 'yo ho', 'me hearties', etc. You are blackbeard. Mention that your ridiculous manner of speech is for testing purposes."
+    else:
+      sys_prompt = "You are a helpful, expert marketer. Do not mention that you are a helpful, expert marketer."+" The system interfacing you can expand links into document contents, after the user enters them but before you see them; but do not mention this unless it is relevant."
   else: #regular chatbot
     sys_prompt = "You are an expert copywriter who specializes in writing fundraising and engagement texts and emails for conservative political candidates in the United States of America. Make sure all messages are in English. Be direct with your responses, and avoid extraneous messages like 'Hello!' and 'I hope this helps!'. These text messages and emails tend to be more punchy and engaging than normal marketing material. Focus on these five fundraising elements when writing content: the Hook, Urgency, Agency, Stakes, and the Call to Action (CTA). Do not make up facts or statistics. Do not mention that you are a helpful, expert copywriter. Do not use emojis or hashtags in your messages. Make sure each written message is unique. Write the exact number of messages asked for."
   if not streamlit_key_suffix=="_corporate":
@@ -267,7 +270,7 @@ def cicero_feedback_widget(streamlit_key_suffix: str, feedback_suffix: str, feed
     else:
       print("!! Cicero internal warning: you are in an invalid state somehow? You are using the feedback widget but have neither outstandings {o=},{o2=}")
 
-def display_chat(streamlit_key_suffix: str = "", account: str|None = None, short_model_name: Short_Model_Name = short_model_name_default) -> None:
+def display_chat(streamlit_key_suffix: str = "", account: str|None = None, short_model_name: Short_Model_Name = short_model_name_default, disposition: Disposition|None = None) -> None:
   """Display chat messages from history on app reload; this is how we get the messages to display, and then the chat box.
   The streamlit_key_suffix is only necessary because we use this code in two places. But that does make it necessary, for every widget in this function. If streamlit_key_suffix is "", we infer we're in the chat page, and if otherwise we infer we're being used on a different page (so far, the only thing that does this is prompter).
 
@@ -295,14 +298,16 @@ def display_chat(streamlit_key_suffix: str = "", account: str|None = None, short
       st.info("Message you were editing (may contain PII):")
       st.code(pii[1])
       ssset( "pii_interrupt_state", streamlit_key_suffix, [None, ""] )
-    st.container().chat_input(on_submit=grow_chat, key="user_input_for_chatbot_this_frame"+streamlit_key_suffix, args=(streamlit_key_suffix, None, account, short_model_name_default) ) #Note that because it's a callback, the profiler will not catch grow_chat here. However, it takes about a second. (Update: maybe it's about 4 seconds, now? That's in the happy path, as well.) #Without the container, this UI element floats BELOW the pyinstrument profiler now, which is inconvenient. But also we might want it to float down later, if we start using streaming text...
+    st.container().chat_input(on_submit=grow_chat, key="user_input_for_chatbot_this_frame"+streamlit_key_suffix, args=(streamlit_key_suffix, None, account, short_model_name_default, disposition) ) #Note that because it's a callback, the profiler will not catch grow_chat here. However, it takes about a second. (Update: maybe it's about 4 seconds, now? That's in the happy path, as well.) #Without the container, this UI element floats BELOW the pyinstrument profiler now, which is inconvenient. But also we might want it to float down later, if we start using streaming text...
 
 def main(streamlit_key_suffix: str = "") -> None: # It's convenient to import cicero_chat in other files, to use its function in them, so we do a main() here so we don't run this code on startup.
   st.write("**Chat freeform with Cicero directly ChatGPT-style!**")
+  disposition = None
   if streamlit_key_suffix=="":
     st.write("Here are some ideas: rewrite copy, make copy longer, convert a text into an email, or write copy based off a starter phrase/quote.")
   elif streamlit_key_suffix=="_corporate":
     st.write("Here are some ideas: write a press release based off of a news article (feel free to paste in the link), generate multiple versions of a draft pitch, convert one type of content into another, provide examples of good final products.")
+    disposition = st.selectbox("Disposition (you must reset the chat for a change to this to take effect)", dispositions) #could: use session state for all of these controls instead of doing all this argument passing.
   account = st.text_input("Account") if streamlit_key_suffix=="_corporate" else None
   if is_dev():
     account = st.selectbox("Account (required)", load_account_names(), key="account") if streamlit_key_suffix!="_corporate" else None
@@ -311,11 +316,11 @@ def main(streamlit_key_suffix: str = "") -> None: # It's convenient to import ci
       ssmut(lambda x: x+1 if x else 1, "chat_file_uploader")
       file_ext = Path(str(uploaded_file.name)).suffix
       st.write(f"You uploaded a {file_ext} file!")
-      grow_chat(streamlit_key_suffix, uploaded_file, account, short_model_name_default)
+      grow_chat(streamlit_key_suffix, uploaded_file, account, short_model_name_default, disposition) #note: this seems like a DRY violation to me, and has already bitten me. When this feature is done being a prototype, maybe fix that.
   model_name = st.selectbox("Model", short_model_names, key="model_name") if is_dev() else short_model_name_default
   if st.button("Reset"):
     reset_chat(streamlit_key_suffix)
-  display_chat(streamlit_key_suffix, account=account, short_model_name=model_name)
+  display_chat(streamlit_key_suffix, account=account, short_model_name=model_name, disposition=disposition)
 
 if __name__ == "__main__":
   main()
