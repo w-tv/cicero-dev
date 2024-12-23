@@ -106,7 +106,7 @@ def grow_chat(streamlit_key_suffix: str = "", alternate_content: str|UploadedFil
     sys_prompt = "You are a helpful, expert copywriter who specializes in writing fundraising text messages and emails for conservative candidates and causes. Be direct with your responses, and avoid extraneous messages like 'Hello!' and 'I hope this helps!'. These text messages and emails tend to be more punchy and engaging than normal marketing material. Do not mention that you are a helpful, expert copywriter."
   elif streamlit_key_suffix=="_corporate":
     if disposition not in [None, "Default"]:
-      sys_prompt = disposition_map[disposition]
+      sys_prompt = disposition_map[disposition] #type: ignore #pyright: ignore #PYRIGHT-BUG-WORKAROUND: https://github.com/microsoft/pyright/issues/9338 #MYPY-BUG-WORKAROUND: https://github.com/python/mypy/issues/3229
     else:
       sys_prompt = "You are a helpful, expert marketer. Do not mention that you are a helpful, expert marketer."+" The system interfacing you can expand links into document contents, after the user enters them but before you see them; but do not mention this unless it is relevant."
   else: #regular chatbot
