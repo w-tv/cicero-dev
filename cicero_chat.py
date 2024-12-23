@@ -9,6 +9,7 @@ import time
 from databricks_genai_inference import ChatSession, FoundationModelAPIException
 from cicero_shared import catstr, dev_box, is_dev, ssget, ssset, ssmut, sspop, get_base_url, popup, load_account_names, sql_call_cacheless
 from cicero_types import Short_Model_Name, short_model_names, short_model_name_default, short_model_name_to_long_model_name, Disposition, dispositions
+from cicero_disposition_map import disposition_map
 import bs4, requests, re # for some reason bs4 is how you import beautifulsoup smh smh
 from pathlib import Path
 from io import StringIO
@@ -104,8 +105,8 @@ def grow_chat(streamlit_key_suffix: str = "", alternate_content: str|UploadedFil
   if streamlit_key_suffix=="_prompter":
     sys_prompt = "You are a helpful, expert copywriter who specializes in writing fundraising text messages and emails for conservative candidates and causes. Be direct with your responses, and avoid extraneous messages like 'Hello!' and 'I hope this helps!'. These text messages and emails tend to be more punchy and engaging than normal marketing material. Do not mention that you are a helpful, expert copywriter."
   elif streamlit_key_suffix=="_corporate":
-    if disposition == "A16Z":
-      sys_prompt = "You must talk like a pirate. eg 'yo ho', 'me hearties', etc. You are blackbeard. Mention that your ridiculous manner of speech is for testing purposes."
+    if disposition not in [None, "Default"]:
+      sys_prompt = disposition_map[disposition]
     else:
       sys_prompt = "You are a helpful, expert marketer. Do not mention that you are a helpful, expert marketer."+" The system interfacing you can expand links into document contents, after the user enters them but before you see them; but do not mention this unless it is relevant."
   else: #regular chatbot
