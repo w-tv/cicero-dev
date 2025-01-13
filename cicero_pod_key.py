@@ -10,7 +10,7 @@ from cicero_shared import ensure_existence_of_activity_log, labeled_table, sql_c
 def ensure_existence_of_pod_table() -> None:
   """Run this code before accessing the pod table. If the pod table doesn't exist, this function call will create it. (TODO: probably we should be running this in a lot more places than we currently are.
   Note that if the table exists, this sql call will not check if it has the right columns (names or types), unfortunately."""
-  sql_call_cacheless("CREATE TABLE IF NOT EXISTS cicero.ref_tables.user_pods (user_email STRING, user_pod STRING, user_permitted_to_see_these_accounts_in_topic_reporting ARRAY<STRING>, page_access ARRAY<STRING>)")
+  sql_call_cacheless("CREATE TABLE IF NOT EXISTS cicero.ref_tables.user_pods (user_email STRING, user_pod STRING, user_permitted_to_see_these_accounts_in_topic_reporting ARRAY<STRING>, page_access ARRAY<STRING>, dispositions ARRAY<STRING>)")
 
 def do_one(email: str, pod: str) -> None:
   """Because we need to update the value if it exists, and create a new record if none exist, this is an "upsert", and a MERGE INTO is apparently the best way to do it. Also I got almost all of this code from the AI. But it's very basic code, like example code of just how you would use MERGE INTO syntax, really. I just think it's interesting."""
@@ -21,8 +21,8 @@ def do_one(email: str, pod: str) -> None:
     WHEN MATCHED THEN
         UPDATE SET user_pod = :pod
     WHEN NOT MATCHED THEN
-        INSERT (       user_email,        user_pod, user_permitted_to_see_these_accounts_in_topic_reporting, page_access)
-        VALUES (source.user_email, source.user_pod, ARRAY(), ARRAY())
+        INSERT (       user_email,        user_pod, user_permitted_to_see_these_accounts_in_topic_reporting, page_access, dispositions)
+        VALUES (source.user_email, source.user_pod, ARRAY(), ARRAY(), ARRAY())
     """,
     locals()
   )
@@ -42,8 +42,8 @@ def do_one_tr(email: str, accounts: list[str]) -> None:
     WHEN MATCHED THEN
         UPDATE SET user_permitted_to_see_these_accounts_in_topic_reporting = {a}
     WHEN NOT MATCHED THEN
-        INSERT (       user_email,     user_pod, user_permitted_to_see_these_accounts_in_topic_reporting, page_access)
-        VALUES (source.user_email, "Pod unknown", {a}, ARRAY())
+        INSERT (       user_email,     user_pod, user_permitted_to_see_these_accounts_in_topic_reporting, page_access, dispositions)
+        VALUES (source.user_email, "Pod unknown", {a}, ARRAY(), ARRAY())
     """,
     {"email": email}
   )
@@ -58,8 +58,8 @@ def do_one_pa(email: str, page_accesses: list[str]) -> None:
     WHEN MATCHED THEN
         UPDATE SET page_access = {a}
     WHEN NOT MATCHED THEN
-        INSERT (       user_email,     user_pod, user_permitted_to_see_these_accounts_in_topic_reporting, page_access)
-        VALUES (source.user_email, "Pod unknown", ARRAY(), {a})
+        INSERT (       user_email,     user_pod, user_permitted_to_see_these_accounts_in_topic_reporting, page_access, dispositions)
+        VALUES (source.user_email, "Pod unknown", ARRAY(), {a}, ARRAY)
     """,
     {"email": email}
   )

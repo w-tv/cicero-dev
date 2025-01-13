@@ -271,7 +271,7 @@ def cicero_feedback_widget(streamlit_key_suffix: str, feedback_suffix: str, feed
     else:
       print("!! Cicero internal warning: you are in an invalid state somehow? You are using the feedback widget but have neither outstandings {o=},{o2=}")
 
-def display_chat(streamlit_key_suffix: str = "", account: str|None = None, short_model_name: Short_Model_Name = short_model_name_default, disposition: Disposition|None = None) -> None:
+def display_chat(streamlit_key_suffix: str = "", account: str|None = None, short_model_name: Short_Model_Name = short_model_name_default, disposition: Disposition = dispositions_default) -> None:
   """Display chat messages from history on app reload; this is how we get the messages to display, and then the chat box.
   The streamlit_key_suffix is only necessary because we use this code in two places. But that does make it necessary, for every widget in this function. If streamlit_key_suffix is "", we infer we're in the chat page, and if otherwise we infer we're being used on a different page (so far, the only thing that does this is prompter).
 
@@ -308,7 +308,10 @@ def main(streamlit_key_suffix: str = "") -> None: # It's convenient to import ci
     st.write("Here are some ideas: rewrite copy, make copy longer, convert a text into an email, or write copy based off a starter phrase/quote.")
   elif streamlit_key_suffix=="_corporate":
     st.write("Here are some ideas: write a press release based off of a news article (feel free to paste in the link), generate multiple versions of a draft pitch, convert one type of content into another, provide examples of good final products.")
-    disposition = st.selectbox("Disposition (you must reset the chat for a change to this to take effect)", dispositions) #could: use session state for all of these controls instead of doing all this argument passing.
+     #could: use session state for all of these controls instead of doing all this argument passing of disposition, etc...
+    disposition = st.selectbox("Disposition (you must reset the chat for a change to this to take effect)",
+      [dispositions_default] + [d[0] for d in sql_call_cacheless("select dispositions from cicero.ref_tables.user_pods where user_email == :user_email", {"user_email": ssget('email')}) if d[0] is not None]
+    )
   account = st.text_input("Account") if streamlit_key_suffix=="_corporate" else None
   if is_dev():
     account = st.selectbox("Account (required)", load_account_names(), key="account") if streamlit_key_suffix!="_corporate" else None
