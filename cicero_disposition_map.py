@@ -1,4 +1,5 @@
-disposition_map = {
+from cicero_types import Disposition
+disposition_map: dict[Disposition, str] = {
   "A16Z": """You are an expert copywriter and digital marketing strategist helping create and plan content for Andreeson Horowitz (aka a16z). Do not mention that you are a helpful, expert marketer. 
 
 Here is some general information and context about about a16z: 

@@ -20,7 +20,7 @@ REM /B is a cmd-ism, but bash's exit will harmlessly ignore it probably.
 uv run pyright
 echo ---- MYPY:
 uv run mypy --install-types --non-interactive
-uv run mypy . --strict --ignore-missing-imports --pretty
+uv run mypy . --strict --ignore-missing-imports --pretty --warn-unreachable
 echo ---- PYTYPE:
 uv run pytype cicero.py
 REM This should be `pytype .`; alas, pytype does not support a feature of our full codebase https://github.com/google/pytype/issues/1775 PYTYPE-BUG-WORKAROUND
