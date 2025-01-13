@@ -139,6 +139,19 @@ def sql_call_cacheless(query: str, sql_params_dict: TParameterCollection|None = 
   except Exception as e:
     die_with_database_error_popup(e.args)
 
+def get_value_of_column_in_table(column: str, table: str) -> Any:
+  """This returns one value. This is cacheless, by the way, because we mostly use it for access, and access not updating promptly is a minefield of user-hostile interactions.
+  Please note that the column and table are just f-stringed in, so to avoid sql injection you should not let the user set them directly. This is a program-internal function ONLY!!! It should only be used on fixed, known values, & is only for the purpose of abstraction."""
+  return sql_call_cacheless(
+    f"SELECT {column} FROM {table} WHERE user_email == :user_email",
+    {"user_email": ssget('email')}
+  )[0][0] # list of Rows, get 0th Row, get 0th entry (contents of column).
+
+def get_list_value_of_column_in_table(column: str, table: str) -> list[Any]:
+  """Same as get_value_of_column_in_table, but also converts None to [], and also converts the np.array we get here to a plain ol' python list."""
+  result = get_value_of_column_in_table(column, table)
+  return result.tolist() if result is not None else [] # Unfortunately, it could be None, and thus not iterable, and the typechecker is no help here (since the database read loses type information). So, we have to do this awkward little dance.
+
 @st.cache_data(show_spinner=False)
 def load_account_names() -> list[str]:
   return [row[0] for row in sql_call("SELECT DISTINCT rollup_name FROM cicero.ref_tables.ref_account_rollup WHERE visible_frontend ORDER BY rollup_name ASC")]

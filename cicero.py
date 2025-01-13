@@ -10,8 +10,7 @@ import streamlit as st
 import os, psutil, platform
 from sys import argv
 from cicero_chat import main as cicero_chat
-from cicero_shared import dev_box, ensure_existence_of_activity_log, exit_error, get_base_url, is_dev, sql_call_cacheless, ssget, ssset, st_print
-from databricks.sql.types import Row
+from cicero_shared import dev_box, ensure_existence_of_activity_log, exit_error, get_base_url, get_list_value_of_column_in_table, is_dev, sql_call_cacheless, ssget, ssset, st_print
 from google.auth.transport import requests
 from google.oauth2 import id_token
 from wfork_streamlit_profiler import Profiler
@@ -77,16 +76,14 @@ with Profiler():
   pages = [ #pages visible to everyone
     st.Page("cicero_prompter.py", title="🗣️ Prompter", default=True)
   ]
-  page_access_result: list[Row] = sql_call_cacheless("select page_access from cicero.ref_tables.user_pods where user_email == :user_email", {"user_email": st.session_state['email']})
-  page_access: list[str] | None = page_access_result[0][0] if len(page_access_result) > 0 else print(f"!! {st.session_state['email']=} not in user_pods table!") or [] # If the user email isn't in the user_pod table we won't get any Rows for them, so we have to use a [] for their page access list. We also (using the confusing python or operator; don't worry about it) log a message to the logs, in case someone would like to fix that later, or perhaps detect "unauthorized" usages.
-  if page_access is not None:
-    if 'topic_reporting' in page_access:
-      pages += [ st.Page("cicero_topic_reporting.py", title="📈 Topic Reporting") ]
-    # These next two pages need a url_path because otherwise they have dumb names for implementation reasons.
-    if 'chat_with_cicero' in page_access:
-      pages += [ st.Page(cicero_chat, title="💬 Chat with Cicero", url_path="chat_with_cicero") ]
-    if 'chat_with_corpo' in page_access:
-      pages += [ st.Page(lambda: cicero_chat("_corporate"), title="💼 Chat with Cicero", url_path="chat_with_cicero_corporate") ]
+  page_access: list[str] = get_list_value_of_column_in_table("page_access", "cicero.ref_tables.user_pods")
+  if 'topic_reporting' in page_access:
+    pages += [ st.Page("cicero_topic_reporting.py", title="📈 Topic Reporting") ]
+  # These next two pages need a url_path because otherwise they have dumb names for implementation reasons.
+  if 'chat_with_cicero' in page_access:
+    pages += [ st.Page(cicero_chat, title="💬 Chat with Cicero", url_path="chat_with_cicero") ]
+  if 'chat_with_corpo' in page_access:
+    pages += [ st.Page(lambda: cicero_chat("_corporate"), title="💼 Chat with Cicero", url_path="chat_with_cicero_corporate") ]
   if is_dev():
     pages += [
       st.Page("cicero_response_lookup.py", title="🔍 Response Lookup"),

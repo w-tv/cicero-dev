@@ -7,8 +7,8 @@ from streamlit.runtime.uploaded_file_manager import UploadedFile
 from datetime import datetime, timedelta
 import time
 from databricks_genai_inference import ChatSession, FoundationModelAPIException
-from cicero_shared import catstr, dev_box, is_dev, ssget, ssset, ssmut, sspop, get_base_url, popup, load_account_names, sql_call_cacheless
-from cicero_types import Short_Model_Name, short_model_names, short_model_name_default, short_model_name_to_long_model_name, Disposition, dispositions, dispositions_default
+from cicero_shared import catstr, dev_box, get_list_value_of_column_in_table, is_dev, ssget, ssset, ssmut, sspop, get_base_url, popup, load_account_names, sql_call_cacheless
+from cicero_types import Short_Model_Name, short_model_names, short_model_name_default, short_model_name_to_long_model_name, dispositions, Disposition, dispositions_default
 from cicero_disposition_map import disposition_map
 import bs4, requests, re # for some reason bs4 is how you import beautifulsoup smh smh
 from pathlib import Path
@@ -310,8 +310,8 @@ def main(streamlit_key_suffix: str = "") -> None: # It's convenient to import ci
     st.write("Here are some ideas: write a press release based off of a news article (feel free to paste in the link), generate multiple versions of a draft pitch, convert one type of content into another, provide examples of good final products.")
      #could: use session state for all of these controls instead of doing all this argument passing of disposition, etc...
     disposition = st.selectbox("Disposition (you must reset the chat for a change to this to take effect)",
-      [dispositions_default] + [d[0] for d in sql_call_cacheless("select dispositions from cicero.ref_tables.user_pods where user_email == :user_email", {"user_email": ssget('email')}) if d[0] is not None]
-    )
+      [dispositions_default] + [d for d in get_list_value_of_column_in_table("dispositions", "cicero.ref_tables.user_pods") if d in dispositions and d != dispositions_default]
+    ) # this currently typechecks correctly in mypy but not in pyright, for unclear reasons...
   account = st.text_input("Account") if streamlit_key_suffix=="_corporate" else None
   if is_dev():
     account = st.selectbox("Account (required)", load_account_names(), key="account") if streamlit_key_suffix!="_corporate" else None

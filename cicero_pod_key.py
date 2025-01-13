@@ -37,7 +37,7 @@ def do_one_list(email: str, column_name: str, values: list[str]) -> list[Row]:
   a = to_sql_string_array_literal(values)
   default_values_dict = {
     "user_email": "source.user_email",
-    "user_pod": "Pod unknown",
+    "user_pod": "\"Pod unknown\"",
     "user_permitted_to_see_these_accounts_in_topic_reporting": "ARRAY()",
     "page_access": "ARRAY()",
     "dispositions": "ARRAY()"
@@ -57,33 +57,48 @@ def do_one_list(email: str, column_name: str, values: list[str]) -> list[Row]:
   )
 
 st.warning("This page is an internal developer tool for Cicero. Also the controls aren't very self-explanatory.\n\nYou may also enjoy the song “Brand New Key” by Melanie Safka (RIP) https://www.youtube.com/watch?v=-mXlW9LytYo, although this will not help you use the tool in any way.")
-st.write("## Concerning The Topic Reporting")
-st.write("### Manual entry")
+
+def comma_box(label: str = "values separated by `,`") -> list[str]:
+  return [x.strip() for x in st.text_input(label).split(",")]
+
+st.write("## Set Topic Reporting Accounts")
 with st.form("form_pod_tr"):
   st.write("Here, you can manually update what accounts a user is allowed to see in the drop down of the topic reporting page. THEN GO SET THE POD VALUE IF YOU'RE MAKING A NEW PERSON.")
   c = st.columns(3)
   with c[0]:
     one_new_email_tr = st.text_input("one new email (tr)").strip()
   with c[1]:
-    one_new_list = st.text_input("accounts (internal names) separated by `, `").strip().split(", ")
+    one_new_list = comma_box("accounts (internal names) separated by `,`")
   with c[2]:
     st.caption("enticing button")
     if st.form_submit_button("input that one new email and accounts-list value...") and one_new_email_tr and one_new_list:
       do_one_list(one_new_email_tr, "user_permitted_to_see_these_accounts_in_topic_reporting", one_new_list)
 
-st.write("## Concerning Page Access")
-st.write("### Manual entry")
+st.write("## Set Page Access")
 with st.form("form_pod_pa"):
   st.write("Here, you can manually update what pages a user is allowed to see in cicero. THEN GO SET THE POD VALUE IF YOU'RE MAKING A NEW PERSON.")
   c = st.columns(3)
   with c[0]:
     one_new_email_pa = st.text_input("one email (pa)").strip()
   with c[1]:
-    one_new_list_pa = st.text_input("page access names separated by `, `").strip().split(", ")
+    one_new_list_pa = comma_box("page access names separated by `,`")
   with c[2]:
     st.caption("enticing button")
     if st.form_submit_button("input that one new email and page-list value...") and one_new_email_pa and one_new_list_pa:
       do_one_list(one_new_email_pa, "page_access", one_new_list_pa)
+
+st.write("## Set Disposition Access")
+with st.form("form_pod_da"):
+  st.write("Here, you can manually update what dispositions a user is allowed to see in corporate chat. THEN GO SET THE POD VALUE IF YOU'RE MAKING A NEW PERSON.")
+  c = st.columns(3)
+  with c[0]:
+    one_new_email_da = st.text_input("one email (da)").strip()
+  with c[1]:
+    one_new_list_da = comma_box("dispositions separated by `,`")
+  with c[2]:
+    st.caption("enticing button")
+    if st.form_submit_button("input that one new email and disposition-list value...") and one_new_email_da and one_new_list_da:
+      do_one_list(one_new_email_da, "dispositions", one_new_list_da)
 
 st.write("## Concerning The Pods")
 st.write("This section contains controls for updating the pod table (listed below) and the activity log (listed even belower).\n\nThe pod table is consulted every time a user does a prompt and cicero thereby writes to the activity log.\n\nSo, the pod table controls what will appear in the pod column in activity log entries going forward for users.\n\nIf you've done something wrong previously, you might also want to update the activity log retroactively, to correct any erroneous pod listing you may have caused to exist in there.")
