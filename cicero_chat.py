@@ -7,7 +7,7 @@ from streamlit.runtime.uploaded_file_manager import UploadedFile
 from datetime import datetime, timedelta
 import time
 from databricks_genai_inference import ChatSession, FoundationModelAPIException
-from cicero_shared import catstr, dev_box, get_list_value_of_column_in_table, is_dev, ssget, ssset, ssmut, sspop, get_base_url, popup, load_account_names, sql_call_cacheless
+from cicero_shared import catstr, dev_box, get_value_of_column_in_table, get_list_value_of_column_in_table, is_dev, ssget, ssset, ssmut, sspop, get_base_url, popup, load_account_names, sql_call_cacheless
 from cicero_types import Short_Model_Name, short_model_names, short_model_name_default, short_model_name_to_long_model_name, dispositions, Disposition, dispositions_default
 from cicero_disposition_map import disposition_map
 import bs4, requests, re # for some reason bs4 is how you import beautifulsoup smh smh
@@ -312,6 +312,8 @@ def main(streamlit_key_suffix: str = "") -> None: # It's convenient to import ci
     #could: use session state for all of these controls instead of doing all this argument passing of disposition, etc...
     accessable_dispositions: list[Disposition] = [dispositions_default] # I wouldn't have written the code this way were it not for a shocking(ly intended) weakness in pyright: https://github.com/microsoft/pyright/issues/9173
     accessable_dispositions.extend([d for d in get_list_value_of_column_in_table("dispositions", "cicero.ref_tables.user_pods") if d in dispositions and d != dispositions_default])
+    if get_value_of_column_in_table("user_pod", "cicero.ref_tables.user_pods") == "Admin": #admins get to see all dispositions
+      accessable_dispositions = list(dispositions)
     disposition = st.selectbox("Disposition (you must reset the chat for a change to this to take effect)", accessable_dispositions)
     account = st.text_input("Account")
   if is_dev():
