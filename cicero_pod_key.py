@@ -5,6 +5,7 @@ You can also do most of this stuff in databricks using the sql query tool.
 """
 import streamlit as st
 from pandas import read_excel
+from databricks.sql.types import Row
 from cicero_shared import ensure_existence_of_activity_log, labeled_table, sql_call_cacheless
 
 def ensure_existence_of_pod_table() -> None:
@@ -32,34 +33,20 @@ def to_sql_string_array_literal(x: list[str]) -> str:
   quoted = [f"'{x}'" for x in x if x]
   return f"array({', '.join(quoted)})"
 
-def do_one_tr(email: str, accounts: list[str]) -> None:
-  """Because we need to update the value if it exists, and create a new record if none exist, this is an "upsert", and a MERGE INTO is apparently the best way to do it. Also I got almost all of this code from the AI. But it's very basic code, like example code of just how you would use MERGE INTO syntax, really. I just think it's interesting."""
-  a = to_sql_string_array_literal(accounts)
-  sql_call_cacheless(f"""
+def do_one_list(email: str, column_name: str, values: list[str], replace_default_value_at_index: int) -> list[Row]:
+  """replace_default_value_at_index is the index of the default value (of those that go into the VALUES clause) that should be replaced with the list formed form the values argument. Examine the code below to deduce what value to give this"""
+  a = to_sql_string_array_literal(values)
+  default_values_array = ["source.user_email", "Pod unknown", "ARRAY()", "ARRAY()", "ARRAY()"]
+  default_values_array[replace_default_value_at_index] = f"{a}"
+  return sql_call_cacheless(f"""
     MERGE INTO cicero.ref_tables.user_pods AS target
-    USING (SELECT :email AS user_email, {a} AS user_permitted_to_see_these_accounts_in_topic_reporting) AS source
+    USING (SELECT :email AS user_email, {a} AS {column_name}) AS source
     ON target.user_email = source.user_email
     WHEN MATCHED THEN
-        UPDATE SET user_permitted_to_see_these_accounts_in_topic_reporting = {a}
+        UPDATE SET {column_name} = {a}
     WHEN NOT MATCHED THEN
         INSERT (       user_email,     user_pod, user_permitted_to_see_these_accounts_in_topic_reporting, page_access, dispositions)
-        VALUES (source.user_email, "Pod unknown", {a}, ARRAY(), ARRAY())
-    """,
-    {"email": email}
-  )
-
-def do_one_pa(email: str, page_accesses: list[str]) -> None:
-  """Because we need to update the value if it exists, and create a new record if none exist, this is an "upsert", and a MERGE INTO is apparently the best way to do it. Also I got almost all of this code from the AI. But it's very basic code, like example code of just how you would use MERGE INTO syntax, really. I just think it's interesting."""
-  a = to_sql_string_array_literal(page_accesses)
-  sql_call_cacheless(f"""
-    MERGE INTO cicero.ref_tables.user_pods AS target
-    USING (SELECT :email AS user_email, {a} AS page_access) AS source
-    ON target.user_email = source.user_email
-    WHEN MATCHED THEN
-        UPDATE SET page_access = {a}
-    WHEN NOT MATCHED THEN
-        INSERT (       user_email,     user_pod, user_permitted_to_see_these_accounts_in_topic_reporting, page_access, dispositions)
-        VALUES (source.user_email, "Pod unknown", ARRAY(), {a}, ARRAY)
+        VALUES ({", ".join(default_values_array)})
     """,
     {"email": email}
   )
@@ -77,7 +64,7 @@ with st.form("form_pod_tr"):
   with c[2]:
     st.caption("enticing button")
     if st.form_submit_button("input that one new email and accounts-list value...") and one_new_email_tr and one_new_list:
-      do_one_tr(one_new_email_tr, one_new_list)
+      do_one_list(one_new_email_tr, "user_permitted_to_see_these_accounts_in_topic_reporting", one_new_list, 2)
 
 st.write("## Concerning Page Access")
 st.write("### Manual entry")
@@ -91,7 +78,7 @@ with st.form("form_pod_pa"):
   with c[2]:
     st.caption("enticing button")
     if st.form_submit_button("input that one new email and page-list value...") and one_new_email_pa and one_new_list_pa:
-      do_one_pa(one_new_email_pa, one_new_list_pa)
+      do_one_list(one_new_email_pa, "page_access", one_new_list_pa, 3)
 
 st.write("## Concerning The Pods")
 st.write("This section contains controls for updating the pod table (listed below) and the activity log (listed even belower).\n\nThe pod table is consulted every time a user does a prompt and cicero thereby writes to the activity log.\n\nSo, the pod table controls what will appear in the pod column in activity log entries going forward for users.\n\nIf you've done something wrong previously, you might also want to update the activity log retroactively, to correct any erroneous pod listing you may have caused to exist in there.")
