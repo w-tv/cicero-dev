@@ -304,15 +304,16 @@ def display_chat(streamlit_key_suffix: str = "", account: str|None = None, short
 def main(streamlit_key_suffix: str = "") -> None: # It's convenient to import cicero_chat in other files, to use its function in them, so we do a main() here so we don't run this code on startup.
   st.write("**Chat freeform with Cicero directly ChatGPT-style!**")
   disposition = dispositions_default
+  account = None
   if streamlit_key_suffix=="":
     st.write("Here are some ideas: rewrite copy, make copy longer, convert a text into an email, or write copy based off a starter phrase/quote.")
   elif streamlit_key_suffix=="_corporate":
     st.write("Here are some ideas: write a press release based off of a news article (feel free to paste in the link), generate multiple versions of a draft pitch, convert one type of content into another, provide examples of good final products.")
-     #could: use session state for all of these controls instead of doing all this argument passing of disposition, etc...
-    disposition = st.selectbox("Disposition (you must reset the chat for a change to this to take effect)",
-      [dispositions_default] + [d for d in get_list_value_of_column_in_table("dispositions", "cicero.ref_tables.user_pods") if d in dispositions and d != dispositions_default]
-    ) # this currently typechecks correctly in mypy but not in pyright, for unclear reasons...
-  account = st.text_input("Account") if streamlit_key_suffix=="_corporate" else None
+    #could: use session state for all of these controls instead of doing all this argument passing of disposition, etc...
+    accessable_dispositions: list[Disposition] = [dispositions_default] # I wouldn't have written the code this way were it not for a shocking(ly intended) weakness in pyright: https://github.com/microsoft/pyright/issues/9173
+    accessable_dispositions.extend([d for d in get_list_value_of_column_in_table("dispositions", "cicero.ref_tables.user_pods") if d in dispositions and d != dispositions_default])
+    disposition = st.selectbox("Disposition (you must reset the chat for a change to this to take effect)", accessable_dispositions)
+    account = st.text_input("Account")
   if is_dev():
     account = st.selectbox("Account (required)", load_account_names(), key="account") if streamlit_key_suffix!="_corporate" else None
     uploaded_file = st.file_uploader(label="Upload a file", type=['csv', 'docx', 'html', 'txt', 'xls', 'xlsx'], accept_multiple_files=False)
