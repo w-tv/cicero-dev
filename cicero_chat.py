@@ -116,10 +116,10 @@ def grow_chat(streamlit_key_suffix: str = "", alternate_content: str|UploadedFil
     sys_prompt += "\nHere is some context on the current political landscape following the 2024 U.S. presidential election on November 5th:\nDonald Trump defeated Incumbent Vice President Kamala Harris, who replaced Joe Biden as the Democratic nominee, and will be sworn in as the 47th president on January 20, 2025, marking a historic comeback as the first president since Grover Cleveland to serve nonconsecutive terms. His running mate, JD Vance, will be sworn in as Vice President at that time. Minnesota Governor Tim Walz was Harris's running mate. Republicans secured a decisive victory by flipping 3 seats in the Senate, gaining a 52-seat majority, and retaining control of the House of Representatives, marking the party’s first governmental trifecta since 2018."
   if not ssget("chat", streamlit_key_suffix):
     ssset( "chat", streamlit_key_suffix, ChatSession(model=short_model_name_to_long_model_name(short_model_name), system_message=sys_prompt, max_tokens=4096) ) # Keep in mind that unless DATABRICKS_HOST and DATABRICKS_TOKEN are in the environment (streamlit does this with secret value by default), then this line of code will fail with an extremely cryptic error asking you to run this program with a `setup` command line argument (which won't do anything)
-  chat = st.session_state.chat[streamlit_key_suffix] # Note that, as an object reference, updating and accessing chat will continue to update and access the same object.
+  chat = ssget("chat", streamlit_key_suffix) # Note that, as an object reference, updating and accessing chat will continue to update and access the same object.
   if not ssget("messages", streamlit_key_suffix):
-    st.session_state.messages[streamlit_key_suffix] = [] # We keep our own list of messages, I think because I found it hard to format the chat_history output when I tried once.
-  messages = st.session_state.messages[streamlit_key_suffix] # Note that, as an object reference, updating and accessing messages will continue to update and access the same object.
+    ssset("messages", streamlit_key_suffix, []) # We keep our own list of messages, I think because I found it hard to format the chat_history output when I tried once.
+  messages = ssget("messages", streamlit_key_suffix) # Note that, as an object reference, updating and accessing messages will continue to update and access the same object.
   if alternate_content:
     if isinstance(alternate_content, UploadedFile): # I think this is broken because of our dependencies. Possibly up to and including the Python language itself. It can be worked around. Or, maybe databricks will eventually implement their own file-upload thing (I guess that's on their roadmap.
       file_ext = Path(str(alternate_content.name)).suffix
@@ -152,9 +152,9 @@ def grow_chat(streamlit_key_suffix: str = "", alternate_content: str|UploadedFil
     p = pii[1]
     display_p = p
   else:
-    p = st.session_state["user_input_for_chatbot_this_frame"+streamlit_key_suffix]
+    p = ssget("user_input_for_chatbot_this_frame"+streamlit_key_suffix)
     display_p = p
-  
+
   #detect concerning elements:
   winred_concern = "winred.com" in p.lower()
   fec_concern = "fec.gov" in p.lower()
@@ -162,14 +162,14 @@ def grow_chat(streamlit_key_suffix: str = "", alternate_content: str|UploadedFil
   #implement url content expansion, at this point only for the corp chat and devs
   hit_readlink_time_limit = False
   if detect_url_content(p):
-    if "last_link_time" in st.session_state:
-      time_difference = datetime.now() - st.session_state["last_link_time"]
+    if llt := ssget("last_link_time"):
+      time_difference = datetime.now() - llt
       if time_difference < timedelta(seconds=27): # It's 27 because we don't want to alert the user if they just have to wait another second or two. The query already takes that long, probably.
         hit_readlink_time_limit = True
         remaining_seconds = round( 30 - time_difference.total_seconds() )
         popup("Throttled!", f"Link reading is currently limited to once every 30 seconds per user.  Cicero has delayed your request by {remaining_seconds} seconds.  Contact the Cicero Team for more info.", show_x_instruction=False) # Festina lente! #Unfortunately I think an unreported bug in streamlit means this dialog only ever shows once per session. But that's ok in this case.
         time.sleep(remaining_seconds)
-    st.session_state["last_link_time"] = datetime.now()
+    ssset("last_link_time", datetime.now())
   p = expand_url_content(p)
   ssset("urls_we_have_expanded_right_now", 0) # Have to reset this value in this remote place for flow-control reasons :/
 
@@ -177,15 +177,15 @@ def grow_chat(streamlit_key_suffix: str = "", alternate_content: str|UploadedFil
   continue_prompt = True
   if possible_pii := pii_detector(p):
     pii_state = ssget("pii_interrupt_state", streamlit_key_suffix)
-    if pii_state is None: #TODO: this can be refactored to use the new ss-family of functions and be way clearer about what it does.
-      st.session_state.pii_interrupt_state = {}
+    if pii_state is None: #TODO: this can be refactored to be clearer about what it does.
+      ssset("pii_interrupt_state", {})
     if pii_state and pii_state[0]: #if the field is true, we continue
       ssset( "pii_interrupt_state", streamlit_key_suffix, [None, "", {}] ) #reset the field, since we're going to send this one and get a new circumstance later.
     else:
       ssset( "pii_interrupt_state", streamlit_key_suffix, [None, "", {}] ) #reset the field, since the dialog is about to set it, and this prevents funny business from x-ing the dialogue.
       pii_dialog(p, possible_pii, streamlit_key_suffix, keyword_arguments)
       continue_prompt = False
-  
+
   # Get some sample texts from the account, perhaps similar to the current prompt.
   if account is not None:
     texts_from_account = sql_call_cacheless(
@@ -218,11 +218,14 @@ def grow_chat(streamlit_key_suffix: str = "", alternate_content: str|UploadedFil
         chat.reply(p)
         messages.append({"role": "user", "content": display_p})
         messages.append({"avatar": "assets/CiceroChat_800x800.jpg", "role": "assistant", "content": chat.last})
-        st.session_state["activity_log_payload"] = {"user_email": st.session_state["email"], "prompter_or_chatbot": 'chatbot'+streamlit_key_suffix, "prompt_sent": p, "response_given": chat.last, "model_name": short_model_name, "model_url": chat.model, "model_parameters": str(chat.parameters), "system_prompt": chat.system_message, "base_url": get_base_url(), "used_similarity_search_backup": "no"} | ({"user_feedback": "not asked", "user_feedback_satisfied": "not asked"} if streamlit_key_suffix == "_prompter" else {"user_feedback": "not received", "user_feedback_satisfied": "not received"} if streamlit_key_suffix == "_corporate" else {"user_feedback": "not asked", "user_feedback_satisfied": "not received"}) | {"hit_readlink_time_limit": hit_readlink_time_limit} | {"pii_concern": bool(pii and pii[0]), "winred_concern": winred_concern, "fec_concern": fec_concern}
+        ssset(
+          "activity_log_payload",
+          {"user_email": ssget("email"), "prompter_or_chatbot": 'chatbot'+streamlit_key_suffix, "prompt_sent": p, "response_given": chat.last, "model_name": short_model_name, "model_url": chat.model, "model_parameters": str(chat.parameters), "system_prompt": chat.system_message, "base_url": get_base_url(), "used_similarity_search_backup": "no"} | ({"user_feedback": "not asked", "user_feedback_satisfied": "not asked"} if streamlit_key_suffix == "_prompter" else {"user_feedback": "not received", "user_feedback_satisfied": "not received"} if streamlit_key_suffix == "_corporate" else {"user_feedback": "not asked", "user_feedback_satisfied": "not received"}) | {"hit_readlink_time_limit": hit_readlink_time_limit} | {"pii_concern": bool(pii and pii[0]), "winred_concern": winred_concern, "fec_concern": fec_concern}
+        )
         if streamlit_key_suffix == "_corporate":
-          ssset("outstanding_activity_log_payload", streamlit_key_suffix, st.session_state["activity_log_payload"])
+          ssset("outstanding_activity_log_payload", streamlit_key_suffix, ssget("activity_log_payload"))
         elif streamlit_key_suffix == "":
-          ssset("outstanding_activity_log_payload2", streamlit_key_suffix, st.session_state["activity_log_payload"])
+          ssset("outstanding_activity_log_payload2", streamlit_key_suffix, ssget("activity_log_payload"))
         # note that "_prompter" is deliberately absent, because we don't require anything from it.
         break
       except FoundationModelAPIException as e:
@@ -260,12 +263,12 @@ def cicero_feedback_widget(streamlit_key_suffix: str, feedback_suffix: str, feed
     if o and o2:
       print("!! Cicero internal error: you are in an invalid state somehow! You have both outstandings {o=},{o2=}")
     elif o:
-      st.session_state["activity_log_update"] = o | {"user_feedback"+feedback_suffix: user_feedback}
+      ssset("activity_log_update", o | {"user_feedback"+feedback_suffix: user_feedback})
       if streamlit_key_suffix == "_corporate":
         ssset("outstanding_activity_log_payload2", streamlit_key_suffix, o)
       ssset("outstanding_activity_log_payload", streamlit_key_suffix, None)
     elif o2:
-      st.session_state["activity_log_update2"] = o2 | {"user_feedback"+feedback_suffix: user_feedback}
+      ssset("activity_log_update2", o2 | {"user_feedback"+feedback_suffix: user_feedback})
       ssset("outstanding_activity_log_payload2", streamlit_key_suffix, None)
     else:
       print("!! Cicero internal warning: you are in an invalid state somehow? You are using the feedback widget but have neither outstandings {o=},{o2=}")
@@ -275,7 +278,7 @@ def display_chat(streamlit_key_suffix: str = "", account: str|None = None, short
   The streamlit_key_suffix is only necessary because we use this code in two places. But that does make it necessary, for every widget in this function. If streamlit_key_suffix is "", we infer we're in the chat page, and if otherwise we infer we're being used on a different page (so far, the only thing that does this is prompter).
 
   *A computer can never be held accountable. Therefore a computer must never make a management decision.*[꙳](https://twitter.com/bumblebike/status/832394003492564993)
-  
+
   the computer knows something we don't
   we must let it make management decisions
   —Alex Chang"""
