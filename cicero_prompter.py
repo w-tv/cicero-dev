@@ -549,7 +549,7 @@ if st.session_state.get("submit_button_disabled"):
   if not account:
     st.warning("***No Account is selected, so I can't send the request!***")
   elif not model:
-    st.warning("***No Model is selected, so I can't send the request! (If you have no ability to select a Model and get this error, please contact the Optimization team.***")
+    st.warning("***No Model is selected, so I can't send the request! (If you have no ability to select a Model and get this error, please contact the Optimization team, and send them this message & how you got it.)***") #type: ignore[unreachable] #mypy is right that according to the static type system this is unreachable. However, there are some runtime things that could upset this assumption, and so we keep this possible error message in, to be helpful to the user in that strange case.
   else:
     did_a_query = True
     cicero_chat.reset_chat(streamlit_key_suffix="_prompter")
