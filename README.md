@@ -60,9 +60,9 @@ In part, we try to be rigorous about typechecking because we are very lax about 
 
 ## Labels of irksomeness
 
-Various ridiculous workarounds in the code have been labeled FOO-BUG-WORKAROUND, where FOO is the name of the dependency to blame, in comments in the code. Eventually you may have the pleasure of removing these! You can grep for these.
+Various ridiculous workarounds in the code have been labeled FOO-BUG-WORKAROUND, where FOO is the name of the dependency to blame, in comments in the code. Eventually you may have the pleasure of removing these! You can grep for these. (Remember: git has a grep, called git grep, so you can use that if you don't have grep (eg because you are on windows).)
 
-Various things in this project have been labeled TODO, to eventually be dealt with. You can also grep for this. There is something weaker than a TODO, which is a Could, which just notes the possibility of developing in a different direction in the future. The idea is that all TODOs must be dealt with (even the ones that are just "figure out if we need to do this" and the sooner the better; Coulds can hang around indefinitely.
+Various things in this project have been labeled TO‍DO, to eventually be dealt with. You can also grep for this. There is something weaker than a TO‍DO, which is a Could, which just notes the possibility of developing in a different direction in the future. The idea is that all TO‍DOs must be dealt with (even the ones that are just "figure out if we need to do this") and the sooner the better; Coulds can hang around indefinitely.
 
 ## Additional information about streamlit
 
