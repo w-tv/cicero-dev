@@ -324,7 +324,7 @@ def main(streamlit_key_suffix: str = "") -> None: # It's convenient to import ci
     st.write(f"You uploaded a {file_ext} file!")
     grow_chat(streamlit_key_suffix, uploaded_file, account, short_model_name_default, disposition) #note: this seems like a DRY violation to me, and has already bitten me. When this feature is done being a prototype, maybe fix that.
   model_name = st.selectbox("Model", short_model_names, key="model_name") if is_dev() else short_model_name_default
-  if st.button("Reset"):
+  if st.button("Clear conversion"):
     reset_chat(streamlit_key_suffix)
   display_chat(streamlit_key_suffix, account=account, short_model_name=model_name, disposition=disposition)
 
