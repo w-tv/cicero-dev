@@ -36,28 +36,34 @@ with Profiler():
     if not x.startswith("FormSubmitter:") and not x.startswith("⚡") and not x.startswith("👍") and not x.startswith("👎") and not x.startswith("user_input_for_chatbot_this_frame") and not x == "unlucky": #Prevent this error: streamlit.errors.StreamlitAPIException: Values for the widget with key "FormSubmitter:query_builder-Submit" cannot be set using `st.session_state`. # Also prevent this error: StreamlitAPIException: Values for the widget with key "⚡1" cannot be set using st.session_state. And similarly for 👍. In general the buttons that can't have state set, I set their keys to emoji+suffix. Just because.
       st.session_state[x] = st.session_state[x]
 
-  st.session_state["email"] = str(st.experimental_user["email"]) #this str call also accounts for if the user email is None.
+  def _() -> None:
+    "this function is defined and run at once, just to avoid polluting the scope with e"
+    e = st.experimental_user.email
+    if e is None:
+      st_print("Your user email is `None`, which implies we are currently running publicly on Streamlit Community Cloud. https://docs.streamlit.io/library/api-reference/personalization/st.experimental_user#public-app-on-streamlit-community-cloud. This app is configured to function only privately and permissionedly, so we will now exit. Good day.")
+      exit_error(34)
+    else:
+      ssset("email", e)
+  _()
+
   st.markdown("""<style> [data-testid="stDecoration"] { display: none; } </style>""", unsafe_allow_html=True) #this code removes the red bar at the top but keeps the hamburger menu
   st.markdown("""<style> [data-testid="stAppViewBlockContainer"] { padding-top: 1.5rem; } </style>""", unsafe_allow_html=True) #this removes much of the annoying headroom padding on the main ui, although we can't remove all of it because the loading indicators are actually a solid bar that would obscure the logo (I'm not sure why).
 
 
-  # Google sign-in logic, using IAP. From https://cloud.google.com/iap/docs/signed-headers-howto, with modifications. Will set the email to a new value iff it succeeds.
+  # Google identity/sign-in logic, using IAP. From https://cloud.google.com/iap/docs/signed-headers-howto, with modifications. Will set the email to a new value iff it succeeds.
   if iap_jwt := st.context.headers.get("X-Goog-Iap-Jwt-Assertion"):
     try:
       decoded_jwt = id_token.verify_token(iap_jwt, requests.Request(), audience=st.secrets["aud"], certs_url="https://www.gstatic.com/iap/verify/public_key")
-      st.session_state["email"] = decoded_jwt["email"].split(":")[1]
+      ssset("email", decoded_jwt["email"].split(":")[1])
     except Exception as e: # This pass probably hits if you don't have an aud, you don't have an X-Goog-IAP-JWT-Assertion header (you aren't behind an IAP), or the decode fails (the header is forged or otherwise invalid).
       st_print(e)
 
-  if st.session_state['email'] == 'None':
-    st_print("Your user email is None, which implies we are currently running publicly on Streamlit Community Cloud. https://docs.streamlit.io/library/api-reference/personalization/st.experimental_user#public-app-on-streamlit-community-cloud. This app is configured to function only privately and permissionedly, so we will now exit. Good day.")
-    exit_error(34)
-  if st.session_state['email'] == 'test@example.com': # In this case, the streamlit app is running "locally", which means everywhere but the streamlit community cloud.
-    if "--disable_user_authentication_requirement_DO_NOT_USE_THIS_FLAG_WITH_PUBLIC_INSTANCES_OF_CICERO_ITS_ONLY_FOR_LOCAL_TESTING_USE" in argv:
-      pass # The command-line flag we check for here lets you locally test-run the program without an IAP. Do NOT add this flag to any instance of Cicero running publicly, such as the production or development environments. In deployed environments, the other authentication methods are enabled.
-    else:
-      st_print("Your user email is test@example.com, which implies we are currently running publicly, and not on Streamlit Community Cloud. https://docs.streamlit.io/library/api-reference/personalization/st.experimental_user#public-app-on-streamlit-community-cloud. This app is configured to function only privately and permissionedly, so we will now exit. Good day.")
-      exit_error(35)
+    if ssget('email') == 'test@example.com': # In this case, the streamlit app is running "locally", which means everywhere but the streamlit community cloud.
+      if "--disable_user_authentication_requirement_DO_NOT_USE_THIS_FLAG_WITH_PUBLIC_INSTANCES_OF_CICERO_ITS_ONLY_FOR_LOCAL_TESTING_USE" in argv:
+        pass # The command-line flag we check for here lets you locally test-run the program without an IAP. Do NOT add this flag to any instance of Cicero running publicly, such as the production or development environments. In deployed environments, the other authentication methods are enabled.
+      else:
+        st_print("Your user email is test@example.com, which implies we are currently running publicly, and not on Streamlit Community Cloud. And google identity didn't work. https://docs.streamlit.io/library/api-reference/personalization/st.experimental_user#public-app-on-streamlit-community-cloud. This app is configured to function only privately and permissionedly, so we will now exit. Good day.")
+        exit_error(35)
 
   title_and_loading_columns = st.columns(2)
   with title_and_loading_columns[0]:
@@ -67,9 +73,11 @@ with Profiler():
     loading_message.write("Loading CICERO.  This may take up to a minute...")
 
   #This is the way you set developer_mode. However, for the sake of brevity, the preferred way to *check* developer mode is is_dev() from cicero_shared.
-  st.session_state['developer_mode'] = st.session_state['email'] in ["achang@targetedvictory.com", "abrady@targetedvictory.com", "thall@targetedvictory.com", "wcarpenter@targetedvictory.com", "cmahon@targetedvictory.com", "rtauscher@targetedvictory.com", "cmajor@targetedvictory.com", "test@example.com"] and not st.session_state.get("developer_mode_disabled")
+  ssset('developer_mode', not ssget("developer_mode_disabled") and ssget('email') in ["achang@targetedvictory.com", "abrady@targetedvictory.com", "thall@targetedvictory.com", "wcarpenter@targetedvictory.com", "cmahon@targetedvictory.com", "rtauscher@targetedvictory.com", "cmajor@targetedvictory.com", "test@example.com"])
   def disable_developer_mode() -> None:
-    st.session_state["developer_mode_disabled"] = True
+    ssset("developer_mode_disabled", True)
+  def be_new_user() -> None:
+    ssset("email", ssget("be_new_user"))
 
   # Since we use st.navigation explicitly, the default page detection is disabled, even though we may use a pages folder later (although we shouldn't name that folder pages/, purely in order to suppress a warning message about how we shouldn't do that). This is good, because we want to hide some of the pages from non-dev-mode users.
   # There is an icon parameter to st.Page, so we could write eg icon="🗣️", but including the emoji in the titles makes them slightly larger and thus nicer-looking.
@@ -106,6 +114,7 @@ with Profiler():
         Base url: {get_base_url()}
       """, unsafe_allow_html=True)
       st.button("disable Developer Mode", on_click=disable_developer_mode, help="Click this button to disable developer mode, allowing you to see and interact with the app as a basic user would. You can refresh the page in your browser to re-enable developer mode.") #this is a callback for streamlit ui update-flow reasons.
+      st.text_input("see the page as this user", value="test2@example.com", on_change=be_new_user, key="be_new_user" ) #this is a callback for streamlit ui update-flow reasons.
   else: # Disable the profiler element visually, using css, if not in dev mode.
     st.markdown("""<style> [allow="accelerometer; ambient-light-sensor; autoplay; battery; camera; clipboard-write; document-domain; encrypted-media; fullscreen; geolocation; gyroscope; layout-animations; legacy-image-formats; magnetometer; microphone; midi; oversized-images; payment; picture-in-picture; publickey-credentials-get; sync-xhr; usb; vr ; wake-lock; xr-spatial-tracking"] { /*this is an arbitrary way to target the profiler element*/ display: none; } </style>""", unsafe_allow_html=True)
 
