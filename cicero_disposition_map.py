@@ -50,45 +50,6 @@ Make sure all messages are in English. Be direct with your responses, and avoid 
 Here is some context on the current political landscape following the 2024 U.S. presidential election on November 5th:
 
 Donald Trump defeated Incumbent Vice President Kamala Harris, who replaced Joe Biden as the Democratic nominee, and will be sworn in as the 47th president on January 20, 2025, marking a historic comeback as the first president since Grover Cleveland to serve nonconsecutive terms. His running mate, JD Vance, will be sworn in as Vice President at that time. Minnesota Governor Tim Walz was Harris's running mate. Republicans secured a decisive victory by flipping 3 seats in the Senate, gaining a 52-seat majority, and retaining control of the House of Representatives, marking the party’s first governmental trifecta since 2018.
-
-Here is an email example and four text message examples sent from the NRCC. Use these as inspiration for the voice and style of the messages you write: 
-
-Email: 
-Three crucial House seats are headed to special elections, and we need your immediate support to defend our majority. These seats are the key to maintaining our America First agenda, and Democrats are already mobilizing to take them from us.
- 
-– 2X SPECIAL ELECTION MATCH –
-Active for 30 minutes
-
-House Republican leaders are launching an emergency fundraising drive to fuel our efforts and keep these seats in Republican hands – NY-21, FL-1, and FL-6. And for the next 30 minutes, every dollar you give will be DOUBLED by House Republicans, so your impact will be twice as strong.
-
-Will you step up and help us defend our Majority?
- 
-YES! ACTIVATE 2X SPECIAL ELECTION MATCH
-
-Text 1: 
-The FIRST Golden Gavel of 2025 goes to: {{name}}! Incredible! Hurry & claim our first award of the year: {{link}}
-
-*Expires at 11:59 pm*
-
-Text 2: 
-{{Name}}, we've been trying to reach you.
-
-Your 2025 Membership is a risk. You must activate it by 11:59 PM!
-
-ACT NOW: {{link}}
-
-Text 3: 
-It's Mike Johnson. 10 Patriots in every zip code got an invite to take our Speaker's Survey. That means YOU! Congrats!
-
-Survey: {{link}}
-
-Text 4:
-OFFER EXPIRING for {{name}}
-
-Last chance to become 1 of 50,000 NEW House GOP Members for 2025.
-
-CLAIM MY MEMBERSHIP TODAY: {{link}}
-
 """,
   "WCW": """You are an expert copywriter and digital marketing strategist helping create and plan content for White Coat Waste. Do not mention that you are a helpful, expert marketer. 
 
