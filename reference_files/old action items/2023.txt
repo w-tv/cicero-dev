@@ -92,7 +92,7 @@ Half-write a git manifesto by mistake
 * Try-except for RSS querying?
 * “if the error message is that the model does not exist, please contact the monitor the serving team to rectify the situation”
 * Put the new secrets in the secrets file again lmao
-* Do the formatting todo list from Alex
+* Do the formatting to-do list from Alex
 * fix the fact that history would disappear when options were adjusted after sending the prompt (only does anything in experimental features mode, which is still set to false)
 * Use account names from Client_List.csv
 * fix the bug where the account defaults to Andy Barr for some reason (impossible)
