@@ -3,10 +3,11 @@
 import streamlit as st
 from cicero_shared import sql_call
 
+st.write("This page is pretty much obsolete, due to the tedizer in the cicero-backend repo. However, you can still use it to pop in and conveniently search for a single output.")
+
 r = str(st.radio("Search method", ["Substring", "Case-insensitive substring", "Exact, total match", "Levenshtein"]))[0] #this [0] just saves us verbosity later. The str() call suppresses the obscure possibility that no option is selected, by giving us "None" in that case.
 # Although this label says substring, it's technically a type of regex if you know how to use it; see https://docs.databricks.com/en/sql/language-manual/functions/like.html. This also lets the user use stuff like \n and \Z if they want. COULD: use the escape argument, in conjunction with a custom replacement logic I would have to write here, to allow the user to input literal percent signs and underscores. But, I mean, who cares? It's about as likely that someone will use it as a feature than as an antifeature that would break something, and I know how rare that is...
 # We could do other local strategies our end, if we like. Which could perhaps consume a lot of memory, 1000s of strings; but I haven't measured its impact. Preliminary testing, by searching for substring % (which, being a regex secretly, only filters out some nulls probably), suggests we would only be spending about 20MiB on this, out of our total 1GiB budget. This matches my "napkin math" on it. And that number is low enough that we can ignore it for now, but it might become inconvenient later if/when the project scales up... (could also always limit the date range, or do the operation in chunks, or things like that)
-# TODO: We will also probably have to do other text similarity methods (eg word-presorted-Levenshtein, ratcliff-obershelp, maybe others, Jaro-Winkler, various ml things) after unpacking the responses given (and pick a similarity threshold for them? Or perhaps just pick a default and let the user pick...)
 query = st.text_input("Search for responses containing this text (hit enter to send)")
 st.write(query)
 if query:
