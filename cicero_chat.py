@@ -306,7 +306,6 @@ def display_chat(streamlit_key_suffix: str = "", account: str|None = None, short
 def main(streamlit_key_suffix: str = "") -> None: # It's convenient to import cicero_chat in other files, to use its function in them, so we do a main() here so we don't run this code on startup.
   st.write("**Chat freeform with Cicero directly ChatGPT-style!**")
   disposition = dispositions_default
-  account = None
   if streamlit_key_suffix=="":
     st.write("Here are some ideas: rewrite copy, make copy longer, convert a text into an email, or write copy based off a starter phrase/quote.")
   elif streamlit_key_suffix=="_corporate":
@@ -317,15 +316,13 @@ def main(streamlit_key_suffix: str = "") -> None: # It's convenient to import ci
     if get_value_of_column_in_table("user_pod", "cicero.ref_tables.user_pods") == "Admin": #admins get to see all dispositions
       accessable_dispositions = list(dispositions)
     disposition = st.selectbox("Disposition (you must reset the chat for a change to this to take effect)", accessable_dispositions)
-    account = st.text_input("Account")
-  if is_dev():
-    account = st.selectbox("Account (required)", load_account_names(), key="account") if streamlit_key_suffix!="_corporate" else None
-    uploaded_file = st.file_uploader(label="Upload a file", type=['csv', 'docx', 'html', 'txt', 'xls', 'xlsx'], accept_multiple_files=False)
-    if uploaded_file is not None and not ssget("chat_file_uploader"):
-      ssmut(lambda x: x+1 if x else 1, "chat_file_uploader")
-      file_ext = Path(str(uploaded_file.name)).suffix
-      st.write(f"You uploaded a {file_ext} file!")
-      grow_chat(streamlit_key_suffix, uploaded_file, account, short_model_name_default, disposition) #note: this seems like a DRY violation to me, and has already bitten me. When this feature is done being a prototype, maybe fix that.
+  account = st.selectbox("Account (required)", load_account_names(), key="account") if streamlit_key_suffix!="_corporate" else st.text_input("Account")
+  uploaded_file = st.file_uploader(label="Upload a file", type=['csv', 'docx', 'html', 'txt', 'xls', 'xlsx'], accept_multiple_files=False)
+  if uploaded_file is not None and not ssget("chat_file_uploader"):
+    ssmut(lambda x: x+1 if x else 1, "chat_file_uploader")
+    file_ext = Path(str(uploaded_file.name)).suffix
+    st.write(f"You uploaded a {file_ext} file!")
+    grow_chat(streamlit_key_suffix, uploaded_file, account, short_model_name_default, disposition) #note: this seems like a DRY violation to me, and has already bitten me. When this feature is done being a prototype, maybe fix that.
   model_name = st.selectbox("Model", short_model_names, key="model_name") if is_dev() else short_model_name_default
   if st.button("Reset"):
     reset_chat(streamlit_key_suffix)
