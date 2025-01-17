@@ -76,8 +76,6 @@ with Profiler():
   ssset('developer_mode', not ssget("developer_mode_disabled") and ssget('email') in ["achang@targetedvictory.com", "abrady@targetedvictory.com", "thall@targetedvictory.com", "wcarpenter@targetedvictory.com", "cmahon@targetedvictory.com", "rtauscher@targetedvictory.com", "cmajor@targetedvictory.com", "test@example.com"])
   def disable_developer_mode() -> None:
     ssset("developer_mode_disabled", True)
-  def be_new_user() -> None:
-    ssset("fake_email", ssget("be_new_user"))
 
   # Since we use st.navigation explicitly, the default page detection is disabled, even though we may use a pages folder later (although we shouldn't name that folder pages/, purely in order to suppress a warning message about how we shouldn't do that). This is good, because we want to hide some of the pages from non-dev-mode users.
   # There is an icon parameter to st.Page, so we could write eg icon="🗣️", but including the emoji in the titles makes them slightly larger and thus nicer-looking.
@@ -114,7 +112,7 @@ with Profiler():
         Base url: {get_base_url()}
       """, unsafe_allow_html=True)
       st.button("disable Developer Mode", on_click=disable_developer_mode, help="Click this button to disable developer mode, allowing you to see and interact with the app as a basic user would. You can refresh the page in your browser to re-enable developer mode.") #this is a callback for streamlit ui update-flow reasons.
-      st.text_input("see the page as this user", on_change=be_new_user, key="be_new_user" ) #this is a callback for streamlit ui update-flow reasons.
+      st.text_input("see the page as this user", key="fake_email")
   else: # Disable the profiler element visually, using css, if not in dev mode.
     st.markdown("""<style> [allow="accelerometer; ambient-light-sensor; autoplay; battery; camera; clipboard-write; document-domain; encrypted-media; fullscreen; geolocation; gyroscope; layout-animations; legacy-image-formats; magnetometer; microphone; midi; oversized-images; payment; picture-in-picture; publickey-credentials-get; sync-xhr; usb; vr ; wake-lock; xr-spatial-tracking"] { /*this is an arbitrary way to target the profiler element*/ display: none; } </style>""", unsafe_allow_html=True)
 
