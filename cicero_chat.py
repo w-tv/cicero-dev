@@ -10,7 +10,9 @@ from databricks_genai_inference import ChatSession, FoundationModelAPIException
 from cicero_shared import catstr, dev_box, get_value_of_column_in_table, get_list_value_of_column_in_table, is_dev, ssget, ssset, ssmut, sspop, get_base_url, popup, load_account_names, sql_call_cacheless
 from cicero_types import Short_Model_Name, short_model_names, short_model_name_default, short_model_name_to_long_model_name, dispositions, dispositions_corporate, dispositions_noncorporate, Disposition, dispositions_default
 from cicero_disposition_map import disposition_map
-import bs4, requests, re # for some reason bs4 is how you import beautifulsoup smh smh
+import bs4 # for some reason bs4 is how you import beautifulsoup
+import requests
+import re
 from pathlib import Path
 from io import StringIO
 import pandas as pd
@@ -307,7 +309,7 @@ def display_chat(streamlit_key_suffix: str = "", account: str|None = None, short
       st.info("Message you were editing (may contain PII):")
       st.code(pii[1])
       ssset( "pii_interrupt_state", streamlit_key_suffix, [None, ""] )
-    st.container().chat_input(on_submit=grow_chat, key="user_input_for_chatbot_this_frame"+streamlit_key_suffix, args=(streamlit_key_suffix, None, account, short_model_name_default, disposition) ) #Note that because it's a callback, the profiler will not catch grow_chat here. However, it takes about a second. (Update: maybe it's about 4 seconds, now? That's in the happy path, as well.) #Without the container, this UI element floats BELOW the pyinstrument profiler now, which is inconvenient. But also we might want it to float down later, if we start using streaming text...
+    st.container().chat_input(on_submit=grow_chat, key="user_input_for_chatbot_this_frame"+streamlit_key_suffix, args=(streamlit_key_suffix, None, account, short_model_name, disposition) ) #Note that because it's a callback, the profiler will not catch grow_chat here. However, it takes about a second. (Update: maybe it's about 4 seconds, now? That's in the happy path, as well.) #Without the container, this UI element floats BELOW the pyinstrument profiler now, which is inconvenient. But also we might want it to float down later, if we start using streaming text...
 
 def main(streamlit_key_suffix: str = "") -> None: # It's convenient to import cicero_chat in other files, to use its function in them, so we do a main() here so we don't run this code on startup.
   st.write("**Chat freeform with Cicero directly ChatGPT-style!**")
@@ -319,9 +321,9 @@ def main(streamlit_key_suffix: str = "") -> None: # It's convenient to import ci
     case _:
       pass #deliberately non-exhaustive
   #could: use session state for all of these controls instead of doing all this argument passing of disposition, etc...
-  accessable_dispositions: list[Disposition] = [dispositions_default] # I wouldn't have written the code this way were it not for a shocking(ly intended) weakness in pyright: https://github.com/microsoft/pyright/issues/9173
+  accessable_dispositions: tuple[Disposition, ...] = (dispositions_default,) # I wouldn't have written the code this way were it not for a shocking(ly intended) weakness in pyright: https://github.com/microsoft/pyright/issues/9173
   ds = dispositions_corporate if streamlit_key_suffix == "_corporate" else dispositions_noncorporate
-  accessable_dispositions.extend([d for d in get_list_value_of_column_in_table("dispositions", "cicero.ref_tables.user_pods") if d in ds and d != dispositions_default])
+  accessable_dispositions += tuple(d for d in get_list_value_of_column_in_table("dispositions", "cicero.ref_tables.user_pods") if d in ds and d != dispositions_default)
   if get_value_of_column_in_table("user_pod", "cicero.ref_tables.user_pods") == "Admin": #admins get to see all dispositions
     accessable_dispositions = dispositions
   disposition = st.selectbox("Voice (you must reset the chat for a change to this to take effect)", accessable_dispositions)
