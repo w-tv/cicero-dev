@@ -8,7 +8,7 @@ from datetime import datetime, timedelta
 import time
 from databricks_genai_inference import ChatSession, FoundationModelAPIException
 from cicero_shared import catstr, dev_box, get_value_of_column_in_table, get_list_value_of_column_in_table, is_dev, ssget, ssset, ssmut, sspop, get_base_url, popup, load_account_names, sql_call_cacheless
-from cicero_types import Short_Model_Name, short_model_names, short_model_name_default, short_model_name_to_long_model_name, dispositions, Disposition, dispositions_default
+from cicero_types import Short_Model_Name, short_model_names, short_model_name_default, short_model_name_to_long_model_name, dispositions, dispositions_corporate, dispositions_noncorporate, Disposition, dispositions_default
 from cicero_disposition_map import disposition_map
 import bs4, requests, re # for some reason bs4 is how you import beautifulsoup smh smh
 from pathlib import Path
@@ -320,9 +320,10 @@ def main(streamlit_key_suffix: str = "") -> None: # It's convenient to import ci
       pass #deliberately non-exhaustive
   #could: use session state for all of these controls instead of doing all this argument passing of disposition, etc...
   accessable_dispositions: list[Disposition] = [dispositions_default] # I wouldn't have written the code this way were it not for a shocking(ly intended) weakness in pyright: https://github.com/microsoft/pyright/issues/9173
-  accessable_dispositions.extend([d for d in get_list_value_of_column_in_table("dispositions", "cicero.ref_tables.user_pods") if d in dispositions and d != dispositions_default])
+  ds = dispositions_corporate if streamlit_key_suffix == "_corporate" else dispositions_noncorporate
+  accessable_dispositions.extend([d for d in get_list_value_of_column_in_table("dispositions", "cicero.ref_tables.user_pods") if d in ds and d != dispositions_default])
   if get_value_of_column_in_table("user_pod", "cicero.ref_tables.user_pods") == "Admin": #admins get to see all dispositions
-    accessable_dispositions = list(dispositions)
+    accessable_dispositions = dispositions
   disposition = st.selectbox("Voice (you must reset the chat for a change to this to take effect)", accessable_dispositions)
   account = st.selectbox("Account (required)", load_account_names(), key="account") if streamlit_key_suffix != "_corporate" else st.text_input("Account")
   uploaded_file = st.file_uploader(label="Upload a file", type=['csv', 'docx', 'html', 'txt', 'xls', 'xlsx'], accept_multiple_files=False)

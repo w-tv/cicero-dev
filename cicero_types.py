@@ -1,7 +1,7 @@
 #!/usr/bin/env -S streamlit run
 """This is like cicero_shared, but specifically for types (and type-based machinery. We'll see if it's useful, and if not we might merge it back in. It's useless to run this stand-alone. But I guess you can."""
 
-from typing import Any, Literal, get_args, TypeAliasType
+from typing import Any, Literal, get_args, TypeAliasType, Union
 
 def aa(t: TypeAliasType) -> tuple[Any, ...]:
   "“aa”, “alias' args”: get the type arguments of the type within a TypeAlias. (Usually, we have a lot of Literal types, that are aliased, and this gets you the values from those types.) Pronounced like a quiet startled yelp."
@@ -18,6 +18,10 @@ short_model_name_default = short_model_names[0] #this doesn't have to be the fir
 def short_model_name_to_long_model_name(short_model_name: Short_Model_Name) -> Long_Model_Name:
   return long_model_names[short_model_names.index(short_model_name)]
 
-type Disposition = Literal["Default", "A16Z", "NRCC", "WCW"]
-dispositions: tuple[Disposition, ...] = aa(Disposition)
+type DispositionCorporate = Literal["Default", "A16Z", "NRCC", "WCW"]
+type DispositionNoncorporate = Literal["Default", "NRCC"]
+type Disposition = Union[DispositionCorporate, DispositionNoncorporate]
+dispositions_corporate: tuple[DispositionCorporate, ...] = aa(DispositionCorporate)
+dispositions_noncorporate: tuple[DispositionNoncorporate, ...] = aa(DispositionNoncorporate)
+dispositions: tuple[Disposition, ...] = tuple(dict.fromkeys(dispositions_corporate + dispositions_noncorporate))
 dispositions_default = dispositions[0]
