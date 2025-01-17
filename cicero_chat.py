@@ -15,6 +15,7 @@ from pathlib import Path
 from io import StringIO
 import pandas as pd
 from docx import Document
+#from typing import assert_never
 
 def pii_detector(input: str) -> dict[str, list[object]]:
   """Check for phone numbers, email addresses, credit card numbers, and street addresses in the text, and return a dict of what of those we've found.
@@ -102,15 +103,20 @@ def grow_chat(streamlit_key_suffix: str = "", alternate_content: str|UploadedFil
   Random fyi: chat.history is an alias for chat.chat_history (you can mutate chat.chat_history but not chat.history, btw). Internally, it's, like: [{'role': 'system', 'content': 'You are a helpful assistant.'}, {'role': 'user', 'content': 'Knock, knock.'}, {'role': 'assistant', 'content': "Hello! Who's there?"}, {'role': 'user', 'content': 'Guess who!'}, {'role': 'assistant', 'content': "Okay, I'll play along! Is it a person, a place, or a thing?"}]"""
   keyword_arguments = locals()
   pii = ssget("pii_interrupt_state", streamlit_key_suffix)
-  if streamlit_key_suffix=="_prompter":
-    sys_prompt = "You are a helpful, expert copywriter who specializes in writing fundraising text messages and emails for conservative candidates and causes. Be direct with your responses, and avoid extraneous messages like 'Hello!' and 'I hope this helps!'. These text messages and emails tend to be more punchy and engaging than normal marketing material. Do not mention that you are a helpful, expert copywriter."
-  elif streamlit_key_suffix=="_corporate":
-    if disposition != dispositions_default:
-      sys_prompt = disposition_map[disposition]
-    else:
-      sys_prompt = "You are a helpful, expert marketer. Do not mention that you are a helpful, expert marketer."+" The system interfacing you can expand links into document contents, after the user enters them but before you see them; but do not mention this unless it is relevant."
-  else: #regular chatbot
-    sys_prompt = "You are an expert copywriter who specializes in writing fundraising and engagement texts and emails for conservative political candidates in the United States of America. Make sure all messages are in English. Be direct with your responses, and avoid extraneous messages like 'Hello!' and 'I hope this helps!'. These text messages and emails tend to be more punchy and engaging than normal marketing material. Focus on these five fundraising elements when writing content: the Hook, Urgency, Agency, Stakes, and the Call to Action (CTA). Do not make up facts or statistics. Do not mention that you are a helpful, expert copywriter. Do not use emojis or hashtags in your messages. Make sure each written message is unique. Write the exact number of messages asked for."
+  
+  #set the system prompt based on various variables
+  if disposition != dispositions_default:
+    sys_prompt = disposition_map[disposition]
+  else:
+    match streamlit_key_suffix:
+      case "_prompter":
+        sys_prompt = "You are a helpful, expert copywriter who specializes in writing fundraising text messages and emails for conservative candidates and causes. Be direct with your responses, and avoid extraneous messages like 'Hello!' and 'I hope this helps!'. These text messages and emails tend to be more punchy and engaging than normal marketing material. Do not mention that you are a helpful, expert copywriter."
+      case "_corporate":
+        sys_prompt = "You are a helpful, expert marketer. Do not mention that you are a helpful, expert marketer."+" The system interfacing you can expand links into document contents, after the user enters them but before you see them; but do not mention this unless it is relevant."
+      case "": #regular chatbot
+        sys_prompt = "You are an expert copywriter who specializes in writing fundraising and engagement texts and emails for conservative political candidates in the United States of America. Make sure all messages are in English. Be direct with your responses, and avoid extraneous messages like 'Hello!' and 'I hope this helps!'. These text messages and emails tend to be more punchy and engaging than normal marketing material. Focus on these five fundraising elements when writing content: the Hook, Urgency, Agency, Stakes, and the Call to Action (CTA). Do not make up facts or statistics. Do not mention that you are a helpful, expert copywriter. Do not use emojis or hashtags in your messages. Make sure each written message is unique. Write the exact number of messages asked for."
+      case _ as unreachable:
+        sys_prompt = "" #assert_never(unreachable) #todo: possibly use more specific type, perhaps a StreamlitKeySuffix type. And possibly also figure out our exhaustiveness-checking story.
   if not streamlit_key_suffix=="_corporate":
     # Add context for current events as an addendum on all sys_prompts except corporate:
     sys_prompt += "\nHere is some context on the current political landscape following the 2024 U.S. presidential election on November 5th:\nDonald Trump defeated Incumbent Vice President Kamala Harris, who replaced Joe Biden as the Democratic nominee, and will be sworn in as the 47th president on January 20, 2025, marking a historic comeback as the first president since Grover Cleveland to serve nonconsecutive terms. His running mate, JD Vance, will be sworn in as Vice President at that time. Minnesota Governor Tim Walz was Harris's running mate. Republicans secured a decisive victory by flipping 3 seats in the Senate, gaining a 52-seat majority, and retaining control of the House of Representatives, marking the party’s first governmental trifecta since 2018."
@@ -159,7 +165,7 @@ def grow_chat(streamlit_key_suffix: str = "", alternate_content: str|UploadedFil
   winred_concern = "winred.com" in p.lower()
   fec_concern = "fec.gov" in p.lower()
 
-  #implement url content expansion, at this point only for the corp chat and devs
+  # URL content expansion
   hit_readlink_time_limit = False
   if detect_url_content(p):
     if llt := ssget("last_link_time"):
@@ -305,25 +311,27 @@ def display_chat(streamlit_key_suffix: str = "", account: str|None = None, short
 
 def main(streamlit_key_suffix: str = "") -> None: # It's convenient to import cicero_chat in other files, to use its function in them, so we do a main() here so we don't run this code on startup.
   st.write("**Chat freeform with Cicero directly ChatGPT-style!**")
-  disposition = dispositions_default
-  if streamlit_key_suffix=="":
-    st.write("Here are some ideas: rewrite copy, make copy longer, convert a text into an email, or write copy based off a starter phrase/quote.")
-  elif streamlit_key_suffix=="_corporate":
-    st.write("Here are some ideas: write a press release based off of a news article (feel free to paste in the link), generate multiple versions of a draft pitch, convert one type of content into another, provide examples of good final products.")
-    #could: use session state for all of these controls instead of doing all this argument passing of disposition, etc...
-    accessable_dispositions: list[Disposition] = [dispositions_default] # I wouldn't have written the code this way were it not for a shocking(ly intended) weakness in pyright: https://github.com/microsoft/pyright/issues/9173
-    accessable_dispositions.extend([d for d in get_list_value_of_column_in_table("dispositions", "cicero.ref_tables.user_pods") if d in dispositions and d != dispositions_default])
-    if get_value_of_column_in_table("user_pod", "cicero.ref_tables.user_pods") == "Admin": #admins get to see all dispositions
-      accessable_dispositions = list(dispositions)
-    disposition = st.selectbox("Voice (you must reset the chat for a change to this to take effect)", accessable_dispositions)
-  account = st.selectbox("Account (required)", load_account_names(), key="account") if streamlit_key_suffix!="_corporate" else st.text_input("Account")
+  match streamlit_key_suffix:
+    case "":
+      st.write("Here are some ideas: rewrite copy, make copy longer, convert a text into an email, or write copy based off a starter phrase/quote.")
+    case "_corporate":
+      st.write("Here are some ideas: write a press release based off of a news article (feel free to paste in the link), generate multiple versions of a draft pitch, convert one type of content into another, provide examples of good final products.")
+    case _:
+      pass #deliberately non-exhaustive
+  #could: use session state for all of these controls instead of doing all this argument passing of disposition, etc...
+  accessable_dispositions: list[Disposition] = [dispositions_default] # I wouldn't have written the code this way were it not for a shocking(ly intended) weakness in pyright: https://github.com/microsoft/pyright/issues/9173
+  accessable_dispositions.extend([d for d in get_list_value_of_column_in_table("dispositions", "cicero.ref_tables.user_pods") if d in dispositions and d != dispositions_default])
+  if get_value_of_column_in_table("user_pod", "cicero.ref_tables.user_pods") == "Admin": #admins get to see all dispositions
+    accessable_dispositions = list(dispositions)
+  disposition = st.selectbox("Voice (you must reset the chat for a change to this to take effect)", accessable_dispositions)
+  account = st.selectbox("Account (required)", load_account_names(), key="account") if streamlit_key_suffix != "_corporate" else st.text_input("Account")
   uploaded_file = st.file_uploader(label="Upload a file", type=['csv', 'docx', 'html', 'txt', 'xls', 'xlsx'], accept_multiple_files=False)
+  model_name = st.selectbox("Model", short_model_names, key="model_name") if is_dev() else short_model_name_default
   if uploaded_file is not None and not ssget("chat_file_uploader"):
     ssmut(lambda x: x+1 if x else 1, "chat_file_uploader")
     file_ext = Path(str(uploaded_file.name)).suffix
     st.write(f"You uploaded a {file_ext} file!")
-    grow_chat(streamlit_key_suffix, uploaded_file, account, short_model_name_default, disposition) #note: this seems like a DRY violation to me, and has already bitten me. When this feature is done being a prototype, maybe fix that.
-  model_name = st.selectbox("Model", short_model_names, key="model_name") if is_dev() else short_model_name_default
+    grow_chat(streamlit_key_suffix, uploaded_file, account, model_name, disposition) #note: this seems like a DRY violation to me, and has already bitten me. TODO: When this feature is done being a prototype, maybe fix that.
   if st.button("Clear conversion"):
     reset_chat(streamlit_key_suffix)
   display_chat(streamlit_key_suffix, account=account, short_model_name=model_name, disposition=disposition)
