@@ -139,13 +139,17 @@ def sql_call_cacheless(query: str, sql_params_dict: TParameterCollection|None = 
   except Exception as e:
     die_with_database_error_popup(e.args)
 
-def get_value_of_column_in_table(column: str, table: str) -> Any:
+def get_value_of_column_in_table(column: str, table: str) -> Any | None:
   """This returns one value. This is cacheless, by the way, because we mostly use it for access, and access not updating promptly is a minefield of user-hostile interactions.
   Please note that the column and table are just f-stringed in, so to avoid sql injection you should not let the user set them directly. This is a program-internal function ONLY!!! It should only be used on fixed, known values, & is only for the purpose of abstraction."""
-  return sql_call_cacheless(
+  result = sql_call_cacheless(
     f"SELECT {column} FROM {table} WHERE user_email == :user_email",
     {"user_email": ssget('email')}
-  )[0][0] # list of Rows, get 0th Row, get 0th entry (contents of column).
+  )
+  try:
+    return result[0][0] # list of Rows, get 0th Row, get 0th entry (contents of column).
+  except IndexError:
+      return None
 
 def get_list_value_of_column_in_table(column: str, table: str) -> list[Any]:
   """Same as get_value_of_column_in_table, but also converts None to [], and also converts the np.array we get here to a plain ol' python list."""

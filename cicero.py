@@ -36,27 +36,25 @@ with Profiler():
     if not x.startswith("FormSubmitter:") and not x.startswith("⚡") and not x.startswith("👍") and not x.startswith("👎") and not x.startswith("user_input_for_chatbot_this_frame") and not x == "unlucky": #Prevent this error: streamlit.errors.StreamlitAPIException: Values for the widget with key "FormSubmitter:query_builder-Submit" cannot be set using `st.session_state`. # Also prevent this error: StreamlitAPIException: Values for the widget with key "⚡1" cannot be set using st.session_state. And similarly for 👍. In general the buttons that can't have state set, I set their keys to emoji+suffix. Just because.
       st.session_state[x] = st.session_state[x]
 
-  def _() -> None:
-    "this function is defined and run at once, just to avoid polluting the scope with e"
-    e = st.experimental_user.email
-    if e is None:
+  st.markdown("""<style> [data-testid="stDecoration"] { display: none; } </style>""", unsafe_allow_html=True) #this code removes the red bar at the top but keeps the hamburger menu
+  st.markdown("""<style> [data-testid="stAppViewBlockContainer"] { padding-top: 1.5rem; } </style>""", unsafe_allow_html=True) #this removes much of the annoying headroom padding on the main ui, although we can't remove all of it because the loading indicators are actually a solid bar that would obscure the logo (I'm not sure why).
+
+  if fe := ssget("fake_email"):
+    ssset("email", fe)
+  else:
+    if (e := st.experimental_user.email) is None:
       st_print("Your user email is `None`, which implies we are currently running publicly on Streamlit Community Cloud. https://docs.streamlit.io/library/api-reference/personalization/st.experimental_user#public-app-on-streamlit-community-cloud. This app is configured to function only privately and permissionedly, so we will now exit. Good day.")
       exit_error(34)
     else:
       ssset("email", e)
-  _()
 
-  st.markdown("""<style> [data-testid="stDecoration"] { display: none; } </style>""", unsafe_allow_html=True) #this code removes the red bar at the top but keeps the hamburger menu
-  st.markdown("""<style> [data-testid="stAppViewBlockContainer"] { padding-top: 1.5rem; } </style>""", unsafe_allow_html=True) #this removes much of the annoying headroom padding on the main ui, although we can't remove all of it because the loading indicators are actually a solid bar that would obscure the logo (I'm not sure why).
-
-
-  # Google identity/sign-in logic, using IAP. From https://cloud.google.com/iap/docs/signed-headers-howto, with modifications. Will set the email to a new value iff it succeeds.
-  if iap_jwt := st.context.headers.get("X-Goog-Iap-Jwt-Assertion"):
-    try:
-      decoded_jwt = id_token.verify_token(iap_jwt, requests.Request(), audience=st.secrets["aud"], certs_url="https://www.gstatic.com/iap/verify/public_key")
-      ssset("email", decoded_jwt["email"].split(":")[1])
-    except Exception as e: # This pass probably hits if you don't have an aud, you don't have an X-Goog-IAP-JWT-Assertion header (you aren't behind an IAP), or the decode fails (the header is forged or otherwise invalid).
-      st_print(e)
+    # Google identity/sign-in logic, using IAP. From https://cloud.google.com/iap/docs/signed-headers-howto, with modifications. Will set the email to a new value iff it succeeds.
+    if iap_jwt := st.context.headers.get("X-Goog-Iap-Jwt-Assertion"):
+      try:
+        decoded_jwt = id_token.verify_token(iap_jwt, requests.Request(), audience=st.secrets["aud"], certs_url="https://www.gstatic.com/iap/verify/public_key")
+        ssset("email", decoded_jwt["email"].split(":")[1])
+      except Exception as e: # This pass probably hits if you don't have an aud, you don't have an X-Goog-IAP-JWT-Assertion header (you aren't behind an IAP), or the decode fails (the header is forged or otherwise invalid).
+        st_print(e)
 
     if ssget('email') == 'test@example.com': # In this case, the streamlit app is running "locally", which means everywhere but the streamlit community cloud.
       if "--disable_user_authentication_requirement_DO_NOT_USE_THIS_FLAG_WITH_PUBLIC_INSTANCES_OF_CICERO_ITS_ONLY_FOR_LOCAL_TESTING_USE" in argv:
@@ -77,7 +75,7 @@ with Profiler():
   def disable_developer_mode() -> None:
     ssset("developer_mode_disabled", True)
   def be_new_user() -> None:
-    ssset("email", ssget("be_new_user"))
+    ssset("fake_email", ssget("be_new_user"))
 
   # Since we use st.navigation explicitly, the default page detection is disabled, even though we may use a pages folder later (although we shouldn't name that folder pages/, purely in order to suppress a warning message about how we shouldn't do that). This is good, because we want to hide some of the pages from non-dev-mode users.
   # There is an icon parameter to st.Page, so we could write eg icon="🗣️", but including the emoji in the titles makes them slightly larger and thus nicer-looking.

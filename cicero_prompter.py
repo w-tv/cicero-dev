@@ -615,7 +615,7 @@ with st.sidebar: #The history display includes a result of the logic of the scri
   st.dataframe( pd.DataFrame(reversed( st.session_state['history'] ),columns=(["Outputs"])), hide_index=True, use_container_width=True)
 
 login_activity_counter_container.write(
-  f"""You are logged in as {st.session_state['email']}{ dev_str( f" (internally, {st.experimental_user.email})" ) }. You have prompted {st.session_state['use_count']} time{'s' if st.session_state['use_count'] != 1 else ''} today, out of a limit of {use_count_limit}. {dev_str("You are in developer mode.")}"""
+  f"""You are {'fake-'*bool(ssget('fake_email'))}logged in as {ssget('email')}{ dev_str( f" (internally, {st.experimental_user.email})" ) }. You have prompted {st.session_state['use_count']} time{'s' if st.session_state['use_count'] != 1 else ''} today, out of a limit of {use_count_limit}. {dev_str("You are in developer mode.")}"""
 )
 
 st.session_state["submit_button_disabled"] = False
