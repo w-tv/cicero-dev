@@ -32,7 +32,7 @@ git remote add prod https://github.com/achangtv/cicero # Set prod as an addition
 git push prod # This will push the current history to prod (instead of the default `git push`, which will still push to dev). If you need to push to a branch on prod with a different name than the local branch, you can use git push prod local_branch_name:remote_branch_name, where local_branch_name is probably master.
 ```
 
-Note that the git history of this project is basically a straight line. As God intended. TODO: explain various git commands that allow you to keep on the right history, here. (Then again, you can always look up how to abandon your git history and use the upstream one...)
+Note that the git history of this project is basically a straight line. As God intended. Unfortunately, I don't have the time/space here to explain the various git commands that allow you to keep on the right history, here. (Then again, you can always look up how to abandon your git history and use the upstream one...) Wyatt will usually be able to fix history for you. You may also try playing https://ohmygit.org/ and/or https://learngitbranching.js.org/ to get a handle on git. There is also a forthcoming blogpost from Wyatt about why you should rebase instead of merging in most cases (assuming you can't fast-forward (ff); ff is usually the right thing to do when you can).
 
 Edit `cicero.py` to customize this app to your heart's desire. However, it should be pretty much entirely as customized as we need it to be, at this point. Maybe a couple features left.
 

@@ -260,7 +260,7 @@
 * Do green checkmarks in dev timeline sheet for done stuff (requires google sign-in)
 * Prod.Business.project_results oh wait no nevermind can’t use that, (so I didn’t)
 * Look over the— oh you’re not in analytics (so I didn’t)
-* Look in RAG stuff notebook maybe do chang’s todos he left around if I know what he was doing (couldn’t decipher thesemypy)
+* Look in RAG stuff notebook maybe do chang’s to-dos he left around if I know what he was doing (couldn’t decipher thesemypy)
 * (delayed or cancelled) Popover with all the topics and their definitions near the cicero promprter topic picker I guess
 * replace scratchpad with chatsession feature from https://dbc-ca8d208b-aaa9.cloud.databricks.com/?o=8188181812650195#notebook/1620539154772835
 * Add American Voice and also DMS: American Voice to American Voice mapping.
