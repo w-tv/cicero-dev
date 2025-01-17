@@ -24,4 +24,8 @@ type Disposition = Union[DispositionCorporate, DispositionNoncorporate]
 dispositions_corporate: tuple[DispositionCorporate, ...] = aa(DispositionCorporate)
 dispositions_noncorporate: tuple[DispositionNoncorporate, ...] = aa(DispositionNoncorporate)
 dispositions: tuple[Disposition, ...] = tuple(dict.fromkeys(dispositions_corporate + dispositions_noncorporate))
-dispositions_default = dispositions[0]
+disposition_default = dispositions[0]
+
+type ChatSuffix = Literal["", "_corporate", "_prompter"]
+chat_suffixes: tuple[ChatSuffix, ...] = aa(ChatSuffix)
+chat_suffix_default = chat_suffixes[0]

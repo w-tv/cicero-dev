@@ -105,11 +105,11 @@ def set_ui_to_preset(preset_name: str) -> None:
   for key, value in preset.items():
     st.session_state[key] = value
 
-def list_lower(l: list[str]) -> list[str]:
-  return [x.lower() for x in l]
+def list_lower(list: list[str]) -> list[str]:
+  return [x.lower() for x in list]
 
-def only_those_strings_of_the_list_that_contain_the_given_substring_case_insensitively(l: list[str], s: str) -> list[str]:
-  return [x for x in l if s.lower() in x.lower()]
+def only_those_strings_of_the_list_that_contain_the_given_substring_case_insensitively(list: list[str], s: str) -> list[str]:
+  return [x for x in list if s.lower() in x.lower()]
 
 # This looks like it should take a `type` keyword, but apparently it does not (pyright complains). For more on TypedDicts and this call, see https://typing.readthedocs.io/en/latest/spec/typeddict.html#alternative-syntax. Note that we use the alt syntax here simply because it is much shorter!
 ReferenceTextElement = TypedDict('ReferenceTextElement', {'prompt': str, 'text': str, 'score': float})
@@ -195,10 +195,10 @@ def execute_prompting(model: Long_Model_Name, account: str, sender: str|None, as
   # Tp, C, To
   # Tp, C, L
   # Tp, C
-  def powerset[T](l: list[T], start: int = 0) -> list[tuple[T, ...]]:
+  def powerset[T](list: list[T], start: int = 0) -> list[tuple[T, ...]]:
     """powerset([1,2,3]) → () (1,) (2,) (3,) (1,2) (1,3) (2,3) (1,2,3)
     Used to generate powersets of filters."""
-    return [x for r in range(start, len(l)+1) for x in combinations(l, r)]
+    return [x for r in range(start, len(list)+1) for x in combinations(list, r)]
 
   # Generate the powersets (i.e. each combination of items) for both topics and tones
   # Normally, the set starts with length of 0, but for performance purposes either start with 1 or 0, depending on if the list is empty
@@ -300,7 +300,7 @@ def execute_prompting(model: Long_Model_Name, account: str, sender: str|None, as
     # Perform a similarity search using the target_prompt defined beforehand. Filter for only the results we found earlier in this current iteration.
     print()
     try: # In case something goes wrong, we have FAISS as a backup. #Ironically, the backup has its own issues. But I guess it's being triggered, because those issues seem to be coming up!
-      assert not st.session_state.get("use_backup_similarity_search_library")
+      assert not st.session_state.get("use_backup_similarity_search_library") #this is not a "real" assert, but rather just a way to let devs easily test the backup
       for end in batch_bounds[1:]:
         dbx_search = text_index.similarity_search(
           num_results=doc_pool_size, # This must be at most about 2**13 (8192) I have no idea what the actual max is

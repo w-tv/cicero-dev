@@ -4,10 +4,10 @@ You must have streamlit installed to run this program. Among other things. Why n
 Check the cicero_*.py files for various functionalities of Cicero. This file basically just does user auth, displays some stats, and hosts subsidiary pages (one will be open by default).
 """
 
-from time import perf_counter_ns
-nanoseconds_base : int = perf_counter_ns()
 import streamlit as st
-import os, psutil, platform
+import os
+import psutil
+import platform
 from sys import argv
 from cicero_chat import main as cicero_chat
 from cicero_shared import dev_box, ensure_existence_of_activity_log, exit_error, get_base_url, get_list_value_of_column_in_table, is_dev, sql_call_cacheless, ssget, ssset, st_print
@@ -15,6 +15,8 @@ from google.auth.transport import requests
 from google.oauth2 import id_token
 from wfork_streamlit_profiler import Profiler
 from datetime import datetime
+from time import perf_counter_ns
+nanoseconds_base : int = perf_counter_ns()
 
 if argv[1:]:
   print(f"Running Cicero with command-line arguments: {argv[1:]}")
