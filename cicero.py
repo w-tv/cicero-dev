@@ -114,7 +114,7 @@ with Profiler():
         Base url: {get_base_url()}
       """, unsafe_allow_html=True)
       st.button("disable Developer Mode", on_click=disable_developer_mode, help="Click this button to disable developer mode, allowing you to see and interact with the app as a basic user would. You can refresh the page in your browser to re-enable developer mode.") #this is a callback for streamlit ui update-flow reasons.
-      st.text_input("see the page as this user", value="test2@example.com", on_change=be_new_user, key="be_new_user" ) #this is a callback for streamlit ui update-flow reasons.
+      st.text_input("see the page as this user", on_change=be_new_user, key="be_new_user" ) #this is a callback for streamlit ui update-flow reasons.
   else: # Disable the profiler element visually, using css, if not in dev mode.
     st.markdown("""<style> [allow="accelerometer; ambient-light-sensor; autoplay; battery; camera; clipboard-write; document-domain; encrypted-media; fullscreen; geolocation; gyroscope; layout-animations; legacy-image-formats; magnetometer; microphone; midi; oversized-images; payment; picture-in-picture; publickey-credentials-get; sync-xhr; usb; vr ; wake-lock; xr-spatial-tracking"] { /*this is an arbitrary way to target the profiler element*/ display: none; } </style>""", unsafe_allow_html=True)
 
