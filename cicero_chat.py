@@ -315,7 +315,7 @@ def main(streamlit_key_suffix: str = "") -> None: # It's convenient to import ci
     accessable_dispositions.extend([d for d in get_list_value_of_column_in_table("dispositions", "cicero.ref_tables.user_pods") if d in dispositions and d != dispositions_default])
     if get_value_of_column_in_table("user_pod", "cicero.ref_tables.user_pods") == "Admin": #admins get to see all dispositions
       accessable_dispositions = list(dispositions)
-    disposition = st.selectbox("Disposition (you must reset the chat for a change to this to take effect)", accessable_dispositions)
+    disposition = st.selectbox("Voice (you must reset the chat for a change to this to take effect)", accessable_dispositions)
   account = st.selectbox("Account (required)", load_account_names(), key="account") if streamlit_key_suffix!="_corporate" else st.text_input("Account")
   uploaded_file = st.file_uploader(label="Upload a file", type=['csv', 'docx', 'html', 'txt', 'xls', 'xlsx'], accept_multiple_files=False)
   if uploaded_file is not None and not ssget("chat_file_uploader"):
