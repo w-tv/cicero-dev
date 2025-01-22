@@ -18,7 +18,7 @@ short_model_name_default = short_model_names[0] #this doesn't have to be the fir
 def short_model_name_to_long_model_name(short_model_name: Short_Model_Name) -> Long_Model_Name:
   return long_model_names[short_model_names.index(short_model_name)]
 
-type DispositionCorporate = Literal["Default", "A16Z", "NRCC", "WCW"]
+type DispositionCorporate = Literal["Default", "A16Z", "WCW"]
 type DispositionNoncorporate = Literal["Default", "NRCC"]
 type Disposition = Union[DispositionCorporate, DispositionNoncorporate]
 dispositions_corporate: tuple[DispositionCorporate, ...] = aa(DispositionCorporate)
