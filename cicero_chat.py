@@ -326,7 +326,7 @@ def main(streamlit_key_suffix: ChatSuffix = chat_suffix_default) -> None: # It's
   ds = dispositions_corporate if streamlit_key_suffix == "_corporate" else dispositions_noncorporate
   accessable_dispositions += tuple(d for d in get_list_value_of_column_in_table("dispositions", "cicero.ref_tables.user_pods") if d in ds and d != disposition_default)
   if get_value_of_column_in_table("user_pod", "cicero.ref_tables.user_pods") == "Admin": #admins get to see all dispositions
-    accessable_dispositions = dispositions
+    accessable_dispositions = ds
   disposition = st.selectbox("Voice (you must reset the chat for a change to this to take effect)", accessable_dispositions)
   account = st.selectbox("Account (required)", load_account_names(), key="account") if streamlit_key_suffix != "_corporate" else st.text_input("Account")
   uploaded_file = st.file_uploader(label="Upload a file", type=['csv', 'docx', 'html', 'txt', 'xls', 'xlsx'], accept_multiple_files=False)
