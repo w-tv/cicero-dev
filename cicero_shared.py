@@ -105,7 +105,7 @@ def exit_error(exit_code: int) -> NoReturn:
 def die_with_database_error_popup(e_args: tuple[object, ...]) -> NoReturn:
   print("Database error", e_args)
   st.write("There was a database error, and the application could not continue. Sorry. Try refreshing the page and trying again.")
-  st.code(e_args)
+  st.write(e_args)
   exit_error(4)
 
 def popup(title: str, body: str, show_x_instruction: bool = True) -> None:
