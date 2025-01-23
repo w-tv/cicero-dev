@@ -95,7 +95,8 @@ with Profiler():
       st.Page("cicero_response_lookup.py", title="🔍 Response Lookup"),
       st.Page("cicero_pod_key.py", title="🫛 Pod Key"),
       st.Page("cicero_activity_looker.py", title="👁️ Activity Looker"),
-      st.Page("cicero_meddler.py", title="✍️ Meddler")
+      st.Page("cicero_meddler.py", title="✍️ Meddler"),
+      st.Page("cicero_video_brief.py", title="🎬 Video Brief"),
     ]
   st.navigation(pages).run()
   loading_message.empty() # At this point, we no longer need to display a loading message, once we've gotten here and displayed everything above.
