@@ -130,22 +130,22 @@ def grow_chat(streamlit_key_suffix: ChatSuffix, alternate_content: str|Literal[T
   messages = ssget("messages", streamlit_key_suffix) # Note that, as an object reference, updating and accessing messages will continue to update and access the same object.
   if alternate_content:
     if alternate_content is True:
-      alternate_content = ssget("chat_file_uploader")
-      file_ext = Path(str(alternate_content.name)).suffix
+      content = ssget("chat_file_uploader")
+      file_ext = Path(str(content.name)).suffix
       match file_ext: #todo: delete this? or at least the st.write statements in it?
         case '.txt' | '.html' | '.htm' :
-          stringio = StringIO(alternate_content.getvalue().decode("utf-8")) # convert file-like BytesIO object to a string based IO
+          stringio = StringIO(content.getvalue().decode("utf-8")) # convert file-like BytesIO object to a string based IO
           string_data = stringio.read() # read file as string
           p = string_data
         case '.docx':
-          docx_text = '\n'.join([para.text for para in Document(alternate_content).paragraphs])
+          docx_text = '\n'.join([para.text for para in Document(content).paragraphs])
           p = docx_text
         case '.csv':
-          x = pd.read_csv(alternate_content, nrows=10)
+          x = pd.read_csv(content, nrows=10)
           st.dataframe( x )
           p = str(x)
         case '.xls' | '.xlsx':
-          st.dataframe( x := pd.read_excel(alternate_content, nrows=10) )
+          st.dataframe( x := pd.read_excel(content, nrows=10) )
           p = str(x)
         case _:
           x = "Error: Cicero does not currently support this file type!"
