@@ -3,12 +3,11 @@
 """Cicero (the actual, historical man (it's really him))."""
 
 import streamlit as st
-from streamlit.runtime.uploaded_file_manager import UploadedFile
 from datetime import datetime, timedelta
 import time
 from databricks_genai_inference import ChatSession, FoundationModelAPIException
 from cicero_shared import catstr, dev_box, get_value_of_column_in_table, get_list_value_of_column_in_table, is_dev, ssget, ssset, ssmut, sspop, get_base_url, popup, load_account_names, sql_call_cacheless
-from cicero_types import Short_Model_Name, short_model_names, short_model_name_default, short_model_name_to_long_model_name, dispositions, dispositions_corporate, dispositions_noncorporate, Disposition, disposition_default, ChatSuffix, chat_suffix_default
+from cicero_types import Short_Model_Name, short_model_names, short_model_name_default, short_model_name_to_long_model_name, dispositions_corporate, dispositions_noncorporate, Disposition, disposition_default, ChatSuffix, chat_suffix_default
 from cicero_disposition_map import disposition_map
 import bs4 # for some reason bs4 is how you import beautifulsoup
 import requests
@@ -17,7 +16,7 @@ from pathlib import Path
 from io import StringIO
 import pandas as pd
 from docx import Document
-from typing import assert_never
+from typing import assert_never, Literal
 
 def pii_detector(input: str) -> dict[str, list[object]]:
   """Check for phone numbers, email addresses, credit card numbers, and street addresses in the text, and return a dict of what of those we've found.
@@ -100,7 +99,7 @@ def expand_url_content(s: str) -> str:
   """Expand the urls in a string to the content of their contents (placing said contents back into the same containing string."""
   return re.sub(pattern=url_regex, repl=content_from_url_regex_match, string=s)
 
-def grow_chat(streamlit_key_suffix: ChatSuffix, alternate_content: str|UploadedFile|None = None, account: str|None = None, short_model_name: Short_Model_Name = short_model_name_default, disposition: Disposition = disposition_default) -> None:
+def grow_chat(streamlit_key_suffix: ChatSuffix, alternate_content: str|Literal[True]|None = None, account: str|None = None, short_model_name: Short_Model_Name = short_model_name_default, disposition: Disposition = disposition_default) -> None:
   """Note that this function will do something special to the prompt if alternate_content is supplied.
   Also, the streamlit_key_suffix is only necessary because we use this code in two places. If streamlit_key_suffix is "", we infer we're in the chat page, and if otherwise we infer we're being used on a different page (so far, the only thing that does this is prompter).
   Random fyi: chat.history is an alias for chat.chat_history (you can mutate chat.chat_history but not chat.history, btw). Internally, it's, like: [{'role': 'system', 'content': 'You are a helpful assistant.'}, {'role': 'user', 'content': 'Knock, knock.'}, {'role': 'assistant', 'content': "Hello! Who's there?"}, {'role': 'user', 'content': 'Guess who!'}, {'role': 'assistant', 'content': "Okay, I'll play along! Is it a person, a place, or a thing?"}]"""
@@ -130,17 +129,16 @@ def grow_chat(streamlit_key_suffix: ChatSuffix, alternate_content: str|UploadedF
     ssset("messages", streamlit_key_suffix, []) # We keep our own list of messages, I think because I found it hard to format the chat_history output when I tried once.
   messages = ssget("messages", streamlit_key_suffix) # Note that, as an object reference, updating and accessing messages will continue to update and access the same object.
   if alternate_content:
-    if isinstance(alternate_content, UploadedFile):
+    if alternate_content is True:
+      alternate_content = ssget("chat_file_uploader")
       file_ext = Path(str(alternate_content.name)).suffix
       match file_ext: #todo: delete this? or at least the st.write statements in it?
         case '.txt' | '.html' | '.htm' :
           stringio = StringIO(alternate_content.getvalue().decode("utf-8")) # convert file-like BytesIO object to a string based IO
           string_data = stringio.read() # read file as string
-          st.write(string_data)
           p = string_data
         case '.docx':
           docx_text = '\n'.join([para.text for para in Document(alternate_content).paragraphs])
-          st.write(docx_text)
           p = docx_text
         case '.csv':
           x = pd.read_csv(alternate_content, nrows=10)
@@ -150,8 +148,7 @@ def grow_chat(streamlit_key_suffix: ChatSuffix, alternate_content: str|UploadedF
           st.dataframe( x := pd.read_excel(alternate_content, nrows=10) )
           p = str(x)
         case _:
-          x = "Cicero does not currently support this file type!"
-          st.write(x)
+          x = "Error: Cicero does not currently support this file type!"
           p = x
       display_p = f"「 {p} 」"
     else:
@@ -329,13 +326,8 @@ def main(streamlit_key_suffix: ChatSuffix = chat_suffix_default) -> None: # It's
     accessable_dispositions = ds
   disposition = st.selectbox("Voice (you must reset the chat for a change to this to take effect)", accessable_dispositions)
   account = st.selectbox("Account (required)", load_account_names(), key="account") if streamlit_key_suffix != "_corporate" else st.text_input("Account")
-  uploaded_file = st.file_uploader(label="Upload a file", type=['csv', 'docx', 'html', 'htm', 'txt', 'xls', 'xlsx'], accept_multiple_files=False)
   model_name = st.selectbox("Model", short_model_names, key="model_name") if is_dev() else short_model_name_default
-  if uploaded_file is not None and not ssget("chat_file_uploader"):
-    ssmut(lambda x: x+1 if x else 1, "chat_file_uploader")
-    file_ext = Path(str(uploaded_file.name)).suffix
-    st.write(f"You uploaded a {file_ext} file!")
-    grow_chat(streamlit_key_suffix, uploaded_file, account, model_name, disposition) #note: this seems like a DRY violation to me, and has already bitten me. TODO: When this feature is done being a prototype, maybe fix that.
+  st.file_uploader(label="Upload a file", key="chat_file_uploader", type=['csv', 'docx', 'html', 'htm', 'txt', 'xls', 'xlsx'], accept_multiple_files=False, on_change=grow_chat, args=(streamlit_key_suffix, True, account, model_name, disposition)) #note: this seems like a DRY violation to me... #TODO: file upload currently lets people bypass good/bad rating. However, we could hide it when in the asking-for-rating state, if that is deemed a good idea.
   if st.button("Clear conversion"):
     reset_chat(streamlit_key_suffix)
   display_chat(streamlit_key_suffix, account=account, short_model_name=model_name, disposition=disposition)
