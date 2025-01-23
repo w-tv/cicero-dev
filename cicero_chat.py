@@ -327,7 +327,7 @@ def main(streamlit_key_suffix: ChatSuffix = chat_suffix_default) -> None: # It's
   disposition = st.selectbox("Voice (you must reset the chat for a change to this to take effect)", accessable_dispositions)
   account = st.selectbox("Account (required)", load_account_names(), key="account") if streamlit_key_suffix != "_corporate" else st.text_input("Account")
   model_name = st.selectbox("Model", short_model_names, key="model_name") if is_dev() else short_model_name_default
-  st.file_uploader(label="Upload a file", key="chat_file_uploader", type=['csv', 'docx', 'html', 'htm', 'txt', 'xls', 'xlsx'], accept_multiple_files=False, on_change=grow_chat, args=(streamlit_key_suffix, True, account, model_name, disposition)) #note: this seems like a DRY violation to me... #TODO: file upload currently lets people bypass good/bad rating. However, we could hide it when in the asking-for-rating state, if that is deemed a good idea.
+  st.file_uploader(label="Upload a file", key="chat_file_uploader", type=['csv', 'docx', 'html', 'htm', 'txt', 'xls', 'xlsx'], accept_multiple_files=False, on_change=grow_chat, args=(streamlit_key_suffix, True, account, model_name, disposition)) if is_dev() else None #note: this seems like a DRY violation to me... #TODO: file upload currently lets people bypass good/bad rating. However, we could hide it when in the asking-for-rating state, if that is deemed a good idea.
   if st.button("Clear conversion"):
     reset_chat(streamlit_key_suffix)
   display_chat(streamlit_key_suffix, account=account, short_model_name=model_name, disposition=disposition)
