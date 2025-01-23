@@ -11,7 +11,7 @@ from cicero_shared import ensure_existence_of_activity_log, labeled_table, sql_c
 def ensure_existence_of_pod_table() -> None:
   """Run this code before accessing the pod table. If the pod table doesn't exist, this function call will create it. (TODO: probably we should be running this in a lot more places than we currently are.
   Note that if the table exists, this sql call will not check if it has the right columns (names or types), unfortunately."""
-  sql_call_cacheless("CREATE TABLE IF NOT EXISTS cicero.ref_tables.user_pods (user_email STRING, user_pod STRING, user_permitted_to_see_these_accounts_in_topic_reporting ARRAY<STRING>, page_access ARRAY<STRING>, dispositions ARRAY<STRING>)")
+  sql_call_cacheless("CREATE TABLE IF NOT EXISTS cicero.ref_tables.user_pods (user_email STRING, user_pod STRING, user_permitted_to_see_these_accounts_in_topic_reporting ARRAY<STRING>, page_access ARRAY<STRING>, voices ARRAY<STRING>)")
 
 def do_one(email: str, pod: str) -> None:
   """Because we need to update the value if it exists, and create a new record if none exist, this is an "upsert", and a MERGE INTO is apparently the best way to do it. Also I got almost all of this code from the AI. But it's very basic code, like example code of just how you would use MERGE INTO syntax, really. I just think it's interesting."""
@@ -22,7 +22,7 @@ def do_one(email: str, pod: str) -> None:
     WHEN MATCHED THEN
         UPDATE SET user_pod = :pod
     WHEN NOT MATCHED THEN
-        INSERT (       user_email,        user_pod, user_permitted_to_see_these_accounts_in_topic_reporting, page_access, dispositions)
+        INSERT (       user_email,        user_pod, user_permitted_to_see_these_accounts_in_topic_reporting, page_access, voices)
         VALUES (source.user_email, source.user_pod, ARRAY(), ARRAY(), ARRAY())
     """,
     locals()
@@ -40,7 +40,7 @@ def do_one_list(email: str, column_name: str, values: list[str]) -> list[Row]:
     "user_pod": "\"Pod unknown\"",
     "user_permitted_to_see_these_accounts_in_topic_reporting": "ARRAY()",
     "page_access": "ARRAY()",
-    "dispositions": "ARRAY()"
+    "voices": "ARRAY()"
   }
   default_values_dict[column_name] = f"{a}"
   return sql_call_cacheless(f"""
@@ -50,7 +50,7 @@ def do_one_list(email: str, column_name: str, values: list[str]) -> list[Row]:
     WHEN MATCHED THEN
         UPDATE SET {column_name} = {a}
     WHEN NOT MATCHED THEN
-        INSERT (       user_email,     user_pod, user_permitted_to_see_these_accounts_in_topic_reporting, page_access, dispositions)
+        INSERT (       user_email,     user_pod, user_permitted_to_see_these_accounts_in_topic_reporting, page_access, voices)
         VALUES ({", ".join(default_values_dict.values())})
     """,
     {"email": email}
@@ -87,18 +87,18 @@ with st.form("form_pod_pa"):
     if st.form_submit_button("input that one new email and page-list value...") and one_new_email_pa and one_new_list_pa:
       do_one_list(one_new_email_pa, "page_access", one_new_list_pa)
 
-st.write("## Set Disposition Access")
+st.write("## Set Voice Access")
 with st.form("form_pod_da"):
-  st.write("Here, you can manually update what dispositions a user is allowed to see in corporate chat. THEN GO SET THE POD VALUE IF YOU'RE MAKING A NEW PERSON.")
+  st.write("Here, you can manually update what voices a user is allowed to see in corporate chat. THEN GO SET THE POD VALUE IF YOU'RE MAKING A NEW PERSON.")
   c = st.columns(3)
   with c[0]:
     one_new_email_da = st.text_input("one email (da)").strip()
   with c[1]:
-    one_new_list_da = comma_box("dispositions separated by `,`")
+    one_new_list_da = comma_box("voices separated by `,`")
   with c[2]:
     st.caption("enticing button")
-    if st.form_submit_button("input that one new email and disposition-list value...") and one_new_email_da and one_new_list_da:
-      do_one_list(one_new_email_da, "dispositions", one_new_list_da)
+    if st.form_submit_button("input that one new email and voice-list value...") and one_new_email_da and one_new_list_da:
+      do_one_list(one_new_email_da, "voices", one_new_list_da)
 
 st.write("## Concerning The Pods")
 st.write("This section contains controls for updating the pod table (listed below) and the activity log (listed even belower).\n\nThe pod table is consulted every time a user does a prompt and cicero thereby writes to the activity log.\n\nSo, the pod table controls what will appear in the pod column in activity log entries going forward for users.\n\nIf you've done something wrong previously, you might also want to update the activity log retroactively, to correct any erroneous pod listing you may have caused to exist in there.")

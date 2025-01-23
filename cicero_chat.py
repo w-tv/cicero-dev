@@ -7,8 +7,8 @@ from datetime import datetime, timedelta
 import time
 from databricks_genai_inference import ChatSession, FoundationModelAPIException
 from cicero_shared import catstr, dev_box, get_value_of_column_in_table, get_list_value_of_column_in_table, is_dev, ssget, ssset, ssmut, sspop, get_base_url, popup, load_account_names, sql_call_cacheless
-from cicero_types import Short_Model_Name, short_model_names, short_model_name_default, short_model_name_to_long_model_name, dispositions_corporate, dispositions_noncorporate, Disposition, disposition_default, ChatSuffix, chat_suffix_default
-from cicero_disposition_map import disposition_map
+from cicero_types import Short_Model_Name, short_model_names, short_model_name_default, short_model_name_to_long_model_name, voices_corporate, voices_noncorporate, Voice, voice_default, ChatSuffix, chat_suffix_default
+from cicero_voice_map import voice_map
 import bs4 # for some reason bs4 is how you import beautifulsoup
 import requests
 import re
@@ -99,7 +99,7 @@ def expand_url_content(s: str) -> str:
   """Expand the urls in a string to the content of their contents (placing said contents back into the same containing string."""
   return re.sub(pattern=url_regex, repl=content_from_url_regex_match, string=s)
 
-def grow_chat(streamlit_key_suffix: ChatSuffix, alternate_content: str|Literal[True]|None = None, account: str|None = None, short_model_name: Short_Model_Name = short_model_name_default, disposition: Disposition = disposition_default) -> None:
+def grow_chat(streamlit_key_suffix: ChatSuffix, alternate_content: str|Literal[True]|None = None, account: str|None = None, short_model_name: Short_Model_Name = short_model_name_default, voice: Voice = voice_default) -> None:
   """Note that this function will do something special to the prompt if alternate_content is supplied.
   Also, the streamlit_key_suffix is only necessary because we use this code in two places. If streamlit_key_suffix is "", we infer we're in the chat page, and if otherwise we infer we're being used on a different page (so far, the only thing that does this is prompter).
   Random fyi: chat.history is an alias for chat.chat_history (you can mutate chat.chat_history but not chat.history, btw). Internally, it's, like: [{'role': 'system', 'content': 'You are a helpful assistant.'}, {'role': 'user', 'content': 'Knock, knock.'}, {'role': 'assistant', 'content': "Hello! Who's there?"}, {'role': 'user', 'content': 'Guess who!'}, {'role': 'assistant', 'content': "Okay, I'll play along! Is it a person, a place, or a thing?"}]"""
@@ -107,8 +107,8 @@ def grow_chat(streamlit_key_suffix: ChatSuffix, alternate_content: str|Literal[T
   pii = ssget("pii_interrupt_state", streamlit_key_suffix)
   
   #set the system prompt based on various variables
-  if disposition != disposition_default:
-    sys_prompt = disposition_map[disposition]
+  if voice != voice_default:
+    sys_prompt = voice_map[voice]
   else:
     match streamlit_key_suffix:
       case "_prompter":
@@ -279,7 +279,7 @@ def cicero_feedback_widget(streamlit_key_suffix: ChatSuffix, feedback_suffix: st
     else:
       print("!! Cicero internal warning: you are in an invalid state somehow? You are using the feedback widget but have neither outstandings {o=},{o2=}")
 
-def display_chat(streamlit_key_suffix: ChatSuffix, account: str|None = None, short_model_name: Short_Model_Name = short_model_name_default, disposition: Disposition = disposition_default) -> None:
+def display_chat(streamlit_key_suffix: ChatSuffix, account: str|None = None, short_model_name: Short_Model_Name = short_model_name_default, voice: Voice = voice_default) -> None:
   """Display chat messages from history on app reload; this is how we get the messages to display, and then the chat box.
   The streamlit_key_suffix is only necessary because we use this code in two places. But that does make it necessary, for every widget in this function. If streamlit_key_suffix is "", we infer we're in the chat page, and if otherwise we infer we're being used on a different page (so far, the only thing that does this is prompter).
 
@@ -307,7 +307,7 @@ def display_chat(streamlit_key_suffix: ChatSuffix, account: str|None = None, sho
       st.info("Message you were editing (may contain PII):")
       st.code(pii[1])
       ssset( "pii_interrupt_state", streamlit_key_suffix, [None, ""] )
-    st.container().chat_input(on_submit=grow_chat, key="user_input_for_chatbot_this_frame"+streamlit_key_suffix, args=(streamlit_key_suffix, None, account, short_model_name, disposition) ) #Note that because it's a callback, the profiler will not catch grow_chat here. However, it takes about a second. (Update: maybe it's about 4 seconds, now? That's in the happy path, as well.) #Without the container, this UI element floats BELOW the pyinstrument profiler now, which is inconvenient. But also we might want it to float down later, if we start using streaming text...
+    st.container().chat_input(on_submit=grow_chat, key="user_input_for_chatbot_this_frame"+streamlit_key_suffix, args=(streamlit_key_suffix, None, account, short_model_name, voice) ) #Note that because it's a callback, the profiler will not catch grow_chat here. However, it takes about a second. (Update: maybe it's about 4 seconds, now? That's in the happy path, as well.) #Without the container, this UI element floats BELOW the pyinstrument profiler now, which is inconvenient. But also we might want it to float down later, if we start using streaming text...
 
 def main(streamlit_key_suffix: ChatSuffix = chat_suffix_default) -> None: # It's convenient to import cicero_chat in other files, to use its function in them, so we do a main() here so we don't run this code on startup.
   st.write("**Chat freeform with Cicero directly ChatGPT-style!**")
@@ -318,19 +318,20 @@ def main(streamlit_key_suffix: ChatSuffix = chat_suffix_default) -> None: # It's
       st.write("Here are some ideas: write a press release based off of a news article (feel free to paste in the link), generate multiple versions of a draft pitch, convert one type of content into another, provide examples of good final products.")
     case _:
       pass #deliberately non-exhaustive
-  #could: use session state for all of these controls instead of doing all this argument passing of disposition, etc...
-  accessable_dispositions: tuple[Disposition, ...] = (disposition_default,) # I wouldn't have written the code this way were it not for a shocking(ly intended) weakness in pyright: https://github.com/microsoft/pyright/issues/9173
-  ds = dispositions_corporate if streamlit_key_suffix == "_corporate" else dispositions_noncorporate
-  accessable_dispositions += tuple(d for d in get_list_value_of_column_in_table("dispositions", "cicero.ref_tables.user_pods") if d in ds and d != disposition_default)
-  if get_value_of_column_in_table("user_pod", "cicero.ref_tables.user_pods") == "Admin": #admins get to see all dispositions
-    accessable_dispositions = ds
-  disposition = st.selectbox("Voice (you must reset the chat for a change to this to take effect)", accessable_dispositions)
+  #could: use session state for all of these controls instead of doing all this argument passing of voice, etc...
+  accessable_voices: tuple[Voice, ...] = (voice_default,) # I wouldn't have written the code this way were it not for a shocking(ly intended) weakness in pyright: https://github.com/microsoft/pyright/issues/9173
+  ds = voices_corporate if streamlit_key_suffix == "_corporate" else voices_noncorporate
+  accessable_voices += tuple(d for d in get_list_value_of_column_in_table("voices", "cicero.ref_tables.user_pods") if d in ds and d != voice_default)
+  if get_value_of_column_in_table("user_pod", "cicero.ref_tables.user_pods") == "Admin": # Admins get to see all voices, although (for clarity's sake) only the voices per the type of chat.
+    # TODO: possibly collapse Admin mode and dev mode into the same concept later, iff it turns out we want the same set of people in both these days?
+    accessable_voices = ds
+  voice = st.selectbox("Voice (you must reset the chat for a change to this to take effect)", accessable_voices)
   account = st.selectbox("Account (required)", load_account_names(), key="account") if streamlit_key_suffix != "_corporate" else st.text_input("Account")
   model_name = st.selectbox("Model", short_model_names, key="model_name") if is_dev() else short_model_name_default
-  st.file_uploader(label="Upload a file", key="chat_file_uploader", type=['csv', 'docx', 'html', 'htm', 'txt', 'xls', 'xlsx'], accept_multiple_files=False, on_change=grow_chat, args=(streamlit_key_suffix, True, account, model_name, disposition)) if is_dev() else None #note: this seems like a DRY violation to me... #TODO: file upload currently lets people bypass good/bad rating. However, we could hide it when in the asking-for-rating state, if that is deemed a good idea.
+  st.file_uploader(label="Upload a file", key="chat_file_uploader", type=['csv', 'docx', 'html', 'htm', 'txt', 'xls', 'xlsx'], accept_multiple_files=False, on_change=grow_chat, args=(streamlit_key_suffix, True, account, model_name, voice)) if is_dev() else None #note: this seems like a DRY violation to me... #TODO: file upload currently lets people bypass good/bad rating. However, we could hide it when in the asking-for-rating state, if that is deemed a good idea.
   if st.button("Clear conversion"):
     reset_chat(streamlit_key_suffix)
-  display_chat(streamlit_key_suffix, account=account, short_model_name=model_name, disposition=disposition)
+  display_chat(streamlit_key_suffix, account=account, short_model_name=model_name, voice=voice)
 
 if __name__ == "__main__":
   main()

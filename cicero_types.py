@@ -18,12 +18,12 @@ short_model_name_default = short_model_names[0] #this doesn't have to be the fir
 def short_model_name_to_long_model_name(short_model_name: Short_Model_Name) -> Long_Model_Name:
   return long_model_names[short_model_names.index(short_model_name)]
 
-type DispositionCorporate = Literal["Default", "A16Z", "WCW"]
-type DispositionNoncorporate = Literal["Default", "NRCC"]
-type Disposition = DispositionCorporate | DispositionNoncorporate
-dispositions_corporate: tuple[DispositionCorporate, ...] = aa(DispositionCorporate)
-dispositions_noncorporate: tuple[DispositionNoncorporate, ...] = aa(DispositionNoncorporate)
-disposition_default: Disposition = "Default" # Technically we could DRY the this, but we might have to use something like https://github.com/jorenham/optype/blob/master/README.md#optypeinspect 's get_args if we do so.
+type VoiceCorporate = Literal["Default", "A16Z", "WCW"]
+type VoiceNoncorporate = Literal["Default", "NRCC"]
+type Voice = VoiceCorporate | VoiceNoncorporate
+voices_corporate: tuple[VoiceCorporate, ...] = aa(VoiceCorporate)
+voices_noncorporate: tuple[VoiceNoncorporate, ...] = aa(VoiceNoncorporate)
+voice_default: Voice = "Default" # Technically we could DRY the this, but we might have to use something like https://github.com/jorenham/optype/blob/master/README.md#optypeinspect 's get_args if we do so.
 
 type ChatSuffix = Literal["", "_corporate", "_prompter"]
 chat_suffixes: tuple[ChatSuffix, ...] = aa(ChatSuffix)
