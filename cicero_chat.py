@@ -133,7 +133,7 @@ def grow_chat(streamlit_key_suffix: ChatSuffix, alternate_content: str|UploadedF
     if isinstance(alternate_content, UploadedFile): # I think this is broken because of our dependencies. Possibly up to and including the Python language itself. It can be worked around. Or, maybe databricks will eventually implement their own file-upload thing (I guess that's on their roadmap.
       file_ext = Path(str(alternate_content.name)).suffix
       match file_ext: #todo: delete this? or at least the st.write statements in it?
-        case '.txt' | '.html' :
+        case '.txt' | '.html' | '.htm' :
           stringio = StringIO(alternate_content.getvalue().decode("utf-8")) # convert file-like BytesIO object to a string based IO
           string_data = stringio.read() # read file as string
           st.write(string_data)
@@ -329,7 +329,7 @@ def main(streamlit_key_suffix: ChatSuffix = chat_suffix_default) -> None: # It's
     accessable_dispositions = ds
   disposition = st.selectbox("Voice (you must reset the chat for a change to this to take effect)", accessable_dispositions)
   account = st.selectbox("Account (required)", load_account_names(), key="account") if streamlit_key_suffix != "_corporate" else st.text_input("Account")
-  uploaded_file = st.file_uploader(label="Upload a file", type=['csv', 'docx', 'html', 'txt', 'xls', 'xlsx'], accept_multiple_files=False)
+  uploaded_file = st.file_uploader(label="Upload a file", type=['csv', 'docx', 'html', 'htm', 'txt', 'xls', 'xlsx'], accept_multiple_files=False)
   model_name = st.selectbox("Model", short_model_names, key="model_name") if is_dev() else short_model_name_default
   if uploaded_file is not None and not ssget("chat_file_uploader"):
     ssmut(lambda x: x+1 if x else 1, "chat_file_uploader")
