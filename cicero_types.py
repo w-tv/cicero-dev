@@ -1,7 +1,7 @@
 #!/usr/bin/env -S streamlit run
 """This is like cicero_shared, but specifically for types (and type-based machinery. We'll see if it's useful, and if not we might merge it back in. It's useless to run this stand-alone. But I guess you can."""
 
-from typing import Any, Literal, get_args, TypeAliasType, Union
+from typing import Any, Literal, get_args, TypeAliasType
 
 def aa(t: TypeAliasType) -> tuple[Any, ...]:
   "“aa”, “alias' args”: get the type arguments of the type within a TypeAlias. (Usually, we have a lot of Literal types, that are aliased, and this gets you the values from those types.) Pronounced like a quiet startled yelp."
@@ -20,10 +20,10 @@ def short_model_name_to_long_model_name(short_model_name: Short_Model_Name) -> L
 
 type DispositionCorporate = Literal["Default", "A16Z", "WCW"]
 type DispositionNoncorporate = Literal["Default", "NRCC"]
-type Disposition = Union[DispositionCorporate, DispositionNoncorporate]
+type Disposition = DispositionCorporate | DispositionNoncorporate
 dispositions_corporate: tuple[DispositionCorporate, ...] = aa(DispositionCorporate)
 dispositions_noncorporate: tuple[DispositionNoncorporate, ...] = aa(DispositionNoncorporate)
-disposition_default: Disposition = "Default"
+disposition_default: Disposition = "Default" # Technically we could DRY the this, but we might have to use something like https://github.com/jorenham/optype/blob/master/README.md#optypeinspect 's get_args if we do so.
 
 type ChatSuffix = Literal["", "_corporate", "_prompter"]
 chat_suffixes: tuple[ChatSuffix, ...] = aa(ChatSuffix)
