@@ -273,10 +273,10 @@ def cicero_feedback_widget(streamlit_key_suffix: Chat_Suffix, feedback_suffix: s
       ssset("activity_log_update", o | {"user_feedback"+feedback_suffix: user_feedback})
       if streamlit_key_suffix == "_corporate":
         ssset("outstanding_activity_log_payload2", streamlit_key_suffix, o)
-      ssset("outstanding_activity_log_payload", streamlit_key_suffix, None)
+      sspop("outstanding_activity_log_payload", streamlit_key_suffix)
     elif o2:
       ssset("activity_log_update2", o2 | {"user_feedback"+feedback_suffix: user_feedback})
-      ssset("outstanding_activity_log_payload2", streamlit_key_suffix, None)
+      sspop("outstanding_activity_log_payload2", streamlit_key_suffix)
     else:
       print("!! Cicero internal warning: you are in an invalid state somehow? You are using the feedback widget but have neither outstandings {o=},{o2=}")
 
