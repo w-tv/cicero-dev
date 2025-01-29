@@ -105,7 +105,7 @@ def grow_chat(streamlit_key_suffix: Chat_Suffix, alternate_content: str|Literal[
   Random fyi: chat.history is an alias for chat.chat_history (you can mutate chat.chat_history but not chat.history, btw). Internally, it's, like: [{'role': 'system', 'content': 'You are a helpful assistant.'}, {'role': 'user', 'content': 'Knock, knock.'}, {'role': 'assistant', 'content': "Hello! Who's there?"}, {'role': 'user', 'content': 'Guess who!'}, {'role': 'assistant', 'content': "Okay, I'll play along! Is it a person, a place, or a thing?"}]"""
   keyword_arguments = locals()
   pii = ssget("pii_interrupt_state", streamlit_key_suffix)
-  
+
   # determine what the prompt content will be
   if alternate_content:
     if alternate_content is True:
@@ -211,7 +211,7 @@ def grow_chat(streamlit_key_suffix: Chat_Suffix, alternate_content: str|Literal[
         """,
         {"account": account, "prompt": p}
       )
-      sys_prompt += f"(Here are some example texts from the client; you can use them as inspiration but do not copy them directly nor mention their existence: {' | '.join(row[0] for row in texts_from_account)} )"
+      sys_prompt += f"\n(Here are some example texts from the client; you can use them as inspiration but do not copy them directly nor mention their existence: {' | '.join(row[0] for row in texts_from_account)} )"
     ssset( "chat", streamlit_key_suffix, ChatSession(model=short_model_name_to_long_model_name(short_model_name), system_message=sys_prompt, max_tokens=4096) ) # Keep in mind that unless DATABRICKS_HOST and DATABRICKS_TOKEN are in the environment (streamlit does this with secret value by default), then this line of code will fail with an extremely cryptic error asking you to run this program with a `setup` command line argument (which won't do anything)
   chat = ssget("chat", streamlit_key_suffix) # Note that, as an object reference, updating and accessing chat will continue to update and access the same object.
   if not ssget("messages", streamlit_key_suffix):
