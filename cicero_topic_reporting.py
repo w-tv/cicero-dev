@@ -54,8 +54,8 @@ def lowalph[S: (str, list[str])](s: S) -> S:
   else:
     return list(map(lowalph, s))
 
-def lowalph_in(s: str, l: list[str]) -> bool:
-  return lowalph(s) in lowalph(l)
+def lowalph_in(s: str, list: list[str]) -> bool:
+  return lowalph(s) in lowalph(list)
 
 # It was requested that I exclude these topics from topic reporting but still allow them to be selected in the Prompter. COULD later refactor this to be a visible_in_prompter column, if this state of affairs proves stable and so forth.
 specially_requested_exclude_list = ["Beto", "Kimberly Cheatle", "Covid", "Campaign Message", "Announcement", "SOTU", "Ben Carson", "Stacey Abrams", "Hillary Clinton", "Jamaal Bowman", "Tammy Baldwin", "Chris Wray", "Sherrod Brown", "Jon tester", "Don Beyer", "Cori Bush", "Bob Casey", "Ted Lieu", "Warnock", "Demmings"]
