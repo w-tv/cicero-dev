@@ -106,28 +106,7 @@ def grow_chat(streamlit_key_suffix: Chat_Suffix, alternate_content: str|Literal[
   keyword_arguments = locals()
   pii = ssget("pii_interrupt_state", streamlit_key_suffix)
   
-  #set the system prompt based on various variables
-  if voice != voice_default:
-    sys_prompt = voice_map[voice]
-  else:
-    match streamlit_key_suffix:
-      case "_prompter":
-        sys_prompt = "You are a helpful, expert copywriter who specializes in writing fundraising text messages and emails for conservative candidates and causes. Be direct with your responses, and avoid extraneous messages like 'Hello!' and 'I hope this helps!'. These text messages and emails tend to be more punchy and engaging than normal marketing material. Do not mention that you are a helpful, expert copywriter."
-      case "_corporate":
-        sys_prompt = "You are a helpful, expert marketer. Do not mention that you are a helpful, expert marketer."+" The system interfacing you can expand links into document contents, after the user enters them but before you see them; but do not mention this unless it is relevant."
-      case "": #regular chatbot
-        sys_prompt = "You are an expert copywriter who specializes in writing fundraising and engagement texts and emails for conservative political candidates in the United States of America. Make sure all messages are in English. Be direct with your responses, and avoid extraneous messages like 'Hello!' and 'I hope this helps!'. These text messages and emails tend to be more punchy and engaging than normal marketing material. Focus on these five fundraising elements when writing content: the Hook, Urgency, Agency, Stakes, and the Call to Action (CTA). Do not make up facts or statistics. Do not mention that you are a helpful, expert copywriter. Do not use emojis or hashtags in your messages. Make sure each written message is unique. Write the exact number of messages asked for."
-      case _ as unreachable:
-        assert_never(unreachable)
-  if not streamlit_key_suffix=="_corporate":
-    # Add context for current events as an addendum on all sys_prompts except corporate:
-    sys_prompt += "\nHere is some context on the current political landscape following the 2024 U.S. presidential election on November 5th:\nDonald Trump defeated Incumbent Vice President Kamala Harris, who replaced Joe Biden as the Democratic nominee, and will be sworn in as the 47th president on January 20, 2025, marking a historic comeback as the first president since Grover Cleveland to serve nonconsecutive terms. His running mate, JD Vance, will be sworn in as Vice President at that time. Minnesota Governor Tim Walz was Harris's running mate. Republicans secured a decisive victory by flipping 3 seats in the Senate, gaining a 52-seat majority, and retaining control of the House of Representatives, marking the party’s first governmental trifecta since 2018."
-  if not ssget("chat", streamlit_key_suffix):
-    ssset( "chat", streamlit_key_suffix, ChatSession(model=short_model_name_to_long_model_name(short_model_name), system_message=sys_prompt, max_tokens=4096) ) # Keep in mind that unless DATABRICKS_HOST and DATABRICKS_TOKEN are in the environment (streamlit does this with secret value by default), then this line of code will fail with an extremely cryptic error asking you to run this program with a `setup` command line argument (which won't do anything)
-  chat = ssget("chat", streamlit_key_suffix) # Note that, as an object reference, updating and accessing chat will continue to update and access the same object.
-  if not ssget("messages", streamlit_key_suffix):
-    ssset("messages", streamlit_key_suffix, []) # We keep our own list of messages, I think because I found it hard to format the chat_history output when I tried once.
-  messages = ssget("messages", streamlit_key_suffix) # Note that, as an object reference, updating and accessing messages will continue to update and access the same object.
+  # determine what the prompt content will be
   if alternate_content:
     if alternate_content is True:
       content = ssget("chat_file_uploader")
@@ -192,31 +171,53 @@ def grow_chat(streamlit_key_suffix: Chat_Suffix, alternate_content: str|Literal[
       pii_dialog(p, possible_pii, streamlit_key_suffix, keyword_arguments)
       continue_prompt = False
 
-  # Get some sample texts from the account, perhaps similar to the current prompt.
-  if account is not None:
-    texts_from_account = sql_call_cacheless(
-      """ -- I got this from the Databricks AI, it seems to mostly do the job.
-        WITH QueryTopics AS (
-          SELECT rt.Tag_Name
-          FROM cicero.ref_tables.ref_tags rt
-          WHERE :prompt RLIKE rt.Regex_Pattern
-          AND rt.Enabled = TRUE -- Unclear if we should honor Enabled in this query…
-        ),
-        MatchingTexts(text, count) AS (
-          SELECT gto.Clean_Text, COUNT(*)
-          FROM cicero.text_data.gold_text_outputs gto
-          JOIN cicero.ref_tables.ref_tags rt ON gto.Clean_Text RLIKE rt.Regex_Pattern
-          JOIN QueryTopics qt ON rt.Tag_Name = qt.Tag_Name
-          WHERE client_name = :account
-          AND rt.Enabled = TRUE
-          GROUP BY gto.Clean_Text
-        )
-        SELECT DISTINCT text, count FROM MatchingTexts ORDER BY count DESC LIMIT 5;
-      """,
-      {"account": account, "prompt": p}
-    )
-    p = "(Here are some example texts from the client; you can use them as inspiration but do not copy them directly nor mention their existence: " + ' | '.join(row[0] for row in texts_from_account) + ")" + p
-    dev_box("p with retrieved account context", p)
+  #set the system prompt based on various variables
+  if voice != voice_default:
+    sys_prompt = voice_map[voice]
+  else:
+    match streamlit_key_suffix:
+      case "_prompter":
+        sys_prompt = "You are a helpful, expert copywriter who specializes in writing fundraising text messages and emails for conservative candidates and causes. Be direct with your responses, and avoid extraneous messages like 'Hello!' and 'I hope this helps!'. These text messages and emails tend to be more punchy and engaging than normal marketing material. Do not mention that you are a helpful, expert copywriter."
+      case "_corporate":
+        sys_prompt = "You are a helpful, expert marketer. Do not mention that you are a helpful, expert marketer."+" The system interfacing you can expand links into document contents, after the user enters them but before you see them; but do not mention this unless it is relevant."
+      case "": #regular chatbot
+        sys_prompt = "You are an expert copywriter who specializes in writing fundraising and engagement texts and emails for conservative political candidates in the United States of America. Make sure all messages are in English. Be direct with your responses, and avoid extraneous messages like 'Hello!' and 'I hope this helps!'. These text messages and emails tend to be more punchy and engaging than normal marketing material. Focus on these five fundraising elements when writing content: the Hook, Urgency, Agency, Stakes, and the Call to Action (CTA). Do not make up facts or statistics. Do not mention that you are a helpful, expert copywriter. Do not use emojis or hashtags in your messages. Make sure each written message is unique. Write the exact number of messages asked for."
+      case _ as unreachable:
+        assert_never(unreachable)
+  if not streamlit_key_suffix=="_corporate":
+    # Add context for current events as an addendum on all sys_prompts except corporate:
+    sys_prompt += "\nHere is some context on the current political landscape following the 2024 U.S. presidential election on November 5th:\nDonald Trump defeated Incumbent Vice President Kamala Harris, who replaced Joe Biden as the Democratic nominee, and will be sworn in as the 47th president on January 20, 2025, marking a historic comeback as the first president since Grover Cleveland to serve nonconsecutive terms. His running mate, JD Vance, will be sworn in as Vice President at that time. Minnesota Governor Tim Walz was Harris's running mate. Republicans secured a decisive victory by flipping 3 seats in the Senate, gaining a 52-seat majority, and retaining control of the House of Representatives, marking the party’s first governmental trifecta since 2018."
+  if not ssget("chat", streamlit_key_suffix):
+    # Get some sample texts from the account, perhaps similar to the current prompt. (We only do this for the first prompt. & it's after the chat check so we don't wait for this query every time.) 
+    if account is not None:
+      texts_from_account = sql_call_cacheless(
+        """ -- I got this from the Databricks AI, it seems to mostly do the job.
+          WITH QueryTopics AS (
+            SELECT rt.Tag_Name
+            FROM cicero.ref_tables.ref_tags rt
+            WHERE :prompt RLIKE rt.Regex_Pattern
+            AND rt.Enabled = TRUE -- Unclear if we should honor Enabled in this query…
+          ),
+          MatchingTexts(text, count) AS (
+            SELECT gto.Clean_Text, COUNT(*)
+            FROM cicero.text_data.gold_text_outputs gto
+            JOIN cicero.ref_tables.ref_tags rt ON gto.Clean_Text RLIKE rt.Regex_Pattern
+            JOIN QueryTopics qt ON rt.Tag_Name = qt.Tag_Name
+            WHERE client_name = :account
+            AND rt.Enabled = TRUE
+            GROUP BY gto.Clean_Text
+          )
+          SELECT DISTINCT text, count FROM MatchingTexts ORDER BY count DESC LIMIT 5;
+        """,
+        {"account": account, "prompt": p}
+      )
+      sys_prompt += f"(Here are some example texts from the client; you can use them as inspiration but do not copy them directly nor mention their existence: {' | '.join(row[0] for row in texts_from_account)} )"
+    ssset( "chat", streamlit_key_suffix, ChatSession(model=short_model_name_to_long_model_name(short_model_name), system_message=sys_prompt, max_tokens=4096) ) # Keep in mind that unless DATABRICKS_HOST and DATABRICKS_TOKEN are in the environment (streamlit does this with secret value by default), then this line of code will fail with an extremely cryptic error asking you to run this program with a `setup` command line argument (which won't do anything)
+  chat = ssget("chat", streamlit_key_suffix) # Note that, as an object reference, updating and accessing chat will continue to update and access the same object.
+  if not ssget("messages", streamlit_key_suffix):
+    ssset("messages", streamlit_key_suffix, []) # We keep our own list of messages, I think because I found it hard to format the chat_history output when I tried once.
+  messages = ssget("messages", streamlit_key_suffix) # Note that, as an object reference, updating and accessing messages will continue to update and access the same object.
+
   if continue_prompt:
     old_chat = chat.chat_history.copy()
     while True:
