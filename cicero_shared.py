@@ -161,8 +161,8 @@ def get_list_value_of_column_in_table(column: str, table: str) -> list[Any]:
   return result.tolist() if result is not None else [] # Unfortunately, it could be None, and thus not iterable, and the typechecker is no help here (since the database read loses type information). So, we have to do this awkward little dance.
 
 @st.cache_data(show_spinner=False)
-def load_account_names() -> list[str]:
-  return [row[0] for row in sql_call("SELECT DISTINCT rollup_name FROM cicero.ref_tables.ref_account_rollup WHERE visible_frontend ORDER BY rollup_name ASC")]
+def load_account_names() -> tuple[str, ...]:
+  return tuple(row[0] for row in sql_call("SELECT DISTINCT rollup_name FROM cicero.ref_tables.ref_account_rollup WHERE visible_frontend ORDER BY rollup_name ASC"))
 
 def assert_always(x: object, message_to_assert: str|None = None) -> None | NoReturn: #COULD: currently this enjoys no type-narrowing properties, alas. Possibly TypeIs does what we want here? #TODO: actually the whole point of this is to try to provide an assert() that can be used for static typing that won't fail at runtime if python optimization is ever turned on. But this seems like something to take up with the python community and possibly the typing guy (make them add an assert_always, basically).
   """This function is equivalent to assert, but cannot be disabled by -O"""

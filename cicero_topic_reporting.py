@@ -101,7 +101,7 @@ with col2:
   if "everything" in permissible_account_names:
     permitted_accounts = load_account_names()
   else:
-    permitted_accounts = [ x for x in load_account_names() if lowalph_in(x, permissible_account_names) ]
+    permitted_accounts = tuple( x for x in load_account_names() if lowalph_in(x, permissible_account_names) )
   accounts = st.multiselect("Account", permitted_accounts, help=f"This control allows you to filter on the account name. If nothing is selected in this control all of the accounts will be presented (however, you will not be able to drill down on a topic without first selecting an account {dev_str('; unless you are in developer mode, which you are')}). Also, you must be individually permissioned for access to account names, so you may not have the ability to select additional ones.")
   accounts_string = "true" if not accounts else f"account_name in {to_sql_tuple_string(external_account_names_to_internal_account_names_list_mapping(accounts))}"
 with col3:
