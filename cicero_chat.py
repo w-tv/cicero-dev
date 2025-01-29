@@ -7,7 +7,7 @@ from datetime import datetime, timedelta
 import time
 from databricks_genai_inference import ChatSession, FoundationModelAPIException
 from cicero_shared import catstr, dev_box, get_value_of_column_in_table, get_list_value_of_column_in_table, is_dev, ssget, ssset, ssmut, sspop, get_base_url, popup, load_account_names, sql_call_cacheless
-from cicero_types import Short_Model_Name, short_model_names, short_model_name_default, short_model_name_to_long_model_name, voices_corporate, voices_noncorporate, Voice, voice_default, ChatSuffix, chat_suffix_default
+from cicero_types import Short_Model_Name, short_model_names, short_model_name_default, short_model_name_to_long_model_name, voices_corporate, voices_noncorporate, Voice, voice_default, Chat_Suffix, chat_suffix_default
 from cicero_voice_map import voice_map
 import bs4 # for some reason bs4 is how you import beautifulsoup
 import requests
@@ -99,7 +99,7 @@ def expand_url_content(s: str) -> str:
   """Expand the urls in a string to the content of their contents (placing said contents back into the same containing string."""
   return re.sub(pattern=url_regex, repl=content_from_url_regex_match, string=s)
 
-def grow_chat(streamlit_key_suffix: ChatSuffix, alternate_content: str|Literal[True]|None = None, account: str|None = None, short_model_name: Short_Model_Name = short_model_name_default, voice: Voice = voice_default) -> None:
+def grow_chat(streamlit_key_suffix: Chat_Suffix, alternate_content: str|Literal[True]|None = None, account: str|None = None, short_model_name: Short_Model_Name = short_model_name_default, voice: Voice = voice_default) -> None:
   """Note that this function will do something special to the prompt if alternate_content is supplied.
   Also, the streamlit_key_suffix is only necessary because we use this code in two places. If streamlit_key_suffix is "", we infer we're in the chat page, and if otherwise we infer we're being used on a different page (so far, the only thing that does this is prompter).
   Random fyi: chat.history is an alias for chat.chat_history (you can mutate chat.chat_history but not chat.history, btw). Internally, it's, like: [{'role': 'system', 'content': 'You are a helpful assistant.'}, {'role': 'user', 'content': 'Knock, knock.'}, {'role': 'assistant', 'content': "Hello! Who's there?"}, {'role': 'user', 'content': 'Guess who!'}, {'role': 'assistant', 'content': "Okay, I'll play along! Is it a person, a place, or a thing?"}]"""
@@ -241,13 +241,13 @@ def grow_chat(streamlit_key_suffix: ChatSuffix, alternate_content: str|Literal[T
         else: # I guess it's some other error, so crash 🤷
           raise e
 
-def reset_chat(streamlit_key_suffix: ChatSuffix) -> None:
+def reset_chat(streamlit_key_suffix: Chat_Suffix) -> None:
   sspop("chat", streamlit_key_suffix)
   sspop("messages", streamlit_key_suffix)
   sspop("outstanding_activity_log_payload", streamlit_key_suffix) # Don't force the user to up/down the cleared message if they reset the chat.
   sspop("outstanding_activity_log_payload2", streamlit_key_suffix)
 
-def cicero_feedback_widget(streamlit_key_suffix: ChatSuffix, feedback_suffix: str, feedback_message: str) -> None:
+def cicero_feedback_widget(streamlit_key_suffix: Chat_Suffix, feedback_suffix: str, feedback_message: str) -> None:
   """ '' is the feedback suffix we started with, so probably the one you want to use.
   This function returns nothing, and (tees up a state that) writes to the activity log. It also manipulates the session state to remove the session state that leads to its running."""
   # The code that controls the feedback widget and logging is all over the place (in this file, and also in cicero.py). Would be a fine thing to refactor. But it's easy enough to leave it as-is for now. We have higher priorities, and this works the way it is.
@@ -279,7 +279,7 @@ def cicero_feedback_widget(streamlit_key_suffix: ChatSuffix, feedback_suffix: st
     else:
       print("!! Cicero internal warning: you are in an invalid state somehow? You are using the feedback widget but have neither outstandings {o=},{o2=}")
 
-def display_chat(streamlit_key_suffix: ChatSuffix, account: str|None = None, short_model_name: Short_Model_Name = short_model_name_default, voice: Voice = voice_default) -> None:
+def display_chat(streamlit_key_suffix: Chat_Suffix, account: str|None = None, short_model_name: Short_Model_Name = short_model_name_default, voice: Voice = voice_default) -> None:
   """Display chat messages from history on app reload; this is how we get the messages to display, and then the chat box.
   The streamlit_key_suffix is only necessary because we use this code in two places. But that does make it necessary, for every widget in this function. If streamlit_key_suffix is "", we infer we're in the chat page, and if otherwise we infer we're being used on a different page (so far, the only thing that does this is prompter).
 
@@ -309,7 +309,7 @@ def display_chat(streamlit_key_suffix: ChatSuffix, account: str|None = None, sho
       ssset( "pii_interrupt_state", streamlit_key_suffix, [None, ""] )
     st.container().chat_input(on_submit=grow_chat, key="user_input_for_chatbot_this_frame"+streamlit_key_suffix, args=(streamlit_key_suffix, None, account, short_model_name, voice) ) #Note that because it's a callback, the profiler will not catch grow_chat here. However, it takes about a second. (Update: maybe it's about 4 seconds, now? That's in the happy path, as well.) #Without the container, this UI element floats BELOW the pyinstrument profiler now, which is inconvenient. But also we might want it to float down later, if we start using streaming text...
 
-def main(streamlit_key_suffix: ChatSuffix = chat_suffix_default) -> None: # It's convenient to import cicero_chat in other files, to use its function in them, so we do a main() here so we don't run this code on startup.
+def main(streamlit_key_suffix: Chat_Suffix = chat_suffix_default) -> None: # It's convenient to import cicero_chat in other files, to use its function in them, so we do a main() here so we don't run this code on startup.
   st.write("**Chat freeform with Cicero directly ChatGPT-style!**")
   match streamlit_key_suffix:
     case "":
