@@ -233,7 +233,10 @@ def grow_chat(streamlit_key_suffix: Chat_Suffix, alternate_content: str|Literal[
           ssset("outstanding_activity_log_payload", streamlit_key_suffix, ssget("activity_log_payload"))
         elif streamlit_key_suffix == "":
           ssset("outstanding_activity_log_payload2", streamlit_key_suffix, ssget("activity_log_payload"))
-        # note that "_prompter" is deliberately absent, because we don't require anything from it.
+        elif streamlit_key_suffix == "_prompter":
+          pass # note that "_prompter" is deliberately absent, because we don't require anything from it.
+        else:
+          assert_never(streamlit_key_suffix)
         break
       except FoundationModelAPIException as e:
         if "API request timed out" in e.message or e.message.startswith('{"error_code":"REQUEST_LIMIT_EXCEEDED","message":"REQUEST_LIMIT_EXCEEDED: Exceeded workspace rate limit for'): # Could: test to see if this Exception ever happens still, and remove this code if not.
