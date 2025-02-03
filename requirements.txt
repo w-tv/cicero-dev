@@ -18,7 +18,6 @@ faiss-cpu # needed for faiss. There's also a faiss-gpu but that seems like more 
 jellyfish # Needed for cross-document similarity comparisons
 wfork-streamlit-profiler == 1.0.0 # This is a fork of streamlit-profiler 0.2.4 that works on later streamlits. Some day we may move back to the original streamlit-profiler if it incorporates https://github.com/jrieke/streamlit-profiler/pull/4
 beautifulsoup4
-gdata-python3
 
 # Dev-only requirements (tooling)
 uv >= 0.2.32 # At some point in 0.2.x they added uv run back in, and that's really all we need.
