@@ -574,7 +574,9 @@ if st.session_state.get("submit_button_disabled"):
       {"user_feedback": "not asked", "user_feedback_satisfied": "not asked"} |
       {"hit_readlink_time_limit": False} |
       {"pii_concern": None} | #pii_concern is always None for the prompter, because we can neither affirmatively say yes or no (but the falsy behavior of null suits us well, because it's almost certainly not a problem)
-      {"winred_concern": False, "fec_concern": False} # These concerns are 100% about url expansion of these sites, which prompter doesn't do, so we're safe.
+      {"winred_concern": False, "fec_concern": False} | # These concerns are 100% about url expansion of these sites, which prompter doesn't do, so we're safe.
+      {"voice": "voice is not available in prompter"} |
+      {"account": account}
     #this | formatting is not important, I was just kind of feeling out how to format this when I originally wrote it; you can reformat it if you like.
     )
 

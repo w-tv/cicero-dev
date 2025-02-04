@@ -125,7 +125,7 @@ def ensure_existence_of_activity_log() -> None:
   if fe := ssget("fake_email"):
     popup("You are fake!", f"You are using the fake email {fe}, so I won't write to the activity log, as that would be impolite to the real user of that email.")
     exit()
-  sql_call("CREATE TABLE IF NOT EXISTS cicero.default.activity_log (timestamp timestamp, user_email STRING, user_pod STRING, prompter_or_chatbot STRING, prompt_sent STRING, response_given STRING, model_name STRING, model_url STRING, model_parameters STRING, system_prompt STRING, base_url STRING, user_feedback STRING, user_feedback_satisfied STRING, used_similarity_search_backup STRING, hit_readlink_time_limit BOOLEAN, pii_concern BOOLEAN, fec_concern BOOLEAN, winred_concern BOOLEAN)")
+  sql_call("CREATE TABLE IF NOT EXISTS cicero.default.activity_log (timestamp timestamp, user_email STRING, user_pod STRING, prompter_or_chatbot STRING, prompt_sent STRING, response_given STRING, model_name STRING, model_url STRING, model_parameters STRING, system_prompt STRING, base_url STRING, user_feedback STRING, user_feedback_satisfied STRING, used_similarity_search_backup STRING, hit_readlink_time_limit BOOLEAN, pii_concern BOOLEAN, fec_concern BOOLEAN, winred_concern BOOLEAN, voice STRING, account STRING)")
 
 @st.cache_data(show_spinner=False)
 def sql_call(query: str, sql_params_dict: TParameterCollection|None = None) -> list[Row]:

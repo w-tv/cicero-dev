@@ -125,8 +125,8 @@ with Profiler():
       # The WTIH clause here basically just does a left join; I just happened to write it in this way.
       # Note that this will implicitly null the user_feedback, as that field is not specified here.
       """WITH tmp(user_pod) AS (SELECT user_pod FROM cicero.ref_tables.user_pods WHERE user_email ilike :user_email) INSERT INTO cicero.default.activity_log
-      (timestamp,           user_email, user_pod,                               prompter_or_chatbot,  prompt_sent,  response_given,  model_name,  model_url,  model_parameters,  system_prompt,  base_url,  user_feedback,  user_feedback_satisfied,  used_similarity_search_backup,  hit_readlink_time_limit,  pii_concern,  fec_concern, winred_concern) SELECT
-      current_timestamp(), :user_email, COALESCE(tmp.user_pod, 'Pod unknown'), :prompter_or_chatbot, :prompt_sent, :response_given, :model_name, :model_url, :model_parameters, :system_prompt, :base_url, :user_feedback, :user_feedback_satisfied, :used_similarity_search_backup, :hit_readlink_time_limit, :pii_concern, :fec_concern, :winred_concern
+      (timestamp,           user_email, user_pod,                               prompter_or_chatbot,  prompt_sent,  response_given,  model_name,  model_url,  model_parameters,  system_prompt,  base_url,  user_feedback,  user_feedback_satisfied,  used_similarity_search_backup,  hit_readlink_time_limit,  pii_concern,  fec_concern,  winred_concern, voice, account) SELECT
+      current_timestamp(), :user_email, COALESCE(tmp.user_pod, 'Pod unknown'), :prompter_or_chatbot, :prompt_sent, :response_given, :model_name, :model_url, :model_parameters, :system_prompt, :base_url, :user_feedback, :user_feedback_satisfied, :used_similarity_search_backup, :hit_readlink_time_limit, :pii_concern, :fec_concern, :winred_concern, :voice, :account
       FROM tmp RIGHT JOIN (SELECT 1) AS dummy ON true -- I don't really know if this is the best way to make the log still get written to if the pod is unknown, but it's the one I found.""",
       alp
     )
@@ -137,7 +137,7 @@ with Profiler():
     ensure_existence_of_activity_log()
     sql_call_cacheless(
       # Note: we are gambling that the user_pod and timestamp will never be necessary in practice to have in here, because getting them would be inconvenient. Theoretically, an exact replica circumstance could occur, without those disambiguators. But this is so unlikely; it's probably fine.
-      "UPDATE cicero.default.activity_log SET user_feedback = :user_feedback WHERE user_email = :user_email AND prompter_or_chatbot = :prompter_or_chatbot AND prompt_sent = :prompt_sent AND response_given = :response_given AND model_name = :model_name AND model_url = :model_url AND model_parameters = :model_parameters AND system_prompt = :system_prompt AND base_url = :base_url;",
+      "UPDATE cicero.default.activity_log SET user_feedback = :user_feedback WHERE user_email = :user_email AND prompter_or_chatbot = :prompter_or_chatbot AND prompt_sent = :prompt_sent AND response_given = :response_given AND model_name = :model_name AND model_url = :model_url AND model_parameters = :model_parameters AND system_prompt = :system_prompt AND base_url = :base_url AND voice = :voice and account = :account;",
       alu
     )
     print("Done writing update to log.")
@@ -147,7 +147,7 @@ with Profiler():
     ensure_existence_of_activity_log()
     sql_call_cacheless(
       # Note: we are gambling that the user_pod and timestamp will never be necessary in practice to have in here, because getting them would be inconvenient. Theoretically, an exact replica circumstance could occur, without those disambiguators. But this is so unlikely; it's probably fine.
-      "UPDATE cicero.default.activity_log SET user_feedback_satisfied = :user_feedback_satisfied WHERE user_email = :user_email AND prompter_or_chatbot = :prompter_or_chatbot AND prompt_sent = :prompt_sent AND response_given = :response_given AND model_name = :model_name AND model_url = :model_url AND model_parameters = :model_parameters AND system_prompt = :system_prompt AND base_url = :base_url;",
+      "UPDATE cicero.default.activity_log SET user_feedback_satisfied = :user_feedback_satisfied WHERE user_email = :user_email AND prompter_or_chatbot = :prompter_or_chatbot AND prompt_sent = :prompt_sent AND response_given = :response_given AND model_name = :model_name AND model_url = :model_url AND model_parameters = :model_parameters AND system_prompt = :system_prompt AND base_url = :base_url AND voice = :voice and account = :account;",
       alu2
     )
     print("Done writing update 2 to log.")
