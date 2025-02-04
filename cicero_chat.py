@@ -337,7 +337,7 @@ def main(streamlit_key_suffix: Chat_Suffix = chat_suffix_default) -> None: # It'
     # TODO: possibly collapse Admin mode and dev mode into the same concept later, iff it turns out we want the same set of people in both these days?
     accessable_voices = ds
   voice = st.selectbox("Voice (you must reset the chat for a change to this to take effect)", accessable_voices)
-  account = st.selectbox("Account", (None,) + load_account_names(), key="account") if streamlit_key_suffix != "_corporate" else st.text_input("Account")
+  account = st.selectbox("Use historical messages from this account:", (None,) + load_account_names(), key="account") if streamlit_key_suffix != "_corporate" else st.text_input("Account")
   model_name = st.selectbox("Model", short_model_names, key="model_name") if is_dev() else short_model_name_default
   st.file_uploader(label="Upload a file", key="chat_file_uploader", type=['csv', 'docx', 'html', 'htm', 'txt', 'xls', 'xlsx'], accept_multiple_files=False, on_change=grow_chat, args=(streamlit_key_suffix, True, account, model_name, voice)) if is_dev() else None #note: this seems like a DRY violation to me... #TODO: file upload currently lets people bypass good/bad rating. However, we could hide it when in the asking-for-rating state, if that is deemed a good idea.
   if st.button("Clear conversion"):
