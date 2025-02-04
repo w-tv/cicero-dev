@@ -296,10 +296,17 @@ def display_chat(streamlit_key_suffix: Chat_Suffix, account: str|None = None, sh
   if pii and pii[0] is True: # We're in a pii situation and the user has chosen to press on. So we have to send that chat message before we display the chat history.
     grow_chat(**pii[2])
     ssset( "pii_interrupt_state", streamlit_key_suffix, [None, ""] )
+  needback: bool = is_dev() and bool(ssget("outstanding_activity_log_payload", streamlit_key_suffix) or ssget("outstanding_activity_log_payload2", streamlit_key_suffix)) #TODO(urgent): this is a prototype version that requires you to refresh the page. For this feature to actually work, I'll have to include logic in the activity log discharger that rewrites the contents of the chat to the right thing (which will have to be in a container).
   if ms := ssget("messages", streamlit_key_suffix):
     for message in ms:
       with st.chat_message(message["role"], avatar=message.get("avatar")):
-        st.markdown(message["content"].replace("$", r"\$").replace("[", r"\["))
+        message_core = message["content"].replace("$", r"\$").replace("[", r"\[")
+        if needback:
+          st.markdown('<span style="user-select: none;">'+message_core+'</div>', unsafe_allow_html=True)
+        else:
+          st.markdown(message_core)
+  if needback:
+    st.success("Please give feedback to enable copying the text. (And to make Cicero better!)")
   if (s := sspop("last_url_content")):
     dev_box("Developer Mode Message (will disappear on next page load): url content", s)
   if ssget("outstanding_activity_log_payload", streamlit_key_suffix):
