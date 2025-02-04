@@ -33,14 +33,13 @@ if st.button("Upload test file"):
     service = build("drive", "v3", credentials=creds)
 
     file_metadata = {
-        "name": "Example Document",
-        "mimeType": "text/html",
+        "name": "Cool Example Document",
+        "mimeType": "application/vnd.google-apps.document",
     }
     media = MediaIoBaseUpload(StringIO('example_document'), mimetype="text/html", resumable=True)
-    # pylint: disable=maybe-no-member
     file = (
         service.files()
-        .create(body=file_metadata, media_body=media, fields="id") #TODO: these fields probably need to be rectified and reconciled
+        .create(body=file_metadata, media_body=media, fields="id")
         .execute()
     )
     print(f'File with ID: "{file.get("id")}" has been uploaded.')
