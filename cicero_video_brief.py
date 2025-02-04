@@ -3,9 +3,11 @@ from typing import reveal_type
 import streamlit as st
 # code adapted from https://developers.google.com/drive/api/guides/manage-uploads#python_1
 import google.auth
+from google.auth.exceptions import DefaultCredentialsError 
 from googleapiclient.discovery import build # this is google-api-python-client
 from googleapiclient.errors import HttpError
-from googleapiclient.http import MediaFileUpload
+from googleapiclient.http import MediaIoBaseUpload
+from io import StringIO
 
 # Theoretically this may be used in Databricks or standalone instead of in streamlit. Not sure how we'll do the google auth for that, though...
 
@@ -23,26 +25,28 @@ if st.button("Upload test file"):
   # Load pre-authorized user credentials from the environment.
   # TODO(developer) - See https://developers.google.com/identity
   # for guides on implementing OAuth2 for the application.
-  creds, _ = google.auth.default()
-  # It seems like (as the documentation claims!) the default cred work in our google app engine environment, but not in streamlit — might have to do something slightly different for the streamlit environment.
+
+  creds, _ = google.auth.default() #this works in our deployed environment, but not in local testing (because in local testing, you aren't logged in! May need to revive the optional google login button if we want to fix that?)
 
   try:
     # create drive api client
     service = build("drive", "v3", credentials=creds)
 
     file_metadata = {
-        "name": "My Report",
-        "mimeType": "application/vnd.google-apps.spreadsheet",
+        "name": "Example Document",
+        "mimeType": "text/html",
     }
-    media = MediaFileUpload("report.csv", mimetype="text/csv", resumable=True)
+    media = MediaIoBaseUpload(StringIO('example_document'), mimetype="text/html", resumable=True)
     # pylint: disable=maybe-no-member
     file = (
         service.files()
-        .create(body=file_metadata, media_body=media, fields="id")
+        .create(body=file_metadata, media_body=media, fields="id") #TODO: these fields probably need to be rectified and reconciled
         .execute()
     )
     print(f'File with ID: "{file.get("id")}" has been uploaded.')
     reveal_type(file)
   except HttpError as error:
-    print(f"An error occurred: {error}")
+    print(f"An HTTP error occurred: {error}")
+  except DefaultCredentialsError as e:
+    print(f"An error occurred (probably because you're not logged in to google in local testing!): {e}")
 
