@@ -7,7 +7,7 @@ from google.auth.exceptions import DefaultCredentialsError
 from googleapiclient.discovery import build # this is google-api-python-client
 from googleapiclient.errors import HttpError
 from googleapiclient.http import MediaIoBaseUpload
-from io import StringIO
+from io import BytesIO
 from cicero_shared import st_print
 
 # Theoretically this may be used in Databricks or standalone instead of in streamlit. Not sure how we'll do the google auth for that, though...
@@ -43,7 +43,7 @@ if st.button("Upload test file"):
         "name": "Cool Example Document",
         "mimeType": "application/vnd.google-apps.document",
     }
-    media = MediaIoBaseUpload(StringIO('example_document'), mimetype="text/html", resumable=True)
+    media = MediaIoBaseUpload(BytesIO('example_document'), mimetype="text/html", resumable=True)
     file = (
         service.files()
         .create(body=file_metadata, media_body=media, fields="id")
