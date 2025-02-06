@@ -33,10 +33,10 @@ if st.button("Upload test file"):
     # create drive api client
     service = build("drive", "v3", credentials=creds)
     # here for testing purposes.
-    st_print(service.about)
-    reveal_type(service.about)
-    st_print(service.about.get())
-    reveal_type(service.about.get())
+    st_print(service.about())
+    reveal_type(service.about())
+    st_print(service.about().get())
+    reveal_type(service.about().get())
 
     file_metadata = {
         "name": "Cool Example Document",
