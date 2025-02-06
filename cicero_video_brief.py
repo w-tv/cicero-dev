@@ -8,6 +8,7 @@ from googleapiclient.discovery import build # this is google-api-python-client
 from googleapiclient.errors import HttpError
 from googleapiclient.http import MediaIoBaseUpload
 from io import StringIO
+from cicero_shared import st_print
 
 # Theoretically this may be used in Databricks or standalone instead of in streamlit. Not sure how we'll do the google auth for that, though...
 
@@ -31,12 +32,11 @@ if st.button("Upload test file"):
   try:
     # create drive api client
     service = build("drive", "v3", credentials=creds)
-    print(service.about)
+    # here for testing purposes.
+    st_print(service.about)
     reveal_type(service.about)
-    print(service.about.get())
+    st_print(service.about.get())
     reveal_type(service.about.get())
-    
-    exit() # here for testing purposes.
 
     file_metadata = {
         "name": "Cool Example Document",
