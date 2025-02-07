@@ -10,7 +10,7 @@ from googleapiclient.http import MediaIoBaseUpload
 from io import BytesIO
 from cicero_shared import st_print, is_dev
 from cicero_chat import display_chat
-from cicero_video_brief_system_prompt import example_document
+from cicero_video_brief_system_prompt import example_document, dick_example
 
 # Theoretically this may be used in Databricks or standalone instead of in streamlit. Not sure how we'll do the google auth for that, though...
 
@@ -55,5 +55,6 @@ if is_dev() and st.button("Upload test file"):
   except DefaultCredentialsError as e:
     st_print(f"An error occurred (probably because you're not logged in to google in local testing!): {e}")
 
+st.write("Paste in a script below, the sort that is formatted vaguely like:\n ```", dick_example, "\n```\nWarning: this request will probably take a long time to process! Approximately a minute.")
 display_chat("_video_brief")
 
