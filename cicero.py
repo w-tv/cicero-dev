@@ -9,7 +9,7 @@ import os
 import psutil
 import platform
 from sys import argv
-from cicero_chat import main as cicero_chat
+from cicero_chat import main as cicero_chat_main
 from cicero_shared import dev_box, ensure_existence_of_activity_log, exit_error, get_base_url, get_list_value_of_column_in_table, is_dev, sql_call_cacheless, ssget, ssset, sspop, st_print
 from google.auth.transport import requests
 from google.oauth2 import id_token
@@ -87,9 +87,9 @@ with Profiler():
     pages += [ st.Page("cicero_topic_reporting.py", title="📈 Topic Reporting") ]
   # These next two pages need a url_path because otherwise they have dumb names for implementation reasons.
   if 'chat_with_cicero' in page_access:
-    pages += [ st.Page(cicero_chat, title="💬 Chat with Cicero", url_path="chat_with_cicero") ]
+    pages += [ st.Page(cicero_chat_main, title="💬 Chat with Cicero", url_path="chat_with_cicero") ]
   if 'chat_with_corpo' in page_access:
-    pages += [ st.Page(lambda: cicero_chat("_corporate"), title="💼 Chat with Cicero", url_path="chat_with_cicero_corporate") ]
+    pages += [ st.Page(lambda: cicero_chat_main("_corporate"), title="💼 Chat with Cicero", url_path="chat_with_cicero_corporate") ]
   if is_dev():
     pages += [
       st.Page("cicero_response_lookup.py", title="🔍 Response Lookup"),

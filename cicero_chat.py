@@ -9,6 +9,7 @@ from databricks_genai_inference import ChatSession, FoundationModelAPIException
 from cicero_shared import catstr, dev_box, get_value_of_column_in_table, get_list_value_of_column_in_table, is_dev, ssget, ssset, ssmut, sspop, get_base_url, popup, load_account_names, sql_call_cacheless
 from cicero_types import Short_Model_Name, short_model_names, short_model_name_default, short_model_name_to_long_model_name, voices_corporate, voices_noncorporate, Voice, voice_default, Chat_Suffix, chat_suffix_default
 from cicero_voice_map import voice_map
+from cicero_video_brief_system_prompt import video_brief_system_prompt
 import bs4 # for some reason bs4 is how you import beautifulsoup
 import requests
 import re
@@ -182,9 +183,11 @@ def grow_chat(streamlit_key_suffix: Chat_Suffix, alternate_content: str|Literal[
         sys_prompt = "You are a helpful, expert marketer. Do not mention that you are a helpful, expert marketer."+" The system interfacing you can expand links into document contents, after the user enters them but before you see them; but do not mention this unless it is relevant."
       case "": #regular chatbot
         sys_prompt = "You are an expert copywriter who specializes in writing fundraising and engagement texts and emails for conservative political candidates in the United States of America. Make sure all messages are in English. Be direct with your responses, and avoid extraneous messages like 'Hello!' and 'I hope this helps!'. These text messages and emails tend to be more punchy and engaging than normal marketing material. Focus on these five fundraising elements when writing content: the Hook, Urgency, Agency, Stakes, and the Call to Action (CTA). Do not make up facts or statistics. Do not mention that you are a helpful, expert copywriter. Do not use emojis or hashtags in your messages. Make sure each written message is unique. Write the exact number of messages asked for."
+      case "_video_brief":
+        sys_prompt = "Replace the bold text in the following with whatever the user types:\n"+video_brief_system_prompt
       case _ as unreachable:
         assert_never(unreachable)
-  if not streamlit_key_suffix=="_corporate":
+  if streamlit_key_suffix not in ("_corporate", "_video_brief") :
     # Add context for current events as an addendum on all sys_prompts except corporate:
     sys_prompt += "\nHere is some context on the current political landscape following the 2024 U.S. presidential election on November 5th:\nDonald Trump defeated Incumbent Vice President Kamala Harris in the 2024 election and was sworn in as the 47th president on January 20, 2025, marking a historic comeback as the first president since Grover Cleveland to serve nonconsecutive terms. His running mate, JD Vance, was sworn in as Vice President at that time. Republicans secured a 52-seat majority in the Senate and retained control of the House, achieving a governing trifecta for the first time since 2018. The transition has been marked by policy shifts on immigration, executive actions reversing Biden-era policies, and legislative battles in Congress. It is now February 2025."
   if not ssget("chat", streamlit_key_suffix):
@@ -234,7 +237,9 @@ def grow_chat(streamlit_key_suffix: Chat_Suffix, alternate_content: str|Literal[
         elif streamlit_key_suffix == "":
           ssset("outstanding_activity_log_payload2", streamlit_key_suffix, ssget("activity_log_payload"))
         elif streamlit_key_suffix == "_prompter":
-          pass # note that "_prompter" is deliberately absent, because we don't require anything from it.
+          pass # note that "_prompter" is deliberately absent, because we don't require anything from it. (I guess, also it can't even appear here, because it's in the other tab.)
+        elif streamlit_key_suffix == "_video_brief":
+          pass #TODO: should we ask for feedback on the video briefs? I lean no.
         else:
           assert_never(streamlit_key_suffix)
         break
@@ -300,11 +305,14 @@ def display_chat(streamlit_key_suffix: Chat_Suffix, account: str|None = None, sh
   if ms := ssget("messages", streamlit_key_suffix):
     for message in ms:
       with st.chat_message(message["role"], avatar=message.get("avatar")):
-        message_core = message["content"].replace("$", r"\$").replace("[", r"\[")
-        if needback:
-          st.markdown('<span style="user-select: none;">'+message_core+'</div>', unsafe_allow_html=True)
+        if streamlit_key_suffix == "_video_brief":       
+          st.html(message["content"])
         else:
-          st.markdown(message_core)
+          message_core = message["content"].replace("$", r"\$").replace("[", r"\[")
+          if needback:
+            st.markdown('<span style="user-select: none;">'+message_core+'</div>', unsafe_allow_html=True)
+          else:
+            st.markdown(message_core)
   if needback:
     st.success("Please give feedback to enable copying the text. (And to make Cicero better!)")
   if (s := sspop("last_url_content")):

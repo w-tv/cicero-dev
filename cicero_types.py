@@ -25,6 +25,6 @@ voices_corporate: tuple[Voice_Corporate, ...] = aa(Voice_Corporate)
 voices_noncorporate: tuple[Voice_Noncorporate, ...] = aa(Voice_Noncorporate)
 voice_default: Voice = "Default" # Technically we could DRY the this, but we might have to use something like https://github.com/jorenham/optype/blob/master/README.md#optypeinspect 's get_args if we do so.
 
-type Chat_Suffix = Literal["", "_corporate", "_prompter"]
+type Chat_Suffix = Literal["", "_corporate", "_prompter", "_video_brief"]
 chat_suffixes: tuple[Chat_Suffix, ...] = aa(Chat_Suffix)
 chat_suffix_default = chat_suffixes[0]
