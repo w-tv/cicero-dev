@@ -100,7 +100,7 @@ def expand_url_content(s: str) -> str:
   """Expand the urls in a string to the content of their contents (placing said contents back into the same containing string."""
   return re.sub(pattern=url_regex, repl=content_from_url_regex_match, string=s)
 
-def grow_chat(streamlit_key_suffix: Chat_Suffix, alternate_content: str|Literal[True]|None = None, account: str|None = None, short_model_name: Short_Model_Name = short_model_name_default, voice: Voice = voice_default) -> None:
+def grow_chat(streamlit_key_suffix: Chat_Suffix, alternate_content: str|Literal[True]|None = None, account: str|None = None, short_model_name: Short_Model_Name = short_model_name_default, voice: Voice = voice_default, expand_links: bool = True) -> None:
   """Note that this function will do something special to the prompt if alternate_content is supplied.
   Also, the streamlit_key_suffix is only necessary because we use this code in two places. If streamlit_key_suffix is "", we infer we're in the chat page, and if otherwise we infer we're being used on a different page (so far, the only thing that does this is prompter).
   Random fyi: chat.history is an alias for chat.chat_history (you can mutate chat.chat_history but not chat.history, btw). Internally, it's, like: [{'role': 'system', 'content': 'You are a helpful assistant.'}, {'role': 'user', 'content': 'Knock, knock.'}, {'role': 'assistant', 'content': "Hello! Who's there?"}, {'role': 'user', 'content': 'Guess who!'}, {'role': 'assistant', 'content': "Okay, I'll play along! Is it a person, a place, or a thing?"}]"""
@@ -147,7 +147,7 @@ def grow_chat(streamlit_key_suffix: Chat_Suffix, alternate_content: str|Literal[
 
   # URL content expansion
   hit_readlink_time_limit = False
-  if detect_url_content(p):
+  if expand_links and detect_url_content(p):
     if llt := ssget("last_link_time"):
       time_difference = datetime.now() - llt
       if time_difference < timedelta(seconds=27): # It's 27 because we don't want to alert the user if they just have to wait another second or two. The query already takes that long, probably.
@@ -288,7 +288,7 @@ def cicero_feedback_widget(streamlit_key_suffix: Chat_Suffix, feedback_suffix: s
     else:
       print("!! Cicero internal warning: you are in an invalid state somehow? You are using the feedback widget but have neither outstandings {o=},{o2=}")
 
-def display_chat(streamlit_key_suffix: Chat_Suffix, account: str|None = None, short_model_name: Short_Model_Name = short_model_name_default, voice: Voice = voice_default) -> None:
+def display_chat(streamlit_key_suffix: Chat_Suffix, account: str|None = None, short_model_name: Short_Model_Name = short_model_name_default, voice: Voice = voice_default, expand_links: bool = True) -> None:
   """Display chat messages from history on app reload; this is how we get the messages to display, and then the chat box.
   The streamlit_key_suffix is only necessary because we use this code in two places. But that does make it necessary, for every widget in this function. If streamlit_key_suffix is "", we infer we're in the chat page, and if otherwise we infer we're being used on a different page (so far, the only thing that does this is prompter).
 
@@ -346,11 +346,12 @@ def main(streamlit_key_suffix: Chat_Suffix = chat_suffix_default) -> None: # It'
     accessable_voices = ds
   voice = st.selectbox("Voice (you must reset the chat for a change to this to take effect)", accessable_voices)
   account = st.selectbox("Use historical messages from this account:", (None,) + load_account_names(), key="account") if streamlit_key_suffix != "_corporate" else st.text_input("Account")
+  expand_links = st.checkbox("Expand links", value=True) if is_dev() else True
   model_name = st.selectbox("Model", short_model_names, key="model_name") if is_dev() else short_model_name_default
-  st.file_uploader(label="Upload a file", key="chat_file_uploader", type=['csv', 'docx', 'html', 'htm', 'txt', 'xls', 'xlsx'], accept_multiple_files=False, on_change=grow_chat, args=(streamlit_key_suffix, True, account, model_name, voice)) if is_dev() else None #note: this seems like a DRY violation to me... #TODO: file upload currently lets people bypass good/bad rating. However, we could hide it when in the asking-for-rating state, if that is deemed a good idea.
+  st.file_uploader(label="Upload a file", key="chat_file_uploader", type=['csv', 'docx', 'html', 'htm', 'txt', 'xls', 'xlsx'], accept_multiple_files=False, on_change=grow_chat, args=(streamlit_key_suffix, True, account, model_name, voice, expand_links)) if is_dev() else None #note: this seems like a DRY violation to me... #TODO: file upload currently lets people bypass good/bad rating. However, we could hide it when in the asking-for-rating state, if that is deemed a good idea.
   if st.button("Clear conversion"):
     reset_chat(streamlit_key_suffix)
-  display_chat(streamlit_key_suffix, account=account, short_model_name=model_name, voice=voice)
+  display_chat(streamlit_key_suffix, account=account, short_model_name=model_name, voice=voice, expand_links=expand_links)
 
 if __name__ == "__main__":
   main()
