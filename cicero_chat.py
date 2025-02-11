@@ -156,7 +156,7 @@ def grow_chat(streamlit_key_suffix: Chat_Suffix, alternate_content: str|Literal[
         popup("Throttled!", f"Link reading is currently limited to once every 30 seconds per user.  Cicero has delayed your request by {remaining_seconds} seconds.  Contact the Cicero Team for more info.", show_x_instruction=False) # Festina lente! #Unfortunately I think an unreported (TODO) bug in streamlit means this dialog only ever shows once per session. But that's ok in this case.
         time.sleep(remaining_seconds)
     ssset("last_link_time", datetime.now())
-  p = expand_url_content(p)
+    p = expand_url_content(p)
   ssset("urls_we_have_expanded_right_now", 0) # Have to reset this value in this remote place for flow-control reasons :/
 
   # detect pii
@@ -326,7 +326,7 @@ def display_chat(streamlit_key_suffix: Chat_Suffix, account: str|None = None, sh
       st.info("Message you were editing (may contain PII):")
       st.code(pii[1])
       ssset( "pii_interrupt_state", streamlit_key_suffix, [None, ""] )
-    st.container().chat_input(on_submit=grow_chat, key="user_input_for_chatbot_this_frame"+streamlit_key_suffix, args=(streamlit_key_suffix, None, account, short_model_name, voice) ) #Note that because it's a callback, the profiler will not catch grow_chat here. However, it takes about a second. (Update: maybe it's about 4 seconds, now? That's in the happy path, as well.) #Without the container, this UI element floats BELOW the pyinstrument profiler now, which is inconvenient. But also we might want it to float down later, if we start using streaming text...
+    st.container().chat_input(on_submit=grow_chat, key="user_input_for_chatbot_this_frame"+streamlit_key_suffix, args=(streamlit_key_suffix, None, account, short_model_name, voice, expand_links) ) #Note that because it's a callback, the profiler will not catch grow_chat here. However, it takes about a second. (Update: maybe it's about 4 seconds, now? That's in the happy path, as well.) #Without the container, this UI element floats BELOW the pyinstrument profiler now, which is inconvenient. But also we might want it to float down later, if we start using streaming text...
 
 def main(streamlit_key_suffix: Chat_Suffix = chat_suffix_default) -> None: # It's convenient to import cicero_chat in other files, to use its function in them, so we do a main() here so we don't run this code on startup.
   st.write("**Chat freeform with Cicero directly ChatGPT-style!**")
