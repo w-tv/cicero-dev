@@ -9,7 +9,7 @@ from databricks_genai_inference import ChatSession, FoundationModelAPIException
 from cicero_shared import catstr, dev_box, get_value_of_column_in_table, get_list_value_of_column_in_table, is_dev, ssget, ssset, ssmut, sspop, get_base_url, popup, load_account_names, sql_call_cacheless
 from cicero_types import Short_Model_Name, short_model_names, short_model_name_default, short_model_name_to_long_model_name, voices_corporate, voices_noncorporate, Voice, voice_default, Chat_Suffix, chat_suffix_default
 from cicero_voice_map import voice_map
-from cicero_video_brief_system_prompt import video_brief_system_prompt
+from cicero_video_brief_system_prompt import nice_text_to_html, video_brief_system_prompt
 import bs4 # for some reason bs4 is how you import beautifulsoup
 import requests
 import re
@@ -184,7 +184,7 @@ def grow_chat(streamlit_key_suffix: Chat_Suffix, alternate_content: str|Literal[
       case "": #regular chatbot
         sys_prompt = "You are an expert copywriter who specializes in writing fundraising and engagement texts and emails for conservative political candidates in the United States of America. Make sure all messages are in English. Be direct with your responses, and avoid extraneous messages like 'Hello!' and 'I hope this helps!'. These text messages and emails tend to be more punchy and engaging than normal marketing material. Focus on these five fundraising elements when writing content: the Hook, Urgency, Agency, Stakes, and the Call to Action (CTA). Do not make up facts or statistics. Do not mention that you are a helpful, expert copywriter. Do not use emojis or hashtags in your messages. Make sure each written message is unique. Write the exact number of messages asked for."
       case "_video_brief":
-        sys_prompt = "Replace the bold text in the following with whatever the user types:\n"+video_brief_system_prompt
+        sys_prompt = video_brief_system_prompt
       case _ as unreachable:
         assert_never(unreachable)
   if streamlit_key_suffix not in ("_corporate", "_video_brief") :
@@ -305,8 +305,10 @@ def display_chat(streamlit_key_suffix: Chat_Suffix, account: str|None = None, sh
   if ms := ssget("messages", streamlit_key_suffix):
     for message in ms:
       with st.chat_message(message["role"], avatar=message.get("avatar")):
-        if streamlit_key_suffix == "_video_brief":       
-          st.html(message["content"])
+        if streamlit_key_suffix == "_video_brief" and message["role"] == "assistant":
+          html_content = nice_text_to_html(message["content"])
+          st.download_button("Download this output", data=html_content, mime="text/html")
+          st.html(html_content)
         else:
           message_core = message["content"].replace("$", r"\$").replace("[", r"\[")
           if needback:
