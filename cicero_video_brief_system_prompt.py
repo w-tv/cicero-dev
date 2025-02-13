@@ -1,4 +1,5 @@
 import re
+from typing import TypedDict
 
 example_document = b"""<b>Based example document enjoyer.</b><br> <i> seeing this document but don't expect to? Then something has gone wrong.</i>
 """
@@ -164,7 +165,7 @@ html_template_infix_part_unformatted = """</table><p class="c7 c18"><span class=
 html_template_bottom_part = """<p class="c7 c18"><span class="c2 c0"></span></p><p class="c7 c18"><span class="c2 c0"></span></p><p class="c7 c18"><span class="c13 c38 c0"></span></p><p class="c18 c54"><span class="c4 c0 c16">Additional Versions: </span><span class="c1 c16 c0">(duplicate as necessary)</span></p><p class="c33 c18"><span class="c1 c0"></span></p><table class="c50"><tr class="c29"><td class="c43" colspan="1" rowspan="1"><p class="c11"><span class="c4 c0">Size<br></span><span class="c21">Use ad </span><span class="c44 c21"><a class="c12" href="https://www.google.com/url?q=https://docs.google.com/document/d/1zr1S4vwlP0B5IDEJMUKcENnWXqI3zHkYAyR8zi1HwPE/edit?usp%3Dsharing&amp;sa=D&amp;source=editors&amp;ust=1738603841249719&amp;usg=AOvVaw2wpz2V7iGmmo5x_424Ic0X">spec sheet</a></span><span class="c21">&nbsp;to determine</span></p></td><td class="c28" colspan="1" rowspan="1"><p class="c7"><span class="c1 c0"></span></p></td></tr><tr class="c29"><td class="c43" colspan="1" rowspan="1"><p class="c11"><span class="c2 c0">Length</span></p></td><td class="c28" colspan="1" rowspan="1"><p class="c7"><span class="c1 c0"></span></p></td></tr><tr class="c29"><td class="c43" colspan="1" rowspan="1"><p class="c11"><span class="c2 c0">Design Changes</span></p></td><td class="c28" colspan="1" rowspan="1"><p class="c7"><span class="c1 c0"></span></p></td></tr></table><p class="c7 c18"><span class="c13 c38 c40"></span></p><p class="c7 c18"><span class="c8"></span></p></body></html>
 """
 
-def parse_frames(text):
+def generate_html(text: str) -> str:
     """This is some ChatGPT-slop that seems to do the job."""
     frames = {}  # Store frame data
     
@@ -174,20 +175,17 @@ def parse_frames(text):
         frame_num, category, content = match.groups()
         frame_key = f"Frame {frame_num}"
         
+        Frame_Dict = TypedDict('Frame_Dict', {'Text': list[str], 'Voiceover': str, 'Footage': str})
+        empty_frame_dict: Frame_Dict = {"Text": [], "Voiceover": "", "Footage": ""}
         if frame_key not in frames:
-            frames[frame_key] = {"Text": [], "Voiceover": "", "Footage": ""}
+            frames[frame_key] = empty_frame_dict.copy()
         
         if category == "Text":
             frames[frame_key]["Text"].append(content)
         else:
-            frames[frame_key][category] = content
-    
-    return frames
-
-def generate_html(frames):
-    """This is some (mostly)-ChatGPT-slop that seems to do the job."""
+            frames[frame_key][category] = content # type: ignore[literal-required] #MYPY-BUG-WORKAROUND: "TypedDict key must be a string literal" ??? why would they make it work like that? Well, probably there will be, eventually, some way to fix (narrow?) this with just a little more code. But for now, we'll just ignore this "requirment".
     rows = []
-    just_the_text = []
+    just_the_text: list[str] = []
     for frame, data in frames.items():
         text_html = "".join(f'<p class="c11 c18"><b>Text: </b><span class="c1 c0">{txt}</span></p>' for txt in data["Text"])
         just_the_text.extend(txt for txt in data["Text"] if txt.lower()!="(none)")
@@ -208,4 +206,4 @@ def generate_html(frames):
     return html
 
 def nice_text_to_html(text: str) -> str:
-  return html_template_top_part + generate_html(parse_frames(text)) + html_template_bottom_part
+  return html_template_top_part + generate_html(text) + html_template_bottom_part

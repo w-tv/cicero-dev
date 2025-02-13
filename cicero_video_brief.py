@@ -1,5 +1,4 @@
 #!/usr/bin/env -S streamlit run
-from typing import reveal_type
 import streamlit as st
 # code adapted from https://developers.google.com/drive/api/guides/manage-uploads#python_1
 import google.auth
@@ -31,9 +30,7 @@ if is_dev() and st.button("Upload test file"):
     service = build("drive", "v3", credentials=creds)
     # here for testing purposes.
     st_print(service.about())
-    reveal_type(service.about())
     st_print(service.about().get())
-    reveal_type(service.about().get())
     
     # On GCP we seem to get this far, at least.
     file_metadata = {
@@ -47,7 +44,6 @@ if is_dev() and st.button("Upload test file"):
         .execute()
     )
     st_print(f'File with ID: "{file.get("id")}" has been uploaded.')
-    reveal_type(file)
   except HttpError as error:
     st_print(f"An HTTP error occurred: {error}")
   except DefaultCredentialsError as e:
