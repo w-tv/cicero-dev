@@ -10,7 +10,7 @@ from googleapiclient.http import MediaIoBaseUpload
 from io import BytesIO
 from cicero_shared import st_print, is_dev
 from cicero_chat import display_chat
-from cicero_video_brief_system_prompt import example_document, example_dick, nice_text_to_html
+from cicero_video_brief_system_prompt import example_document, example_dick
 
 # Theoretically this may be used in Databricks or standalone instead of in streamlit. Not sure how we'll do the google auth for that, though...
 

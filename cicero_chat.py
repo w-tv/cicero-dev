@@ -308,7 +308,7 @@ def display_chat(streamlit_key_suffix: Chat_Suffix, account: str|None = None, sh
         if streamlit_key_suffix == "_video_brief" and message["role"] == "assistant":
           html_content = nice_text_to_html(message["content"])
           st.download_button("Download this output", data=html_content, mime="text/html")
-          st.html(html_content)
+          #st.html("<iframe>"+html_content+"<iframe>") #TODO: figure out how to get this to play nice with the rest of the page...
         else:
           message_core = message["content"].replace("$", r"\$").replace("[", r"\[")
           if needback:
