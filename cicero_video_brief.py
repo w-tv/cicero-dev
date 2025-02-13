@@ -53,6 +53,6 @@ if is_dev() and st.button("Upload test file"):
   except DefaultCredentialsError as e:
     st_print(f"An error occurred (probably because you're not logged in to google in local testing!): {e}")
 
-st.write("Paste in a script below, the sort that is formatted vaguely like:\n ```", example_dick, "\n```\nWarning: this request will probably take a long time to process! Approximately a minute.")
+st.write("Paste in a script below, the sort that is formatted vaguely like:\n ```", example_dick, "\n```\nWarning: this request will probably take approximately 20 seconds to process.")
 display_chat("_video_brief")
 
