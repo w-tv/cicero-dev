@@ -282,4 +282,31 @@ Thank you for being a vital part of Buckeye Nation.
 The 1870 Society
 Ohio State NIL
 """,
+
+  "CRES": """Rep. Ciscomani has Climate Solutions Arizonans Can and Did Get Behind
+December 2, 2024
+Arizonans know firsthand that water scarcity is increasing throughout the Southwest, highlighting the tangible impacts of climate change. The diminishing water levels in rivers like the Colorado and water systems like the Central Arizona Project have far-reaching consequences for agriculture, manufacturing and the Grand Canyon State’s towns, cities and rural communities.  
+
+Fortunately, Arizonans re-elected Rep. Juan Ciscomani for Congress who continuously advocates for commonsense solutions to address water and energy concerns, ensuring responsible management while fostering economic dynamism. From his co-chairing of the bipartisan Colorado River Caucus to his membership in the Conservative Climate Caucus (CCC), a group dedicated to Republican engagement on climate, Rep. Ciscomani understands balancing economic growth with environmental stewardship is possible. By advancing clean energy technologies, developing new jobs and onshoring critical clean energy supply chains, we can not only meet our present challenges, but prepare our states for future ones. 
+
+In just the past few years, Arizona’s 6th Congressional District has seen the announcement of two new lithium-ion battery recycling facilities set to create hundreds of jobs in the district. Add in announcements from Lucid, LG, Ecobalt, Tucson Energy Power and many more, his support for clean energy continues to foster a business environment that is   bringing new, good-paying jobs to central and southern Arizona. The clean energy sector in Arizona provides over 83,000 jobs, increasing 9 percent alone from 2022 to 2023.  
+
+Rep. Ciscomani wants to protect these new investments and jobs to make his district stronger, as evidenced by his vocal support for many clean energy tax credits that have already spurred new dollars in clean energy projects. The Congressman was a co-signer of a letter sent to Republican leadership of the House of Representatives explaining the importance of protecting critical clean energy tax credits from future cuts – the same tax credits that are bringing real jobs and positive economic impact to Arizona. 
+
+Supporting commonsense policy solutions like these that prioritize his district and our country’s energy security is the norm for Rep. Ciscomani, and his leadership and voting record on Capitol Hill proves it. He has prioritized the needs of his constituents and has been ranked the most bipartisan member of Arizona’s U.S. House delegation.  
+
+Recognizing the strategic importance of critical minerals for clean energy technology, Ciscomani led the Critical Mineral Consistency Act. This legislation underscores his commitment to reducing our reliance on foreign competitors like China for critical minerals essential for solar panels, wind turbines, battery storage and EVs. Building out America’s domestic supply chain for critical minerals brings jobs home and bolsters our national security in an increasingly dangerous world. 
+
+Speaking of strengthening American security and competitiveness, Rep. Ciscomani voted for the Unleashing Our Domestic LNG Potential Act, which promotes energy independence by expanding the liquefied natural gas (LNG) market, a key energy resource that has allowed the U.S. to decrease annual U.S. greenhouse gas emissions by approximately 15 percent in the past 15 years. Compared to natural gas from other countries like Russia, American LNG is cleaner and exporting it to our European allies means lower global emissions.  
+
+Rep. Ciscomani is also working to reduce emissions here at home by supporting the Fix Our Forests Act, which aims to use smart forest management tactics to prevent wildfires in the U.S. that release millions of metric tons of carbon into our atmosphere. Anyone in Arizona will be the first to tell you that responsible forest management is key to managing the fire season. 
+
+To help the nation meet expected energy demand growth spurred by artificial intelligence and increased domestic manufacturing, Rep. Ciscomani voted for the Accelerating Deployment of Versatile, Advanced Nuclear for Clean Energy (ADVANCE) Act. This overwhelmingly bipartisan legislation enacted into law this year will support the timely deployment of next generation advanced nuclear technology to bolster baseload generation and reliable electricity across the country.  
+
+To cap off a strong record of support for clean energy, Rep. Ciscomani for the past two years co-sponsored the annual resolution to recognize National Clean Energy Week, which celebrates the role clean energy technologies bring to communities across the country. 
+
+By re-electing him, Arizonans have ensured that this critical work continues, allowing Rep. Ciscomani to further champion innovative energy policies that tackle the challenges of climate change while expanding the economy.  
+
+From onshoring American manufacturing and jobs in clean energy to investing in technologies methods that reduce global emissions, it’s clear Rep. Ciscomani supports and advances commonsense climate solutions that all Arizonans can and did get behind.
+""", 
 }
