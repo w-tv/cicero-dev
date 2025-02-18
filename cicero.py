@@ -73,7 +73,7 @@ with Profiler():
     loading_message.write("Loading CICERO.  This may take up to a minute...")
 
   #This is the way you set developer_mode. However, for the sake of brevity, the preferred way to *check* developer mode is is_dev() from cicero_shared.
-  ssset('developer_mode', not ssget("developer_mode_disabled") and ssget('email') in ("abrady@targetedvictory.com", "thall@targetedvictory.com", "wcarpenter@targetedvictory.com", "cmahon@targetedvictory.com", "rtauscher@targetedvictory.com", "cmajor@targetedvictory.com", "test@example.com"))
+  ssset('developer_mode', not ssget("developer_mode_disabled") and ssget('email') in ("abrady@targetedvictory.com", "thall@targetedvictory.com", "wcarpenter@targetedvictory.com", "rklein@targetedvictory.com", "cmahon@targetedvictory.com", "rtauscher@targetedvictory.com", "cmajor@targetedvictory.com", "test@example.com"))
   def disable_developer_mode() -> None:
     ssset("developer_mode_disabled", True)
 
