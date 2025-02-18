@@ -9,7 +9,7 @@ List of derived quantities, left to right (does not include "topic", which is al
   Result_Count: Count Distinct of Result Name
 
   (Since FPM is Funds per mille, I think the symbol should be $‰, but Alisa (and, earlier, Alex) nixed this idea; displaying the quantity with the unit $ is a company-wide standard.)
-  
+
   “The enemy is within the gates; it is with our own luxury, our own folly, our own criminality that we have to contend.” —Cicero
 """
 import streamlit as st

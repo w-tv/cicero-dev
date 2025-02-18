@@ -119,7 +119,7 @@ def popup(title: str, body: str, show_x_instruction: bool = True) -> None:
 
 def ensure_existence_of_activity_log() -> None:
   """Run this code before accessing the activity log. If the activity log doesn't exist, this function call will create it.
-  We also check if you're faking being a user, and refuse to write if so. 
+  We also check if you're faking being a user, and refuse to write if so.
   Note that if the table exists, this sql call will not check if it has the right columns (names or types), unfortunately.
   Note that this table uses a real timestamp datatype. You can `SET TIME ZONE "US/Eastern";` in sql to get them to output as strings in US Eastern time, instead of the default UTC."""
   if fe := ssget("fake_email"):

@@ -12,7 +12,7 @@ Frame 3 Footage: border
 
 Frame 4 Text: That’s Washington
 Frame 4 Voiceover: That’s what Washington has given us
-Frame 4 Footage: Capitol Building 
+Frame 4 Footage: Capitol Building
 
 Frame 5 Text: (none)
 Frame 5 Voiceover: If you don’t vote in November
@@ -20,7 +20,7 @@ Frame 5 Footage: empty voting booth
 
 Frame 6 Text: (none)
 Frame 6 Voiceover: It only gets worse
-Frame 6 Footage: montage of clips 
+Frame 6 Footage: montage of clips
 
 Frame 7 Text: (none)
 Frame 7 Voiceover: That’s why we must chart a new path
@@ -30,7 +30,7 @@ Frame 8 Text: Elect a fresh voice
 Frame 8 Voiceover: And elect a fresh voice
 Frame 8 Footage: small town
 
-Frame 9 Text: Tom Barrett 
+Frame 9 Text: Tom Barrett
 Frame 9 Voiceover: like Tom Barrett to Congress
 Frame 9 Footage: candidate footage
 
@@ -38,12 +38,12 @@ Frame 10 Text: Fight For Michigan Families
 Frame 10 Voiceover: Tom will always fight for Michigan families
 Frame 10 Footage: candidate footage
 
-Frame 11 Text: End The Radical Policies 
+Frame 11 Text: End The Radical Policies
 Frame 11 Voiceover: And he’ll put an end to the radical policies making life worse
 Frame 11 Footage: candidate footage
 
 Frame 12 Text: On November 5th
-Frame 12 Voiceover: On November 5th, 
+Frame 12 Voiceover: On November 5th,
 Frame 12 Footage: voting booth
 
 Frame 13 Text: YOU Need To Make It Happen

@@ -2,7 +2,7 @@
 import streamlit as st
 # code adapted from https://developers.google.com/drive/api/guides/manage-uploads#python_1
 import google.auth
-from google.auth.exceptions import DefaultCredentialsError 
+from google.auth.exceptions import DefaultCredentialsError
 from googleapiclient.discovery import build # this is google-api-python-client
 from googleapiclient.errors import HttpError
 from googleapiclient.http import MediaIoBaseUpload
@@ -17,7 +17,7 @@ st.warning("The google docs upload seems to work only within GCP so far.")
 # code adapted from https://developers.google.com/drive/api/guides/manage-uploads#python_1
 if is_dev() and st.button("Upload test file"):
   # Upload file with conversion
-  
+
   # Todo(wyatt): figure this out:
   # Load pre-authorized user credentials from the environment.
   # TODO(developer) - See https://developers.google.com/identity
@@ -31,7 +31,7 @@ if is_dev() and st.button("Upload test file"):
     # here for testing purposes.
     st_print(service.about())
     st_print(service.about().get())
-    
+
     # On GCP we seem to get this far, at least.
     file_metadata = {
         "name": "Cool Example Document",
@@ -51,4 +51,3 @@ if is_dev() and st.button("Upload test file"):
 
 st.write("Paste in a script below, the sort that is formatted vaguely like:\n ```", example_dick, "\n```\nWarning: this request will probably take approximately 20 seconds to process.")
 display_chat("_video_brief")
-

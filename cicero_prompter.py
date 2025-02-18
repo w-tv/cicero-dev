@@ -165,11 +165,11 @@ def execute_prompting(model: Long_Model_Name, account: str, sender: str|None, as
 
   # Create a target prompt that is used during the vector index similarity search to score retrieved texts.
   target_prompt = f"A {text_len} {ask_type} text message from {account}" + f" about {topics_str}"*bool(topics) + f" written with an emphasis on {tones_str}"*bool(tones)
-  
+
   #TODO(refactor): here is some example code we will probably use something along the lines of when we refactor this to be one sql query:
-  # """SELECT *, 
-  # CASE 
-    # WHEN array_contains(Topics_List, 'Trump') THEN 1 ELSE 0 
+  # """SELECT *,
+  # CASE
+    # WHEN array_contains(Topics_List, 'Trump') THEN 1 ELSE 0
   # END + size(Topics_List)
   # AS score
 # FROM cicero.text_data.gold_text_outputs

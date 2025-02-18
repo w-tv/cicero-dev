@@ -93,7 +93,7 @@ That’s why we must chart a new path
 And elect a fresh voice like Tom Barrett to Congress
 Tom will always fight for Michigan families.
 And he’ll put an end to the radical policies making life worse.
-On November 5th, YOU need to make it happen. 
+On November 5th, YOU need to make it happen.
 Vote Tom Barrett for Congress
 
 (2)
@@ -111,7 +111,7 @@ Frame 3 Footage: border
 
 Frame 4 Text: That’s Washington
 Frame 4 Voiceover: That’s what Washington has given us
-Frame 4 Footage: Capitol Building 
+Frame 4 Footage: Capitol Building
 
 Frame 5 Text: (none)
 Frame 5 Voiceover: If you don’t vote in November
@@ -119,7 +119,7 @@ Frame 5 Footage: empty voting booth
 
 Frame 6 Text: (none)
 Frame 6 Voiceover: It only gets worse
-Frame 6 Footage: montage of clips 
+Frame 6 Footage: montage of clips
 
 Frame 7 Text: (none)
 Frame 7 Voiceover: That’s why we must chart a new path
@@ -129,7 +129,7 @@ Frame 8 Text: Elect a fresh voice
 Frame 8 Voiceover: And elect a fresh voice
 Frame 8 Footage: small town
 
-Frame 9 Text: Tom Barrett 
+Frame 9 Text: Tom Barrett
 Frame 9 Voiceover: like Tom Barrett to Congress
 Frame 9 Footage: candidate footage
 
@@ -137,12 +137,12 @@ Frame 10 Text: Fight For Michigan Families
 Frame 10 Voiceover: Tom will always fight for Michigan families
 Frame 10 Footage: candidate footage
 
-Frame 11 Text: End The Radical Policies 
+Frame 11 Text: End The Radical Policies
 Frame 11 Voiceover: And he’ll put an end to the radical policies making life worse
 Frame 11 Footage: candidate footage
 
 Frame 12 Text: On November 5th
-Frame 12 Voiceover: On November 5th, 
+Frame 12 Voiceover: On November 5th,
 Frame 12 Footage: voting booth
 
 Frame 13 Text: YOU Need To Make It Happen
@@ -168,18 +168,18 @@ html_template_bottom_part = """<p class="c7 c18"><span class="c2 c0"></span></p>
 def generate_html(text: str) -> str:
     """This is some ChatGPT-slop that seems to do the job."""
     frames = {}  # Store frame data
-    
+
     frame_pattern = re.compile(r'Frame (\d+) (Text|Voiceover|Footage): (.+)')
-    
+
     for match in frame_pattern.finditer(text):
         frame_num, category, content = match.groups()
         frame_key = f"Frame {frame_num}"
-        
+
         Frame_Dict = TypedDict('Frame_Dict', {'Text': list[str], 'Voiceover': str, 'Footage': str})
         empty_frame_dict: Frame_Dict = {"Text": [], "Voiceover": "", "Footage": ""}
         if frame_key not in frames:
             frames[frame_key] = empty_frame_dict.copy()
-        
+
         if category == "Text":
             frames[frame_key]["Text"].append(content)
         else:
@@ -191,14 +191,14 @@ def generate_html(text: str) -> str:
         just_the_text.extend(txt for txt in data["Text"] if txt.lower()!="(none)")
         footage_html = f'<p class="c11 c18"><b>Footage: </b><span class="c0">{data["Footage"]}</span></p>' if data["Footage"] else ""
         vo_html = f'<p class="c11 c18"><b>VO: </b><span class="c1 c0">{data["Voiceover"]}</span></p>' if data["Voiceover"] else ""
-        
+
         row = (f'<tr class="c5">'
                f'<td class="c30" colspan="1" rowspan="1">'
                f'<p class="c11 c18"><b>{frame.upper()}:</b></p></td>'
                f'<td class="c14" colspan="1" rowspan="1">{text_html}{footage_html}</td>'
                f'<td class="c6" colspan="1" rowspan="1">{vo_html}</td></tr>')
         rows.append(row)
-    
+
     html = "\n".join(rows)
 
     html += html_template_infix_part_unformatted.format("<br><br><br>".join(just_the_text))

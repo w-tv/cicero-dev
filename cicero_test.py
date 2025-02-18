@@ -20,4 +20,3 @@ at.button("unlucky").run()
 at.session_state.developer_mode = True
 at.button("unlucky").click()
 at.button("unlucky").click().run()
-
