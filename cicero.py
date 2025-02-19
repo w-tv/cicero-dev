@@ -79,9 +79,7 @@ with Profiler():
 
   # Since we use st.navigation explicitly, the default page detection is disabled, even though we may use a pages folder later (although we shouldn't name that folder pages/, purely in order to suppress a warning message about how we shouldn't do that). This is good, because we want to hide some of the pages from non-dev-mode users.
   # There is an icon parameter to st.Page, so we could write eg icon="🗣️", but including the emoji in the titles makes them slightly larger and thus nicer-looking.
-  pages = [ #pages visible to everyone
-    st.Page("cicero_prompter.py", title="🗣️ Prompter", default=True)
-  ]
+  pages = [] #pages visible to the user
   page_access: list[str] = get_list_value_of_column_in_table("page_access", "cicero.ref_tables.user_pods")
   if 'topic_reporting' in page_access:
     pages += [ st.Page("cicero_topic_reporting.py", title="📈 Topic Reporting") ]
@@ -90,8 +88,11 @@ with Profiler():
     pages += [ st.Page(cicero_chat_main, title="💬 Chat with Cicero", url_path="chat_with_cicero") ]
   if 'chat_with_corpo' in page_access:
     pages += [ st.Page(lambda: cicero_chat_main("_corporate"), title="💼 Chat with Cicero", url_path="chat_with_cicero_corporate") ]
+  elif not is_dev(): #we prevent dev just because we also add it to dev (in order to let devs have everything, but not twice (twice would be a Multiple Pages specified with URL the same error)
+    pages += [st.Page("cicero_prompter.py", title="🗣️ Prompter")]
   if is_dev():
     pages += [
+      st.Page("cicero_prompter.py", title="🗣️ Prompter"),
       st.Page("cicero_response_lookup.py", title="🔍 Response Lookup"),
       st.Page("cicero_pod_key.py", title="🫛 Pod Key"),
       st.Page("cicero_activity_looker.py", title="👁️ Activity Looker"),
