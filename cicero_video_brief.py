@@ -41,7 +41,7 @@ if is_dev() and st.button("Upload test file"):
     media = MediaIoBaseUpload(BytesIO(example_document), mimetype="text/html", resumable=True)
     file = (
         service.files()
-        .create(body=file_metadata, media_body=media, fields="id")
+        .create(body=file_metadata, media_body=media, fields="id", supportsAllDrives=True)
         .execute()
     )
     st_print(f'File with ID: "{file.get("id")}" has been uploaded.')
