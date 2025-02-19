@@ -1,0 +1,71 @@
+google drive api current state of play, last updated 2025-02-19
+
+"Google Drive <> Streamlit vs Google Drive <> GCP"
+
+As part of the video brief feature, we'd like to upload documents we create to google drive. This seems possible. But it's difficult to figure out how to do it. I used the example code. https://developers.google.com/drive/api/guides/manage-uploads#python_1 (the code is far down on that page, in a python tab in "Import to Google Docs types".) So far, it seems like it's almost working, and only the GCP-hosted version of cicero.
+
+• Local testing version of the code doesn't work at all, because I am not logged in as a google account. That makes sense.
+
+• Streamlit seems to not work, for no particular reason. (It just hangs, and gives the following error:
+    TransportError: Failed to retrieve 
+    http://metadata.google.internal/computeMetadata/v1/universe/universe-domain from
+    the Google Compute Engine metadata service. Compute Engine Metadata server 
+    unavailable due to HTTPConnectionPool(host='metadata.google.internal', port=80):
+    Max retries exceeded with url: /computeMetadata/v1/universe/universe-domain 
+    (Caused by ConnectTimeoutError(<urllib3.connection.HTTPConnection object at 
+    0x7c2d29102f90>, 'Connection to metadata.google.internal timed out. (connect 
+    timeout=120)'))
+)
+I think it's because we can't connect to the ".internal" url except from within a google cloud hosted thing. I'm not providing this url directly so this may never work 🤔
+
+• GCP succeeds with a message like "File with ID: "1sww4ZdTWfmPOnCPlXdwIJc5Ors0lhDvMIs2SNuzV_3A" has been uploaded." — where is this file? It's not in my drive when I'm the account running it. Is it somehow... in a drive that the GCP project itself owns? Some people on the internet suggested providing a parent folder and giving that location to the function, so I have, https://drive.google.com/drive/folders/1-MxQWiiVtA4oigqtmIODHRQM05J3H7Ke , and I set the permissions to that as widely as possible, but I still get a An HTTP error occurred: <HttpError 404 when requesting None returned "File not found: 1-MxQWiiVtA4oigqtmIODHRQM05J3H7Ke.". Details: "[{'message': 'File not found: 1-MxQWiiVtA4oigqtmIODHRQM05J3H7Ke.', 'domain': 'global', 'reason': 'notFound', 'location': 'fileId', 'locationType': 'parameter'}]"> error. It's possible this is an authorization/organization issue, but I might be able to fix it by fiddling with the function options like in https://stackoverflow.com/questions/49861964/file-not-found-error-when-trying-to-add-parent-to-file-in-google-drive-api — ok, no, I'm still getting the error. Hmm. I tried using https://drive.google.com/drive/u/0/folders/1KZBVN-2lge0F8cAX30umGAEaKUkuCjBf , a personal drive folder of mine which has no Targeted Victory organizational restrictions or anything, and is also set to have as lax permissions as possible. This worked! So maybe we need to authorize cicero@trgdv-shared-msvc-dev.iam.gserviceaccount.com to post documents into drives owned by the targeted victory organization, or something like that?
+The problem may also be some other permission thing, like a per-user setting in https://developers.google.com/drive/api/guides/manage-sharing#permission-propagation or something. I haven't trial-and-errored everything yet. (It may also be both (conceptually), if the default visibility setting for the TV organization is that people can't see things, but I need to set it so that they can.)
+
+OTHER POSSIBILITIES:
+
+• https://developers.google.com/apps-script/guides/docs is the other thing that seems relevant as a possibility, but I haven't tried it yet. Also, might be able to use this to autonumber docs tables as they get edited?
+
+• Another possibility is to skip this confusing interface library altogether and just make some POST requests manually, as also described in the documentation. I haven't tried this yet and don't know if it would run into similar problems (or maybe it would just work).
+
+POSSIBLY ALSO RELEVANT:
+
+• There's something about authorization scopes here, might be relevant: https://developers.google.com/drive/api/reference/rest/v3/files/create#authorization-scopes
+
+• Hunting around, it seems like https://github.com/googleapis/google-api-python-client/blob/main/docs/README.md has more details about auth, which might be relevant.
+
+APPENDIX A: I don't think these readouts will be useful, but I include them on the off chance that they are
+
+GCP printouts for the following code (st_print is just a print statement)
+
+    # create drive api client
+    service = build("drive", "v3", credentials=creds)
+    # here for testing purposes.
+    st_print(service.about())
+    st_print(service.about().get())
+    :
+
+st.navigation(pages).run()Resourcegoogleapiclient.discovery.Resource(http, baseUrl, model, requestBuilder, developerKey, resourceDesc, rootDesc, schema, universe_domain='googleapis.com')
+A class for interacting with a resource.
+closemethod	Close httplib2 connections.
+getmethod	Gets information about the user, the user's Drive, and system capabilities. For more information, see [Return user info](https://developers.google.com/drive/api/guides/user-info). Required: The `fields` parameter must be set. To return the exact fields you need, see [Return specific fields](https://developers.google.com/drive/api/guides/fields-parameter).
+
+st.navigation(pages).run()HttpRequestgoogleapiclient.http.HttpRequest(http, postproc, uri, method='GET', body=None, headers=None, methodId=None, resumable=None)
+Encapsulates a single HTTP request.
+bodyNoneType	None
+body_sizeint	0
+headersdict	{'accept': 'application/json', 'accept-encoding': 'gzip, deflate', 'user-agent': '(gzip)', 'x-goog-api-client': 'gdcl/2.160.0 gl-python/3.12.3'}
+httpAuthorizedHttp	A httplib2 HTTP class with credentials.
+methodstr	'GET'
+methodIdstr	'drive.about.get'
+response_callbackslist	[]
+resumableNoneType	None
+resumable_progressint	0
+resumable_uriNoneType	None
+uristr	'https://www.googleapis.com/drive/v3/about?alt=json'
+add_response_callbackmethod	add_response_headers_callback
+executemethod	Execute the request.
+from_jsonfunction	Returns an HttpRequest populated with info from a JSON object.
+next_chunkmethod	Execute the next step of a resumable upload.
+null_postprocfunction	No docs available
+postprocmethod	Convert the response wire format into a Python object.
+to_jsonmethod	Returns a JSON representation of the HttpRequest.
