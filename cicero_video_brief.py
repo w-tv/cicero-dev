@@ -35,6 +35,7 @@ if is_dev() and st.button("Upload test file"):
     # On GCP we seem to get this far, at least.
     file_metadata = {
         "name": "Cool Example Document",
+        "parents": ["1-MxQWiiVtA4oigqtmIODHRQM05J3H7Ke"], # you need this to be able to see the document, and also to have it appear in the right place. This is rather obscure in the documentation, but https://stackoverflow.com/questions/27448699/google-drive-folders-files-created-using-api-not-visible-on-google-interface explains it. #this particular value is a test folder of mine, "google drive uploading test folder"; it should eventually be replaced.
         "mimeType": "application/vnd.google-apps.document",
     }
     media = MediaIoBaseUpload(BytesIO(example_document), mimetype="text/html", resumable=True)
