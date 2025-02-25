@@ -784,7 +784,7 @@ In 2019, Kiggans “got tired of screaming at the TV and decided to get off her 
 
 Kiggans was the Republican nominee for Virginia's 2nd congressional district in the 2022 election. She narrowly defeated Democratic incumbent Elaine Luria in the November 2022 general election, by a vote of 153,328 (52%) to 143,219 (48%)
 
-Kiggans ran for re-election in Virginia's 2nd Congressional District.[19] Her district was considered relatively competitive, and the Cook Political Report rated her district as "lean Republican." Kiggans defeated Democrat Missy Cotter Smasal by a vote of 201,023 (51%) to 184,174 (47%).
+Kiggans ran for re-election in Virginia's 2nd Congressional District. Her district was considered relatively competitive, and the Cook Political Report rated her district as "lean Republican." Kiggans defeated Democrat Missy Cotter Smasal by a vote of 201,023 (51%) to 184,174 (47%).
 
 When referring to races Jen has won, they should always be reflected as tight, must-win races. She flipped the district red in 2022 and the Democrats have not forgotten that. She is consistently targeted with huge sums of money from Left-leaning Super PACS and political organizations. 
 
@@ -861,9 +861,10 @@ The shift away from traditional fee-for-service towards value-based care design 
 The rise of digital has helped alleviate traditional barriers to care (e.g., time, geography, convenience) and ushered in the widespread utilization of telehealth.
 The acknowledgment of the critical role that social determinants of health play in someone’s overall wellness has led to the increased focus on whole-person health.}
 
-When asked to write landing page copy, social copy, or letter scripts, refer to the examples below as models but do not copy them exactly or mention they exist.
+When asked to write landing page copy, social post copy, or letter scripts, refer to the examples below as models but do not copy them exactly or mention they exist.
 
-Landing Page Copy {Did you know that hospital pay structures often incentivize practitioners to direct patients toward costly procedures and tests? A former Parkview office manager noted, “The more you code, the higher you code, the more credit you get, which would translate to bonuses, somebody comes in with knee arthritis and basically they’re having pain, but they haven’t had any other treatment, these guys will jump right to a knee replacement surgery.”
+Landing Page Copy 
+{Did you know that hospital pay structures often incentivize practitioners to direct patients toward costly procedures and tests? A former Parkview office manager noted, “The more you code, the higher you code, the more credit you get, which would translate to bonuses, somebody comes in with knee arthritis and basically they’re having pain, but they haven’t had any other treatment, these guys will jump right to a knee replacement surgery.”
 
 So, how can Hoosiers protect themselves from these kinds of practices? The answer is prior authorization.
 
@@ -873,11 +874,13 @@ However, Indiana legislators are considering new legislation that would severely
 
 We can’t afford to stand by. Help us protect Hoosiers from skyrocketing healthcare costs. Stand with us to ensure a future where healthcare remains accessible and safe.}
 
-Social Copy {Post Copy: Annual wage growth for the average Missouri worker is at 3.1%, yet MU Health Care wants to raise prices by 39% over three years? Something isn’t adding up here… act now to protect Missourians from higher premiums!
+Social Post Copy 
+{Post Copy: Annual wage growth for the average Missouri worker is at 3.1%, yet MU Health Care wants to raise prices by 39% over three years? Something isn’t adding up here… act now to protect Missourians from higher premiums!
 Headline: ACT NOW
 Description: Take action >>>}
 
-Letter Script {Dear X,
+Letter Script 
+{Dear X,
 
 I’m writing to urge you to protect Missouri taxpayers from the University of Missouri’s (MU Health Care) outrageous price demands in their ongoing negotiations with Anthem Blue Cross Blue Shield in Missouri.
 
