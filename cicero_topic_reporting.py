@@ -32,7 +32,7 @@ def to_sql_tuple_string(x: Sequence[str]) -> str:
 def bool_dict_to_string_list(dict_of_strings_to_bool: dict[str, bool]) -> list[str]:
   return [s for s, value in dict_of_strings_to_bool.items() if value]
 
-#TODO: this is kind of a bug work-around, one of our feature enhancements would obsolete it
+#TODO: this is kind of a bug work-around; one of our feature enhancements would obsolete it (said feature is so far down the list, though, that uhhh this is just the way it is for now)
 def to_graphable_dict[T](values: Sequence[Sequence[T]], x:str='x', y:str='y', color:str='color') -> list[dict[str, T]]:
   if len(values) == 3: #it's a 3-list of n-lists
     return [{x: values[0][i], y:values[1][i], color:values[2][i]} for i, _ in enumerate(values[0])]
@@ -117,7 +117,7 @@ summary_data_per_topic = sql_call(f"""
   WITH stats(topic, funds, sent, spend, project_count) AS (
     SELECT topic_tag, SUM(TV_FUNDS), SUM(SENT), SUM(SPEND_AMOUNT), COUNT(DISTINCT PROJECT_NAME)
     FROM topic_reporting.default.gold_topic_data_array
-    CROSS JOIN LATERAL explode(concat(array("All"), Topics_Array)) as t(topic_tag) -- this does, uh, the thing. it also adds the All pseudo-topic
+    CROSS JOIN LATERAL explode(Topics_Array) as t(topic_tag) -- this does, uh, the thing.
     WHERE {project_types_string} and {accounts_string} and {askgoal_string} and SEND_DATE >= CURRENT_DATE() - INTERVAL {past_days} DAY and SEND_DATE <= CURRENT_DATE() and topic_tag in {to_sql_tuple_string(topics)}
     GROUP BY topic_tag
   )
@@ -174,7 +174,7 @@ day_data_per_topic = sql_call(
     WITH stats(date, funds, sent, spend, topic) AS (
       SELECT send_date, SUM(tv_funds), SUM(sent), SUM(spend_amount), topic_tag
       FROM topic_reporting.default.gold_topic_data_array
-      CROSS JOIN LATERAL explode(concat(array("All"), Topics_Array)) as t(topic_tag)
+      CROSS JOIN LATERAL explode(Topics_Array) as t(topic_tag)
       WHERE {project_types_string} AND {accounts_string} AND topic_tag IN {to_sql_tuple_string(topics)} AND {askgoal_string} AND send_date >= NOW() - INTERVAL {past_days} DAY AND send_date < NOW() AND {search_string}
       GROUP BY send_date, topic_tag
     )
