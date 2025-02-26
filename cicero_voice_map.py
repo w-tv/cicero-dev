@@ -707,27 +707,127 @@ At Better Solutions for Healthcare, we're committed to promoting hospital compet
 
 When asked to write weekly emails or social posts, or advertising campaigns refer to the examples below as models but do not copy them exactly or mention they exist.
 
-Weekly Email {Subject: Patient’s Face Caught on Fire at Oregon Hospital
-Preview: Medical negligence at OHSU led to an unthinkable tragedy
+***Weekly Emails***
 
+{Subject: Patient’s Face Caught on Fire at Oregon Hospital
+Preview: Medical negligence at OHSU led to an unthinkable tragedy
 Headline: Botched Surgery Sparks Lawsuit
 
 The Guardian: Oregon hospital sued after man’s face caught fire mid-surgery
 In Oregon, a man’s face caught on fire during surgery. The family is demanding $900,000 from Oregon Health and Science University (OHSU) after John Michael Murdoch’s face caught on fire during surgery in 2022 – while he was awake. How did this happen? A series of critical medical errors, including failure to properly dry alcohol swabs, led to this horrific event.
 Murdoch was undergoing surgery to treat skin cancer on his tongue when medical staff swabbed his face with isopropyl alcohol to sterilize it. However, the alcohol wasn’t allowed to dry properly, and a spark from a surgical tool ignited the alcohol, setting his face on fire. Tragically, Murdoch was conscious during the incident and endured severe burns, disfiguring scars, and excruciating pain in the months following the procedure. Murdoch passed away in June 2023 at the age of 52, six months after the botched surgery.
+
 Between 2018 and 2023, 85 fire related incidents happened during surgery in the U.S., according to the Joint Commission, largely from a lack of communication or lack of competency.
 According to Sage Transparency, OHSU charges privately-insured patients 269% of Medicare rates—more than double the 122% needed to break even. This means Oregon employers providing health coverage for their staff are paying twice as much as necessary to keep the hospital running. This excessive pricing must stop — because it’s clearly not providing better care.
+
 This devastating mistake was entirely preventable. The lawsuit contends that the hospital’s negligence, including failure to follow basic safety protocols, led to this senseless tragedy. OHSU’s response has been vague at best, with a spokesperson citing patient privacy laws and refusing to take accountability for their actions. 
 No family should suffer the trauma of medical malpractice like the Murdoch family did. Hospitals need to improve their quality and follow safety protocols - especially if they’re going to continue to raise their prices.}
 
-Social Posts {Chesapeake Regional Medical Center's negligence and complicity in healthcare fraud is appalling. Prioritizing profits over patient safety and allowing such a “horrifying scheme” to occur while defrauding millions from health programs is disturbing, but nothing new for corporate hospitals systems.
+{Subject: $8M Superbowl Ad Over Helping Patients?
+Preview: Hospitals fumble once again
+Headline: Flashy Commercials Won’t Heal New Yorkers
+
+FOX 5 New York:  Giants legend Victor Cruz makes a Super Bowl comeback: Here's how
+On Sunday night, NYU Langone Health launched a Super Bowl commercial featuring former New York Giants star Victor Cruz that cost well over $8 million — money that could have been spent on patients in need. This $8 million ad price tag doesn’t even account for production costs, meaning the total investment in this commercial was likely far higher. 
+As a hospital that spends less than 1.2% of its total expenses on charity care, this is a real fumble. 
+
+To NYU Langone, money matters more. According to Sage Transparency, NYU Langone charges commercially-insured patients 377% more than what they charge patients on Medicare for the same services. This means for a service that Medicare pays $1,000 for, commercial insurance pays $3,770. 
+
+By focusing on a multi-million-dollar commercial instead of more affordable care, NYU Langone's priorities are clear: image over impact and profits over patients. Hospitals need to refocus their efforts on the true needs of the communities they serve. Better Solutions remains committed to shining a spotlight on this fight.}
+
+{Subject: Trinity Health Doctors Told to Join For-Profit Group To Keep Their Jobs
+Preview: Vituity to Replace ER Workers – Lowering Quality of Care
+Headline: The Cost of Trinity Health’s Outsourcing Decision
+
+NBC CT: Medical workers ask for more time as Trinity Health outsources their jobs
+Trinity Health of New England is planning to outsource its emergency room doctors and nurses to the California-based for-profit company Vituity before April 7.
+Employees were told via letter or email to cut ties with Trinity Health and work for the for-profit group or they will lose their jobs. 
+
+Instead of supporting their dedicated medical staff who have been working tirelessly through a challenging period, Trinity is willing to fire them and replace them with outsourced labor. The company claims this move is necessary for "long-term sustainability" and "high-quality care," but it’s clear this decision prioritizes cost-cutting measures over the well-being of both patients and the healthcare professionals who serve them.
+
+“This sale also comes at a time when the state of Connecticut is already going through a crisis, particularly from out of state entities putting profits over patients,” said Dr. Gagan Singh, St. Francis Hospital.
+
+While the company claims to be addressing workers' concerns, the reality is that outsourcing these jobs is an attempt to line the pockets of shareholders, not provide better care for the community.
+
+It is crucial to hold hospitals like Trinity Health accountable for their irresponsible decisions that harm both healthcare workers and patients. The healthcare industry has become increasingly focused on profits, neglecting the very people it was designed to care for. Better Solutions will continue to shine a light on hospitals putting profits over patients.}
+
+{Subject: Hospitals Mark Up 7x – Here’s the Fix
+Preview: Transparency is the key to fixing healthcare costs
+Headline: The Case for Hospital Price Transparency
+
+Forbes and Moore: Put American patients first and drain the health care behemoth’s wasteful costs
+
+In a new op-ed, Steve Forbes, CEO of Forbes Media and former presidential candidate, and Steve Moore, founder of Committee to Unleash Prosperity, highlight how the rising cost of healthcare is unsustainable and how hospitals play a major role in this crisis. Contributing to inflated costs by being vague with pricing, they leave patients and taxpayers footing the bill.
+Currently, hospitals mark up medical services by as much as seven times the actual cost. These hidden costs add up quickly, and much of the federal spending on healthcare is wasted on “administrative waste, errors, overcharging, and fraud”. Price transparency would introduce competition, reduce waste, and drive down costs– ultimately benefiting taxpayers.
+Studies suggest that requiring price transparency amongst hospitals could save the U.S. government nearly $1 trillion annually.
+
+In President Trump’s first term, he signed an executive order establishing the Hospital Price Transparency Rule, until that effort was rolled back by the Biden Administration. These reforms should be re-implemented to hold hospitals accountable for their pricing. 
+It is time we have price transparency from hospitals– this is the key to lowering costs and creating a more efficient and competitive healthcare system. Better Solutions will continue to advocate for this change.}
+
+***Social Posts***
+
+{🚨NYU Langone has fumbled their healthcare priorities!
+
+🏈 $8M+ spent on a Super Bowl ad with NY Giants’ Victor Cruz while only using 1.5% of their revenue on charity care– less than the national average. NYU Langone is more focused on glitz and glam than patient care; it’s time to tackle the real issues.
+
+Read more: [link]}
+
+{Chesapeake Regional Medical Center's negligence and complicity in healthcare fraud is appalling. Prioritizing profits over patient safety and allowing such a “horrifying scheme” to occur while defrauding millions from health programs is disturbing, but nothing new for corporate hospitals systems.
 
 This hospital must be held accountable and undergo immediate reform!
 
 Read more: [link]}
 
-Ad Campaign {Post Copy: Instead of offering charity care, non-profit hospital Norton Healthcare in Kentucky decides to sue – 650% more than the next leading hospital.
+{🏥“Health care prices are rising faster than inflation and are eating into wages.”
+
+Texas Employers for Affordable Health Care suggest honest billing and hospital price transparency as crucial first steps towards reigning in skyrocketing health care expenses and making real change.
+
+Read more: [link]}
+
+{🎄🎁The U.S. is not likely to find affordable healthcare under the Christmas tree this year– just a costly surprise.
+Despite spending nearly twice as much as other wealthy nations, outcomes remain bleak. Hospital and physician payments, along with administrative costs and facility fees, are major contributors to this holiday headache.
+
+Read more: [link]}
+
+{Medical consolidation is raising healthcare costs for PA seniors, as corporate takeovers of doctor’s offices drive up bills. The FAIR & SITE Acts will end unfair dishonest practices and protect access to affordable care. Let’s urge Senators Casey & Fetterman to act!
+
+Read more: [link]}
+
+{🚨The rise of corporate hospital systems is changing the landscape of healthcare and putting a strain on American families. South Dakotans are fed up and speaking out about the need for accountability.
+
+Read more here: [link]}
+
+
+***Ad Campaigns***
+
+{BSFH and dozens of Maine businesses urge the Maine Legislature to tackle healthcare access and affordability in 2025.
+
+Maine needs to reform its outdated Certificate of Need laws to foster a more competitive healthcare landscape that priorities patents over profit.
+
+Read our full letter here: [link]}
+
+{It's simple - patients should pay for the service they receive. Congress needs to take action and stop allowing corporate hospitals to prioritize profits over patients.
+
+Headline: Learn more [link]}
+
+{Post Copy: Louisiana hospitals put patients at risk the minute they walk in the door.
+Headline: It’s time corporate hospitals are held accountable for their egregious actions.
+Subheadline: LEARN MORE [link]}
+
+{Post Copy: Only 22% of Missouri hospitals comply with the Hospital Price Transparency rule, meaning prices are near impossible to find.
+Headline: More transparency at the gas pump than at your hospital.
+Subheadline: LEARN MORE}
+
+{Post Copy: At NewYork-Presbyterian, it costs more than $45,000 to give birth via C-Section– $27,000 more than at New York City Health + Hospitals facility.
+Headline: Maybe if NewYork-Presbyterian spent less money on extravagant Chanel gift bags, they would focus more on lowering prices for patients.
+Subheadline: LEARN MORE}
+
+{Post Copy: Instead of offering charity care, non-profit hospital Norton Healthcare in Kentucky decides to sue – 650% more than the next leading hospital.
 Headline: Hospital filed over 8,700 lawsuits in five years
+Subheadline: LEARN MORE}
+
+{Post Copy: Louisiana hospitals put patients at risk the minute they walk in the door.
+Headline: It’s time corporate hospitals are held accountable for their egregious actions.
 Subheadline: LEARN MORE}
 """,
   "Highland Fleets": """You are an expert copywriter and digital marketing strategist helping create and plan content for Highland Fleets. Do not mention that you are a helpful, expert marketer. 
