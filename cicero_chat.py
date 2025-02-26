@@ -100,7 +100,7 @@ def expand_url_content(s: str) -> str:
   """Expand the urls in a string to the content of their contents (placing said contents back into the same containing string."""
   return re.sub(pattern=url_regex, repl=content_from_url_regex_match, string=s)
 
-def grow_chat(streamlit_key_suffix: Chat_Suffix, alternate_content: str|Literal[True]|None = None, account: str|None = None, short_model_name: Short_Model_Name = short_model_name_default, voice: Voice = voice_default, expand_links: bool = True) -> None:
+def grow_chat(streamlit_key_suffix: Chat_Suffix, alternate_content: str|Literal[True]|None = None, account: str = "No account", short_model_name: Short_Model_Name = short_model_name_default, voice: Voice = voice_default, expand_links: bool = True) -> None:
   """Note that this function will do something special to the prompt if alternate_content is supplied.
   Also, the streamlit_key_suffix is only necessary because we use this code in two places. If streamlit_key_suffix is "", we infer we're in the chat page, and if otherwise we infer we're being used on a different page (so far, the only thing that does this is prompter).
   Random fyi: chat.history is an alias for chat.chat_history (you can mutate chat.chat_history but not chat.history, btw). Internally, it's, like: [{'role': 'system', 'content': 'You are a helpful assistant.'}, {'role': 'user', 'content': 'Knock, knock.'}, {'role': 'assistant', 'content': "Hello! Who's there?"}, {'role': 'user', 'content': 'Guess who!'}, {'role': 'assistant', 'content': "Okay, I'll play along! Is it a person, a place, or a thing?"}]"""
@@ -192,7 +192,7 @@ def grow_chat(streamlit_key_suffix: Chat_Suffix, alternate_content: str|Literal[
     sys_prompt += "\nHere is some context on the current political landscape: Donald Trump defeated Incumbent Vice President Kamala Harris in the 2024 election and was sworn in as the 47th president on January 20, 2025, marking a historic comeback as the first president since Grover Cleveland to serve nonconsecutive terms. His running mate, JD Vance, was sworn in as Vice President at that time. Republicans secured a 52-seat majority in the Senate and retained control of the House, achieving a governing trifecta for the first time since 2018. It is now February 2025. Since taking office, Trump has been actively pursuing his policy agenda, implementing a series of executive orders and policies focused on immigration and border security, and pursuing a conservative agenda on issues such as trade, foreign policy, and government reform, with the support of Elon Musk's DOGE, which aims to root out waste and inefficiency in the federal government. His administration has also been embroiled in controversy over its handling of USAID, DEI policies, and cabinet nominations, and has faced numerous legal challenges and investigations, setting the stage for a contentious and potentially transformative presidency.\n"
   if not ssget("chat", streamlit_key_suffix):
     # Get some sample texts from the account, perhaps similar to the current prompt. (We only do this for the first prompt. & it's after the chat check so we don't wait for this query every time.)
-    if account is not None:
+    if account != "No account":
       texts_from_account = sql_call_cacheless(
         """ -- I got this from the Databricks AI, it seems to mostly do the job.
           WITH QueryTopics AS (
@@ -288,7 +288,7 @@ def cicero_feedback_widget(streamlit_key_suffix: Chat_Suffix, feedback_suffix: s
     else:
       print("!! Cicero internal warning: you are in an invalid state somehow? You are using the feedback widget but have neither outstandings {o=},{o2=}")
 
-def display_chat(streamlit_key_suffix: Chat_Suffix, account: str|None = None, short_model_name: Short_Model_Name = short_model_name_default, voice: Voice = voice_default, expand_links: bool = True) -> None:
+def display_chat(streamlit_key_suffix: Chat_Suffix, account: str = "No account", short_model_name: Short_Model_Name = short_model_name_default, voice: Voice = voice_default, expand_links: bool = True) -> None:
   """Display chat messages from history on app reload; this is how we get the messages to display, and then the chat box.
   The streamlit_key_suffix is only necessary because we use this code in two places. But that does make it necessary, for every widget in this function. If streamlit_key_suffix is "", we infer we're in the chat page, and if otherwise we infer we're being used on a different page (so far, the only thing that does this is prompter).
 
@@ -347,7 +347,7 @@ def main(streamlit_key_suffix: Chat_Suffix = chat_suffix_default) -> None: # It'
     # TODO: possibly collapse Admin mode and dev mode into the same concept later, iff it turns out we want the same set of people in both these days?
     accessable_voices = ds
   voice = st.selectbox("Voice (you must reset the chat for a change to this to take effect)", accessable_voices)
-  account = st.selectbox("Use historical messages from this account:", (None,) + load_account_names(), key="account") if streamlit_key_suffix != "_corporate" else st.text_input("Account")
+  account = st.selectbox("Use historical messages from this account:", ("No account",) + load_account_names(), key="account") if streamlit_key_suffix != "_corporate" else st.text_input("Account")
   expand_links = st.checkbox("Expand links", value=True) if is_dev() else True
   model_name = st.selectbox("Model", short_model_names, key="model_name") if is_dev() else short_model_name_default
   st.file_uploader(label="Upload a file", key="chat_file_uploader", type=['csv', 'docx', 'html', 'htm', 'txt', 'xls', 'xlsx'], accept_multiple_files=False, on_change=grow_chat, args=(streamlit_key_suffix, True, account, model_name, voice, expand_links)) if is_dev() else None #note: this seems like a DRY violation to me... #TODO: file upload currently lets people bypass good/bad rating. However, we could hide it when in the asking-for-rating state, if that is deemed a good idea.
