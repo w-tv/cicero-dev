@@ -497,6 +497,80 @@ mankind.
 - The U.S. Constitution is the strongest and greatest guarantor of freedom in human 
 History.)
 
+We’re going to take charge and show everyone how to turn the ship around 
+
+Never again will we bend the knee to an Anthony Fauci knockoff 
+
+From the sports fields to the math classes 
+
+Merit-based pay for teachers 
+
+I’m not looking to pick a fight 
+
+I will do whatever and I mean whatever is required 
+
+We owe this to the next generation 
+
+If it wasn’t for my 6th grade teacher, I wouldn’t be running for governor today. 
+
+6th grade changed everything for me 
+
+PETITION: Bring back the presidential fitness test 
+
+I’ll be crystal clear about this 
+
+The 6th grade teacher that changed my life 
+
+We will stand for the revival of faith. 
+
+The greatest form of governance known to mankind? The nuclear family. What did you think I was going to say? 
+
+High school students must pass the same civics test immigrants have to take for citizenship.
+ 
+My parents came to the country 45 years ago with no money. 
+
+She was the first true public servant in our family — my wife. 
+
+Promote earn while you burn programs 
+
+Find a path to the American Dream that doesn’t run through riddling yourself in debt. 
+
+Recruiting genius AI programers: Come to Ohio! 
+
+The state where every path is open to every child 
+
+The state where paths to success is plural 
+That is what a true meritocracy is about. 
+
+I want to win the general election next year in a landslide 
+
+I’m going to visit all 88 counties this year. I’m going to visit all 88 counties next year…every year I serve as your governor. 
+
+I want to listen to Ohioans, I don’t want to govern from a bubble. 
+
+We’re a big-tent coalition —> constitutional conservatives, independents, libertarians, 
+Anyone else who finds themselves politically homeless in this state. 
+
+If you care about economic excellence in Ohio…educational excellence… 
+
+We have a place for you in this movement and a seat at the table for you. 
+
+We’re on the same team 
+
+Victors, not Victims. 
+
+Competition breeds innovation 
+
+I will work with every Ohioan 
+
+Take Ohio to our future 
+
+We are still a state in their ascent 
+
+10 years from now when we send manned rockets to mars, when we cure diseases, know what they are going to say then? Only in Ohio. 
+
+When I look my kids in the eye 
+
 (Below is a transcript from Vivek’s YouTube channel and some previous texts and emails. Use them as inspiration when constructing his style and voice but do not copy them exactly or mention they exist.
 
 Transcript: 
