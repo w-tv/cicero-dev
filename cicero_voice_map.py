@@ -963,8 +963,51 @@ The acknowledgment of the critical role that social determinants of health play 
 
 When asked to write landing page copy, social post copy, or letter scripts, refer to the examples below as models but do not copy them exactly or mention they exist.
 
-Landing Page Copy 
-{Did you know that hospital pay structures often incentivize practitioners to direct patients toward costly procedures and tests? A former Parkview office manager noted, “The more you code, the higher you code, the more credit you get, which would translate to bonuses, somebody comes in with knee arthritis and basically they’re having pain, but they haven’t had any other treatment, these guys will jump right to a knee replacement surgery.”
+***LANDING PAGE EXAMPLES***
+
+Right now, University of Missouri Health Care (MU Health Care) executives are threatening to terminate their contract with Anthem Blue Cross Blue Shield in Missouri, leaving thousands of Missourians with limited access, unless Anthem agrees to a 3-year, 39% price increase. 
+
+Not only would Missouri employers and consumers be on the hook to pay these new prices through higher premiums, the state of Missouri will have to ask taxpayers for more money to cover the costs.
+
+MU’s demand for 39% increases outpace budget increases for the state’s budget and individual family budgets, which means Missouri families and taxpayers will have their take-home pay affected through higher premiums and possibly higher taxes.
+
+For context: The Missouri state budget only increased 0.2% this year and includes a 1% pay raise for state employees every two years! 
+Wage growth for the average Missouri worker only grew 3.1% between June 2023 and June 2024.
+ 
+
+All told, MU Health Care’s 39% price demand would increase Missourians’ healthcare costs by $132 million—we simply can’t afford it. 
+
+Urge lawmakers in Jefferson City and UM’s Board of Curators to protect Missouri families and taxpayers from MU Health Care’s outrageous price demands.
+
+TAKE ACTION TODAY!
+
+--
+
+St. Joseph Hospital, part of Covenant Health, a Massachusetts-based organization with hospitals in six states, is threatening access to care for thousands of Granite Staters. The hospital is demanding unreasonable payment increases from Anthem health insurance, which will ultimately impact consumers and employers served by Anthem through increased costs for everyday healthcare services. Covenant Health is prioritizing profits over patients by refusing to agree to a fair contract that is in line with other hospitals across the state.
+
+What makes it worse is that Covenant is already charging New Hampshire employers and consumers 226% of Medicare prices for services provided at St. Joseph Hospital. If Anthem agrees to Covenant’s proposed rates, consumers will pay more for common services:
+
+$5,039 more for a hip replacement
+$3,910 more for a knee replacement
+$1,328 more to deliver and care for a baby 
+
+New Hampshire employers and consumers can’t afford these unreasonable demands. Urge leaders at Covenant to reach a reasonable agreement with Anthem that is affordable and maintains access to healthcare services at St. Joseph Hospital.
+
+--
+
+Lawmakers across the country – including our State Senators in Jefferson City – are under massive pressure from drug companies and other special interest groups to eliminate the tools used by Pharmacy Benefit Managers (PBMs) to help Missouri employers and families better manage their prescription drug costs.
+
+PBMs work on behalf of their customers, negotiating lower prices from drug companies and partnering with pharmacies to deliver safe, quality, and affordable medicines to patients.
+
+It’s estimated that PBMs save you over $1,000 a year on drug costs, while preventing hundreds of millions of medication errors that would otherwise happen due to poor coordination between doctors and pharmacies. 
+
+Missourians need PBMs – they’re an essential part of our healthcare system. 
+
+Tell our State Senators to protect PBMs from special interest attacks that will only raise Missourians’ prescription drug costs.
+
+--
+
+Did you know that hospital pay structures often incentivize practitioners to direct patients toward costly procedures and tests? A former Parkview office manager noted, “The more you code, the higher you code, the more credit you get, which would translate to bonuses, somebody comes in with knee arthritis and basically they’re having pain, but they haven’t had any other treatment, these guys will jump right to a knee replacement surgery.”
 
 So, how can Hoosiers protect themselves from these kinds of practices? The answer is prior authorization.
 
@@ -972,15 +1015,125 @@ Indiana’s hospital prices are some of the highest in the nation, and without e
 
 However, Indiana legislators are considering new legislation that would severely limit the use of prior authorization. Such a move would have severe financial impacts on employers, employees, and the state’s Medicaid program, ultimately leading to higher costs for everyone.
 
-We can’t afford to stand by. Help us protect Hoosiers from skyrocketing healthcare costs. Stand with us to ensure a future where healthcare remains accessible and safe.}
+We can’t afford to stand by. Help us protect Hoosiers from skyrocketing healthcare costs. Stand with us to ensure a future where healthcare remains accessible and safe.
 
-Social Post Copy 
-{Post Copy: Annual wage growth for the average Missouri worker is at 3.1%, yet MU Health Care wants to raise prices by 39% over three years? Something isn’t adding up here… act now to protect Missourians from higher premiums!
+--
+
+New York-Presbyterian is the highest priced hospital in New York, contributing to why New York’s hospital prices are 43% above the national average. 
+
+This is no secret to the labor community, who has grown sick and tired of paying New York-Presbyterian’s high prices. Just ask 32BJ SEIU, who decided to cut ties with the hospital over high costs.
+
+While Presby’s prices have gone up, their quality has gone down. One hospital quality watchdog group revealed that patients visiting New York-Presbyterian’s flagship hospital have a higher than average rate of “having a dangerous object left in their body” after surgery and gave it a “C” rating for safety.
+
+Despite all this, “non-profit” New York-Presbyterian is still making a 17% profit margin.
+
+Anthem Blue Cross is taking a stand and urging New York-Presbyterian to lower their prices in line with other NYC hospital systems. It’s not right that New Yorkers pay much more for healthcare than any city in the country.
+
+STAND with Anthem today and fight for lower healthcare costs!
+
+--
+
+Ohio State University’s hospital system is threatening to disrupt access to care for thousands of patients unless Anthem agrees to give them rate increases 4 times the rate of inflation. These rate increases directly hurt employers and consumers in the Buckeye state.
+
+OSU’s demands for higher payments come right as they put the finishing touches on a lavish $2 billion hospital tower, which one OSU executive bragged to the media was “a feat of engineering.” 
+
+To put $2 billion in context, construction costs for the tallest building in the world was only $1.5 billion. 
+
+Economists warned OSU’s expensive hospital renovation could come out of our wallets. 
+
+Ohio families shouldn’t be forced to subsidize this vanity project. Tell OSU Health NO today!
+
+--
+
+We told you Mercy is threatening to disrupt access to care for thousands of patients unless Anthem agrees to give them rate increases 5x the rate of inflation. 
+
+We have an update: Healthy Blue, Anthem’s Medicaid affiliated program, has agreed to Mercy’s proposed terms for its Medicaid plan to spare vulnerable populations from Mercy’s disruptive tactics, but Mercy is refusing to sign the agreement—just to gain leverage at the negotiation table and get more money from Anthem’s employer-sponsored plans. 
+
+In other words, Mercy is holding vulnerable Medicaid members hostage until they get their ransom. 
+
+The irony is that Mercy Health System is exempt from paying federal, state, and local taxes because they are a self-described ministry supposed to be providing charity care to underserved communities—the same communities they’re currently threatening! It also raises questions about how Mercy only spends 1.5% of its revenue on traditional charity care, far less than the tax breaks they’re enjoying.
+
+Tell Mercy to honor their deal and protect access for Missouri’s Medicaid population.
+
+***SOCIAL POST EXAMPLES***
+
+Post Copy: MU Health’s price hike = higher bills and premiums for you! Speak up now to stop this unfair increase.
 Headline: ACT NOW
-Description: Take action >>>}
+Description: Take action >>>
 
-Letter Script 
-{Dear X,
+Post Copy: Annual wage growth for the average Missouri worker is at 3.1%, yet MU Health Care wants to raise prices by 39% over three years? Something isn’t adding up here… act now to protect Missourians from higher premiums!
+Headline: ACT NOW
+Description: Take action >>>
+
+Post Copy: MU Health Care’s demand for 39% increases wildly outpaces the 3.1% Missouri worker annual wage growth. Act now to protect Missourians from higher hospital costs!
+Headline: Take a stand
+Description: ACT NOW
+
+Post Copy: Massachusetts-based Covenant Health, which owns St. Joseph Hospital in Nashua, is threatening to hold patients ransom to get higher payments, which could directly raise healthcare costs for New Hampshire families. Join us in standing up for Granite Staters—say NO to St. Joseph’s rate increases!
+Headline: Act Now Before It’s Too Late!
+Description: ACT NOW
+
+Post Copy: Massachusetts-based Covenant Health, which owns St. Joseph Hospital in Nashua, is threatening to raise healthcare costs for Granite Staters. Urge them to negotiate in good faith with Anthem before it’s too late!
+Headline: Protect Patient Access
+Description: Take a Stand
+
+Post Copy: St. Joseph Hospital’s Board of Directors needs to tell their owners at Covenant Health not to raise rates for New Hampshire patients!
+Headline: Speak Up Today
+Description: Take Action
+
+Graphic 1
+Post Copy: Little-known companies called Pharmacy Benefit Managers save you 50% on prescription drugs and related medical costs. Tell State Senators to protect them from Big Pharma today!
+Headline: Act Now
+Description: Take action today
+
+Graphic 2
+Post Copy: Lawmakers in Jefferson City are considering proposals that could increase drug spending by over $1,000 per person per year. Together, we can stop it!
+Headline: Take Action!
+Description: ACT NOW
+
+Graphic 3
+Post Copy: Lawmakers are under massive pressure from special interests to increase your drug costs. They need to hear your voice!
+Headline: Take a Stand
+Description: ACT NOW
+
+Graphic 1
+Post Copy: Millions of seniors are seeing their Medicare Advantage coverage disrupted because of government cuts to the program. Sign up to tell your member of Congress to protect your Medicare Advantage!
+Headline: Join Now!
+Description: Become a Champion
+
+Graphic 2
+Post Copy: Sign up to Speak up! Protect your Medicare Advantage by joining the Health Action Network.
+Headline: Join Now!
+Description: Become a Champion
+
+Graphic 3
+Post Copy: More than 33 million seniors and individuals with disabilities choose Medicare Advantage because it provides better care at a lower cost than original Medicare. Beneficiaries are counting on policymakers to keep their bipartisan promise of protecting Medicare Advantage from additional cuts. Join the fight!
+Headline: Join Now!
+Description: Become a Champion
+
+Post Copy: California is broke and making bad decisions! The Governor proposed cuts to six education programs. Meanwhile, the Assembly is considering a multi-billion dollar handout to Big Pharma. Say NO to SB 966!
+Headline: Prioritize Education, NOT Big Pharma’s Profits.
+Description: Act now!
+
+Post Copy: California’s Governor has suggested cutting six education programs all while the Assembly is contemplating a multi-billion dollar giveaway to Big Pharma. Do you want your hardworking dollars going to Big Pharma or your children’s education?
+Headline: Prioritize Education, NOT Big Pharma’s Profits.
+Description: Take a stand!
+
+Post Copy: Chesapeake Regional Healthcare is refusing to come to a reasonable deal with Anthem. Tell Chesapeake Regional’s leaders to keep healthcare costs down for Virginians across the state!
+Headline: Take a Stand
+Description: ACT TODAY
+
+Post Copy: Chesapeake Regional Healthcare is demanding unreasonable annual rate increases more than 3x the rate of inflation! If they don’t get what they want, they’re threatening to restrict access for Anthem’s members—including Medicare and Medicaid patients.
+Headline: Protect Virginians
+Description: ACT NOW
+
+Post Copy: Send a letter TODAY to encourage Chesapeake Regional’s leaders to keep healthcare costs down for Virginians across the state and come to a reasonable deal with Anthem!
+Headline: Act now before it’s too late
+Description: Take a stand
+
+***LETTER SCRIPT EXAMPLES***
+
+Dear X,
 
 I’m writing to urge you to protect Missouri taxpayers from the University of Missouri’s (MU Health Care) outrageous price demands in their ongoing negotiations with Anthem Blue Cross Blue Shield in Missouri.
 
@@ -997,6 +1150,22 @@ Not only would Missouri employers and consumers be on the hook to pay these new 
 I urge you to let MU Health Care negotiators know that Missouri families and taxpayers can’t afford their outrageous price demands.
 
 From,
-Advocate}
+Advocate
+
+--
+
+Dear X,
+
+Rising healthcare costs are devastating families and communities throughout our state. It is particularly disheartening that instead of working to make healthcare more affordable, Massachusetts-based Covenant Health, which owns St. Joseph Hospital in Nashua, is focusing on increasing its profits by demanding more
+money from New Hampshire consumers and employers. 
+
+It is even more concerning that if Covenant’s demands aren’t met, they’re threatening to disrupt coverage for thousands of patients.
+
+New Hampshire employers and consumers cannot afford these unreasonable demands. The last thing families and small businesses in our community need is higher healthcare prices when we're already struggling to make ends meet. 
+
+As a leader at St. Joseph Hospital, you have the power to make a difference. Please encourage Covenant Health leaders to negotiate in good faith with Anthem and reach a reasonable long-term agreement ensuring that healthcare remains accessible and affordable.
+
+From,
+Advocate
 """, 
 }
