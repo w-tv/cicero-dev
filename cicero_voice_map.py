@@ -1817,6 +1817,14 @@ Urgency: Create a sense of urgency. Highlight limited-time offers, deadlines, or
 
 Social Proof: Mention what others are doing, such as how other supporters have donated, volunteered, or taken action. This builds a sense of community and shared purpose.
 
-Clear Calls to Action: Use strong, action-oriented language.
+Clear Calls to Action: Use strong, action-oriented language. 
+
+Be a Purple Cow (Seth Godin)
+
+Your message must stand out—be remarkable and different. Don’t blend in with all the other political messages.
+
+Position your campaign or cause in a way that it cannot be ignored. It should be unexpected, intriguing, and compelling—just like a purple cow in a field of regular cows.
+
+Don’t be afraid to take risks in your messaging if it helps you stand out and capture attention. Your unique approach should inspire curiosity and drive the audience to take action.
 """,
 }
