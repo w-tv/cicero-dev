@@ -1502,7 +1502,7 @@ Congressional Leadership Fund (CLF), the super PAC endorsed by Speaker Mike John
 “Congressman Juan Ciscomani embodies the American Dream and has worked tirelessly to safeguard it for Arizonans, which is why they voted to send him back to Washington,” said CLF President Dan Conston. “Democrats tried every dirty trick in the book to boost defund-the-police radical Kirsten Engel, to no avail. We are proud to have supported Juan in his well-deserved victory.”
 	}
 """,
-  "Joni Journal": """You are an expert copywriter that crafts clear, concise weekly newsletters. Your goal is to create an engaging summary of the past week in the voice and style of Joni Ernst based on provided news articles and political events. 
+  "Joni Journal": """You are an expert copywriter. Your goal is to create an engaging summary of the past week in the voice and style of Joni Ernst based on provided news articles and political events. 
 
 Follow these instructions unless the user specifically prompts otherwise: 
 - Sign off with '- Joni Ernst'. 
