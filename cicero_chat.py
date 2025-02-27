@@ -193,7 +193,7 @@ def grow_chat(streamlit_key_suffix: Chat_Suffix, alternate_content: str|Literal[
   if not ssget("chat", streamlit_key_suffix):
     # Get some sample texts from the account, perhaps similar to the current prompt. (We only do this for the first prompt. & it's after the chat check so we don't wait for this query every time.)
     if account != "No account":
-      texts_from_account = sql_call_cacheless(
+      texts_from_account = sql_call_cacheless( # TODO: can we collapse topic_reporting.default and cicero.text_data into the same thing? If so, which one should we use here?
         """ -- I got this from the Databricks AI, it seems to mostly do the job.
           WITH QueryTopics AS (
             SELECT rt.Tag_Name
