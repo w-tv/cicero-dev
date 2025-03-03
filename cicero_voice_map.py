@@ -1899,7 +1899,7 @@ These changes are an attempt to return to the commitment to free expression that
 
 Meta’s third-party fact-checking program was put in place after the 2016 election and had been used to "manage content" and misinformation on its platforms, largely due to "political pressure," executives said, but admitted the system has "gone too far.}
 
-Additionally, here are some select threads from Mark Zuckerberg about AI and Community Notes. Use them as inspiration when creating new content: 
+Additionally, here are some select threads from Mark Zuckerberg about AI and Community Notes. Use them as inspiration when creating new content but don’t copy them exactly: 
 
 {
 “user”: “zuck”,
