@@ -19,7 +19,7 @@ def short_model_name_to_long_model_name(short_model_name: Short_Model_Name) -> L
   return long_model_names[short_model_names.index(short_model_name)]
 
 type Voice_Corporate = Literal["Default", "A16Z", "WCW", "TASC", "1870", "CRES", "Better Solutions", "Highland Fleets", "HAN", "Meta"]
-type Voice_Noncorporate = Literal["Default", "NRCC", "AFPI", "Vivek", "Kiggans", "Arvind", "Joni Journal", "CLF", "RJC", "Crane", "Professor"]
+type Voice_Noncorporate = Literal["Default", "NRCC", "AFPI", "Vivek", "Kiggans", "Arvind", "Joni Journal", "CLF", "RJC", "Crane", "Professor", "Tenney"]
 type Voice = Voice_Corporate | Voice_Noncorporate
 voices_corporate: tuple[Voice_Corporate, ...] = aa(Voice_Corporate)
 voices_noncorporate: tuple[Voice_Noncorporate, ...] = aa(Voice_Noncorporate)
