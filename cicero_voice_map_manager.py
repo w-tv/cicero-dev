@@ -55,7 +55,7 @@ with st.expander("Text box for pasting a Python dict or JSON"):
         voice_map_dict = json.loads(dict_input)
       else:
         voice_map_dict = ast.literal_eval(dict_input)
-        
+
       if isinstance(voice_map_dict, dict):
         sql_call_cacheless("DELETE FROM cicero.default.voice_map")
         for voice_id, voice_description in voice_map_dict.items():

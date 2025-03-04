@@ -72,7 +72,7 @@ with Profiler():
     loading_message = st.empty()
     loading_message.write("Loading CICERO.  This may take up to a minute...")
 
-  #This is the way you set admin. However, for the sake of brevity, the preferred way to *check* admin mode is is_admin() from cicero_shared.
+  #This is the way you set admin mode. However, for the sake of brevity and DRY, the way to *check* admin mode is is_admin() from cicero_shared. You should always use that way.
   ssset('admin_mode', not ssget("admin_mode_disabled") and get_value_of_column_in_table("user_pod", "cicero.ref_tables.user_pods") == "Admin")
   def disable_admin_mode() -> None:
     ssset("admin_mode_disabled", True)
@@ -88,7 +88,7 @@ with Profiler():
     pages += [ st.Page(cicero_chat_main, title="💬 Chat with Cicero", url_path="chat_with_cicero") ]
   if 'chat_with_corpo' in page_access: #the following logic implements how we want people with corpo access to not see the prompter, unless they are admins.
     pages += [ st.Page(lambda: cicero_chat_main("_corporate"), title="💼 Chat with Cicero", url_path="chat_with_cicero_corporate") ]
-  elif not is_admin(): #we prevent admin just because we also add it to admin in a second (in order to let admins have everything, but not twice (twice would be a Multiple Pages specified with URL the same error)
+  elif not is_admin(): #we prevent giving this to admins just because we also add it to admins' view in a second (in order to let admins have everything, but not twice (twice would be a Multiple Pages specified with URL the same error))
     pages += [st.Page("cicero_prompter.py", title="🗣️ Prompter")]
   if is_admin():
     pages += [

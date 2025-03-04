@@ -7,13 +7,13 @@ As part of the video brief feature, we'd like to upload documents we create to g
 • Local testing version of the code doesn't work at all, because I am not logged in as a google account. That makes sense.
 
 • Streamlit seems to not work, for no particular reason. (It just hangs, and gives the following error:
-    TransportError: Failed to retrieve 
+    TransportError: Failed to retrieve
     http://metadata.google.internal/computeMetadata/v1/universe/universe-domain from
-    the Google Compute Engine metadata service. Compute Engine Metadata server 
+    the Google Compute Engine metadata service. Compute Engine Metadata server
     unavailable due to HTTPConnectionPool(host='metadata.google.internal', port=80):
-    Max retries exceeded with url: /computeMetadata/v1/universe/universe-domain 
-    (Caused by ConnectTimeoutError(<urllib3.connection.HTTPConnection object at 
-    0x7c2d29102f90>, 'Connection to metadata.google.internal timed out. (connect 
+    Max retries exceeded with url: /computeMetadata/v1/universe/universe-domain
+    (Caused by ConnectTimeoutError(<urllib3.connection.HTTPConnection object at
+    0x7c2d29102f90>, 'Connection to metadata.google.internal timed out. (connect
     timeout=120)'))
 )
 I think it's because we can't connect to the ".internal" url except from within a google cloud hosted thing. I'm not providing this url directly so this may never work 🤔
