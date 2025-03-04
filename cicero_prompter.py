@@ -6,7 +6,7 @@ import streamlit as st
 import pandas as pd
 import json
 from typing import Any, Literal, TypedDict
-from cicero_shared import assert_always, consul_show, dev_str, ensure_existence_of_activity_log, exit_error, is_dev, ssget, get_base_url, load_account_names, sql_call, sql_call_cacheless, st_print, topics_big
+from cicero_shared import admin_box, assert_always, admin_sidebar_print, admin_str, ensure_existence_of_activity_log, exit_error, is_admin, ssget, get_base_url, load_account_names, sql_call, sql_call_cacheless, st_admin_print, topics_big
 from cicero_types import aa, Short_Model_Name, Long_Model_Name, short_model_names, short_model_name_default, short_model_name_to_long_model_name
 import cicero_chat
 
@@ -115,7 +115,7 @@ def only_those_strings_of_the_list_that_contain_the_given_substring_case_insensi
 ReferenceTextElement = TypedDict('ReferenceTextElement', {'prompt': str, 'text': str, 'score': float})
 
 def sample_dissimilar_texts(population: list[ReferenceTextElement], k: int, max_similarity: float=0.8) -> list[ReferenceTextElement]: #TODO: it seems that this function is only called when text is Long, which is probably not right? #TODO: it takes maybe 20 seconds for this code to run, it seems, and this code is called {# Outputs} times (again, only on Long) and furthermore I suspect this code can be replaced with about 5 lines, so maybe that refactor will also speed things up. # On further investigation it seems like this is rarely the bottleneck. Or is it?
-  consul_show(f"sample_dissimilar_texts's {max_similarity=}")
+  admin_sidebar_print(f"sample_dissimilar_texts's {max_similarity=}")
   final_arr: list[ReferenceTextElement] = []
   not_selected = []
   randomized_arr = random.sample(population, k=len(population))
@@ -156,7 +156,7 @@ def execute_prompting(model: Long_Model_Name, account: str, sender: str|None, as
   The function is also about 300 lines longer than it should be.
   It's understandable that the old author of this code did it, inefficiently, in Python, instead of learning the annals of SQL to do it on the SQL side. I'm traversing the annals of SQL right now in order to do it and I don't care for it."""
   score_threshold = 0.5 # Document Similarity Score Acceptance Threshold
-  consul_show(f"{score_threshold=}, {doc_pool_size=}, {num_examples=}")
+  admin_sidebar_print(f"{score_threshold=}, {doc_pool_size=}, {num_examples=}")
   assert_always(num_examples <= doc_pool_size, "You can't ask to provide more examples than there are documents in the pool! Try again with a different value.")
   primary_key = "PROJECT_NAME" # Index Table Primary Key Name
   topics += additional_topics
@@ -318,8 +318,7 @@ def execute_prompting(model: Long_Model_Name, account: str, sender: str|None, as
       reference_texts.extend(search_results)
     except Exception as _e:
       used_similarity_search_backup = "faiss"
-      if is_dev():
-        st_print("developer mode message: error was encountered in the main similarity search library (or perhaps you induced a fake error there for testing purposes) so we are using the backup option")
+      st_admin_print("Ⓐ Admin mode message: error was encountered in the main similarity search library (or perhaps you induced a fake error there for testing purposes) so we are using the backup option")
       search_results = []
       lowest_score = 0.0 # (As of 2024-09-27, it's no longer clear that the following information is correct, nor what the lowest_score value should be.) This value is a hack. Our original score_threshold value (which we set this variable to the value of) was too high, so we never found any results, so the score_threshold was never updated. (Although, I think it can only ever update up, that's the whole point of updating it in our code later, I guess. So in reality that part of the process was irrelevant and the real problems was that the score_threshold was simply too high.) This is probably because instead of values between 0 and 1, like it's supposed to, the FAISS thing is giving us back all sorts of numbers, some of them negative. And I guess very few of those are >0.5 or whatever the score_threshold is. This caused the code to run approximately forever, eat up enormous amounts of RAM, and then (exceeding the RAM limit) die. I think this method will still exceed the RAM limit and die on Streamlit, even with this fix! (Although sometimes Streamlit seems to allow you to exceed the RAM limit, maybe if you only do it for a second, without crashing you, so we'll see.)
       start = batch_bounds[0]
@@ -475,7 +474,7 @@ bios: dict[str, str] = load_bios()
 if not st.session_state.get("initted"):
   set_ui_to_preset("default")
   st.session_state["initted"] = True
-  st.rerun() #STREAMLIT-BUG-WORKAROUND: this rerun actually has nothing to do with initing, it's just convenient to do here, since we need to do it exactly once, on app startup. It prevents the expander from experiencing a streamlit bug (<https://github.com/streamlit/streamlit/issues/2360>) that is only present in the initial run state. Anyway, this rerun is really fast and breaks nothing (except the developer mode initial performance timer readout, which is now clobbered) so it's a good workaround.
+  st.rerun() #STREAMLIT-BUG-WORKAROUND: this rerun actually has nothing to do with initing, it's just convenient to do here, since we need to do it exactly once, on app startup. It prevents the expander from experiencing a streamlit bug (<https://github.com/streamlit/streamlit/issues/2360>) that is only present in the initial run state. Anyway, this rerun is really fast and breaks nothing (except the admin mode initial performance timer readout, which is now clobbered) so it's a good workaround.
 
 login_activity_counter_container = st.container()
 
@@ -500,7 +499,7 @@ st.text("") # Just for vertical spacing.
 
 with st.form('query_builder'):
   with st.sidebar:
-    if is_dev():
+    if is_admin():
       topic_weight: float = st.slider("Topic Weight", min_value=0.0, max_value=10.0, key="topic_weight")
       tone_weight: float = st.slider("Tone Weight", min_value=0.0, max_value=10.0, key="tone_weight")
       client_weight: float = st.slider("Client Weight", min_value=0.0, max_value=10.0, key="client_weight")
@@ -517,7 +516,7 @@ with st.form('query_builder'):
       doc_pool_size = 30
       num_examples = 10
 
-  model_name = st.selectbox("Model (required)", short_model_names, key="model_name") if is_dev() else short_model_name_default
+  model_name = st.selectbox("Model (required)", short_model_names, key="model_name") if is_admin() else short_model_name_default
   model = short_model_name_to_long_model_name(model_name)
   account = st.selectbox("Account (required)", load_account_names(), key="account")
   sender = st.text_input("Sender Name", key="sender")
@@ -527,17 +526,17 @@ with st.form('query_builder'):
   additional_topics = [x.strip().lower() for x in st.text_input("Additional Topics (examples: Biden, survey, deadline)", key="additional_topics" ).split(",") if x.strip()] # The list comprehension is to filter out empty strings on split, because otherwise this fails to make a truly empty list in the default case, instead having a list with an empty string in, because split changes its behavior when you give it arguments. Anyway, this also filters out trailing comma edge-cases and such.
   tones = st.multiselect("Tones", aa(Tone), key="tones")
   num_outputs = st.selectbox(r"\# Outputs", aa(Num_Outputs), key='num_outputs')
-  temperature: float = st.slider("Output Variance:", min_value=0.0, max_value=1.0, key="temperature") if is_dev() else 0.7
+  temperature: float = st.slider("Output Variance:", min_value=0.0, max_value=1.0, key="temperature") if is_admin() else 0.7
   buttonhole = st.empty()
   with buttonhole:
     if st.session_state.get("submit_button_disabled"):
       st.form_submit_button("Processing...", type="primary", disabled=True)
     else:
       st.form_submit_button("Submit", type="primary", on_click=disable_submit_button_til_complete)
-  if is_dev():
-    st.session_state["use_backup_similarity_search_library"] = st.selectbox("(developer mode option) trigger a fake error in the appropriate place in this run to use backup similarity search library", [False, True])
-if is_dev():
-  if st.button("Developer mode special button for testing: “***I'm feeling (un)lucky***”", key="unlucky"):
+  if is_admin():
+    st.session_state["use_backup_similarity_search_library"] = st.selectbox("Ⓐ (Admin mode option) trigger a fake error in the appropriate place in this run to use backup similarity search library", [False, True])
+if is_admin():
+  if st.button("Ⓐ Admin mode special button for testing: “***I'm feeling (un)lucky***”", key="unlucky"):
     st.session_state["submit_button_disabled"] = True
     account = "AAF" # Just a testing value.
 
@@ -589,10 +588,11 @@ if st.session_state.get("submit_button_disabled"):
 
 # The idea is for these output elements to persist after one query button, until overwritten by the results of the next query.
 
-if 'entire_prompt' in st.session_state and is_dev():
-  with st.expander("Developer Mode Message: the prompt passed to the model"):
+if 'entire_prompt' in st.session_state:
+  admin_box(
+    "Ⓐ Admin Mode Message: the prompt passed to the model",
     st.caption(st.session_state['entire_prompt'].replace("$", r"\$"))
-
+  )
 st.error("WARNING! Outputs have not been fact checked. CICERO is not responsible for inaccuracies in deployed copy. Please check all *names*, *places*, *counts*, *times*, *events*, and *titles* (esp. military titles) for accuracy.  \nAll numbers included in outputs are suggestions only and should be updated. They are NOT analytically optimized to increase conversions (yet) and are based solely on frequency in past copy.", icon="⚠️")
 if 'outputs' in st.session_state:
   key_collision_preventer = 1
@@ -617,7 +617,7 @@ with st.sidebar: #The history display includes a result of the logic of the scri
   st.dataframe( pd.DataFrame(reversed( st.session_state['history'] ),columns=(["Outputs"])), hide_index=True, use_container_width=True)
 
 login_activity_counter_container.write(
-  f"""You are {'fake-'*bool(ssget('fake_email'))}logged in as {ssget('email')}{ dev_str( f" (internally, {st.experimental_user.email})" ) }. You have prompted {st.session_state['use_count']} time{'s' if st.session_state['use_count'] != 1 else ''} today, out of a limit of {use_count_limit}. {dev_str("You are in developer mode.")}"""
+  f"""You are {'fake-'*bool(ssget('fake_email'))}logged in as {ssget('email')}{ admin_str( f" (internally, {st.experimental_user.email})" ) }. You have prompted {st.session_state['use_count']} time{'s' if st.session_state['use_count'] != 1 else ''} today, out of a limit of {use_count_limit}. {admin_str("You are in admin mode.")}"""
 )
 
 st.session_state["submit_button_disabled"] = False

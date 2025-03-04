@@ -14,7 +14,7 @@ List of derived quantities, left to right (does not include "topic", which is al
 """
 import streamlit as st
 from typing import Sequence
-from cicero_shared import dev_str, get_list_value_of_column_in_table, is_dev, load_account_names, sql_call, topics_big
+from cicero_shared import admin_str, get_list_value_of_column_in_table, is_admin, load_account_names, sql_call, topics_big
 from math import ceil
 
 import pandas as pd
@@ -102,7 +102,7 @@ with col2:
     permitted_accounts = load_account_names()
   else:
     permitted_accounts = tuple( x for x in load_account_names() if lowalph_in(x, permissible_account_names) )
-  accounts = st.multiselect("Account", permitted_accounts, help=f"This control allows you to filter on the account name. If nothing is selected in this control all of the accounts will be presented (however, you will not be able to drill down on a topic without first selecting an account {dev_str('; unless you are in developer mode, which you are')}). Also, you must be individually permissioned for access to account names, so you may not have the ability to select additional ones.")
+  accounts = st.multiselect("Account", permitted_accounts, help=f"This control allows you to filter on the account name. If nothing is selected in this control all of the accounts will be presented (however, you will not be able to drill down on a topic without first selecting an account {admin_str('; unless you are in admin mode, which you are')}). Also, you must be individually permissioned for access to account names, so you may not have the ability to select additional ones.")
   accounts_string = "true" if not accounts else f"account_name in {to_sql_tuple_string(external_account_names_to_internal_account_names_list_mapping(accounts))}"
 with col3:
   project_types = st.multiselect("Project Type", ["Text Message: P2P Internal", "Text Message: SMS"], help="This control allows you to filter on the project type. If nothing is selected in this control, the filtering is that Text Message: P2P External is excluded (which is equivalent to selecting both available options).")
@@ -145,11 +145,11 @@ if len(summary_data_per_topic):
     ).add_params( single )
   event = st.altair_chart(chart, use_container_width=True, on_select="rerun")
   st.caption("*<center>Reflects performance of all Salesforce projects, not just Cicero projects. Performance shown when no account is selected reflects all TV (not just accounts you are permitted to see).</center>*", unsafe_allow_html=True) # You could also do this in-chart using https://altair-viz.github.io/user_guide/customization.html#adjusting-the-title , and it would probably even look better. But we arbitrarily happened to choose to go the other way.
-  if "selection" in event and (is_dev() or len(accounts) == 1): #on click we "drill down"
+  if "selection" in event and (is_admin() or len(accounts) == 1): #on click we "drill down"
     if len(event['selection']['param_1']) > 0:
       selected_topics = event['selection']['param_1'][0]['Topic']
       st.header(selected_topics.title())
-      selected_topics_rows = sql_call(f"""SELECT {dev_str("account_name,")} project_name, send_date , project_type, sum(tv_funds) as tv_funds, clean_text FROM topic_reporting.default.gold_topic_data WHERE {project_types_string} and {accounts_string} and {askgoal_string} and SEND_DATE >= CURRENT_DATE() - INTERVAL {past_days} DAY and SEND_DATE <= CURRENT_DATE() and array_contains(topics, '{selected_topics}') GROUP BY {dev_str("account_name,")} project_name, send_date, project_type, clean_text""")
+      selected_topics_rows = sql_call(f"""SELECT {admin_str("account_name,")} project_name, send_date , project_type, sum(tv_funds) as tv_funds, clean_text FROM topic_reporting.default.gold_topic_data WHERE {project_types_string} and {accounts_string} and {askgoal_string} and SEND_DATE >= CURRENT_DATE() - INTERVAL {past_days} DAY and SEND_DATE <= CURRENT_DATE() and array_contains(topics, '{selected_topics}') GROUP BY {admin_str("account_name,")} project_name, send_date, project_type, clean_text""")
       column_names = {str(i): k for i, k in enumerate(selected_topics_rows[0].asDict())}
       st.dataframe(selected_topics_rows, column_config=column_names, use_container_width=True)
 else:
@@ -160,7 +160,7 @@ with st.form("Day line graph controls", border=False):
   #STREAMLIT-BUG-WORKAROUND: I can't replicate it with simple code like `import streamlit as st; from time import sleep; st.multiselect("a", ["a", "b", "c"]); sleep(5); st.write("OK")`, but Ted identified a bug I WAS able to replicate here where if this isn't in an st.form, you can add a bunch of topics to the multiselect, and then click off, and it clears all of your input to the multiselect. So, we use a form to avoid that behavior, whatever it is.
   st.write("**Day line graph controls**")
   topics = st.multiselect("Topics", topics_big, default="All", help="This control filters the below graph to only include results that have the selected topic.  If 'All' is one of the selected values, an aggregate sum of all the topics will be presented, as well.")
-  # COULD: maybe have a radio button or something here that lets dev mode users switch between regex and contains
+  # COULD: maybe have a radio button or something here that lets admin mode users switch between regex and straight string-contains
   filter_search = st.text_input("Filter by text content", help="This box, if filled in, makes the below graph only include results that have text (in the clean_text or clean_email field) matching the contents of this box, case-insensitively. (If you enter text that doesn't match any text appearing anywhere then the below graph might become nonsensical.)")
   if filter_search:
     search_string = "(LOWER(clean_email) LIKE LOWER(CONCAT('%', :filter_search, '%')) OR LOWER(clean_text) LIKE LOWER(CONCAT('%', :filter_search, '%')))"

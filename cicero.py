@@ -10,7 +10,7 @@ import psutil
 import platform
 from sys import argv
 from cicero_chat import main as cicero_chat_main
-from cicero_shared import dev_box, ensure_existence_of_activity_log, exit_error, get_base_url, get_list_value_of_column_in_table, is_dev, sql_call_cacheless, ssget, ssset, sspop, st_print
+from cicero_shared import admin_box, ensure_existence_of_activity_log, exit_error, get_base_url, get_list_value_of_column_in_table, get_value_of_column_in_table, is_admin, sql_call_cacheless, ssget, ssset, sspop, st_print
 from google.auth.transport import requests
 from google.oauth2 import id_token
 from wfork_streamlit_profiler import Profiler
@@ -72,12 +72,12 @@ with Profiler():
     loading_message = st.empty()
     loading_message.write("Loading CICERO.  This may take up to a minute...")
 
-  #This is the way you set developer_mode. However, for the sake of brevity, the preferred way to *check* developer mode is is_dev() from cicero_shared.
-  ssset('developer_mode', not ssget("developer_mode_disabled") and ssget('email') in ("abrady@targetedvictory.com", "thall@targetedvictory.com", "wcarpenter@targetedvictory.com", "rklein@targetedvictory.com", "test@example.com"))
-  def disable_developer_mode() -> None:
-    ssset("developer_mode_disabled", True)
+  #This is the way you set admin. However, for the sake of brevity, the preferred way to *check* admin mode is is_admin() from cicero_shared.
+  ssset('admin_mode', not ssget("admin_mode_disabled") and get_value_of_column_in_table("user_pod", "cicero.ref_tables.user_pods") == "Admin")
+  def disable_admin_mode() -> None:
+    ssset("admin_mode_disabled", True)
 
-  # Since we use st.navigation explicitly, the default page detection is disabled, even though we may use a pages folder later (although we shouldn't name that folder pages/, purely in order to suppress a warning message about how we shouldn't do that). This is good, because we want to hide some of the pages from non-dev-mode users.
+  # Since we use st.navigation explicitly, the default page detection is disabled, even though we may use a pages folder later (although we shouldn't name that folder pages/, purely in order to suppress a warning message about how we shouldn't do that). This is good, because we want to hide some of the pages from non-admin-mode users.
   # There is an icon parameter to st.Page, so we could write eg icon="🗣️", but including the emoji in the titles makes them slightly larger and thus nicer-looking.
   pages = [] #pages visible to the user
   page_access: list[str] = get_list_value_of_column_in_table("page_access", "cicero.ref_tables.user_pods")
@@ -86,11 +86,11 @@ with Profiler():
   # These next two pages need a url_path because otherwise they have dumb names for implementation reasons.
   if 'chat_with_cicero' in page_access:
     pages += [ st.Page(cicero_chat_main, title="💬 Chat with Cicero", url_path="chat_with_cicero") ]
-  if 'chat_with_corpo' in page_access:
+  if 'chat_with_corpo' in page_access: #the following logic implements how we want people with corpo access to not see the prompter, unless they are admins.
     pages += [ st.Page(lambda: cicero_chat_main("_corporate"), title="💼 Chat with Cicero", url_path="chat_with_cicero_corporate") ]
-  elif not is_dev(): #we prevent dev just because we also add it to dev (in order to let devs have everything, but not twice (twice would be a Multiple Pages specified with URL the same error)
+  elif not is_admin(): #we prevent admin just because we also add it to admin in a second (in order to let admins have everything, but not twice (twice would be a Multiple Pages specified with URL the same error)
     pages += [st.Page("cicero_prompter.py", title="🗣️ Prompter")]
-  if is_dev():
+  if is_admin():
     pages += [
       st.Page("cicero_prompter.py", title="🗣️ Prompter"),
       st.Page("cicero_response_lookup.py", title="🔍 Response Lookup"),
@@ -103,8 +103,8 @@ with Profiler():
   st.navigation(pages).run()
   loading_message.empty() # At this point, we no longer need to display a loading message, once we've gotten here and displayed everything above.
 
-  if is_dev(): # Developer information about the app (performance, etc).
-    dev_box("Developer Mode Message: the entire session_state", st.session_state)
+  if is_admin(): # Developer information about the app (performance, etc).
+    admin_box("Admin Mode Message: the entire session_state", st.session_state)
     with st.sidebar:
       st.caption(f"""Streamlit app memory usage: {psutil.Process(os.getpid()).memory_info().rss // 1024 ** 2} MiB.<br>
         Time to display: {(perf_counter_ns()-nanoseconds_base)/1000/1000/1000} seconds.<br>
@@ -114,9 +114,9 @@ with Profiler():
         Cicero version (git HEAD hash) currently on disk: `{get_git_head_hash()}`<br>
         Base url: {get_base_url()}
       """, unsafe_allow_html=True)
-      st.button("disable Developer Mode", on_click=disable_developer_mode, help="Click this button to disable developer mode, allowing you to see and interact with the app as a basic user would. You can refresh the page in your browser to re-enable developer mode.") #this is a callback for streamlit ui update-flow reasons.
+      st.button("disable Admin Mode", on_click=disable_admin_mode, help="Click this button to disable admin mode, allowing you to see and interact with the app as a basic user would. You can refresh the page in your browser to re-enable admin mode.") #this is a callback for streamlit ui update-flow reasons.
       st.text_input("see the page as this user", key="fake_email")
-  else: # Disable the profiler element visually, using css, if not in dev mode.
+  else: # Disable the profiler element visually, using css, if not in admin mode.
     st.markdown("""<style> [allow="accelerometer; ambient-light-sensor; autoplay; battery; camera; clipboard-write; document-domain; encrypted-media; fullscreen; geolocation; gyroscope; layout-animations; legacy-image-formats; magnetometer; microphone; midi; oversized-images; payment; picture-in-picture; publickey-credentials-get; sync-xhr; usb; vr ; wake-lock; xr-spatial-tracking"] { /*this is an arbitrary way to target the profiler element*/ display: none; } </style>""", unsafe_allow_html=True)
 
   # Write to the activity log if we need to. These are here for end-user performance/convenience reasons, even though on every other axis this is a bad place for it:

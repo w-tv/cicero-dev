@@ -6,7 +6,7 @@ import streamlit as st
 from datetime import datetime, timedelta
 import time
 from databricks_genai_inference import ChatSession, FoundationModelAPIException
-from cicero_shared import catstr, dev_box, get_value_of_column_in_table, get_list_value_of_column_in_table, is_dev, sql_call, ssget, ssset, ssmut, sspop, get_base_url, popup, load_account_names, sql_call_cacheless
+from cicero_shared import catstr, admin_box, get_list_value_of_column_in_table, is_admin, sql_call, ssget, ssset, ssmut, sspop, get_base_url, popup, load_account_names, sql_call_cacheless
 from cicero_types import Short_Model_Name, short_model_names, short_model_name_default, short_model_name_to_long_model_name, voices_corporate, voices_noncorporate, Voice, voice_default, Chat_Suffix, chat_suffix_default
 from cicero_video_brief_system_prompt import nice_text_to_html, video_brief_system_prompt
 import bs4 # for some reason bs4 is how you import beautifulsoup
@@ -245,7 +245,7 @@ def grow_chat(streamlit_key_suffix: Chat_Suffix, alternate_content: str|Literal[
         # Double-prompting we only do on occasion
         # The double-prompting makes the error handling less efficient than it theoretically could be, but whatver.
         if voice == "Arvind":
-          dev_box("Developer Mode Message: double-prompting: the original machine response", chat.last)
+          admin_box("Developer Mode Message: double-prompting: the original machine response", chat.last)
           chat.reply("Make the first sentence more concise, shocking, and unhinged") # we don't have to display this part.
           messages.pop() # remove the previous last message, now that we have the new one
           messages.append({"avatar": "assets/CiceroChat_800x800.jpg", "role": "assistant", "content": chat.last})
@@ -309,7 +309,7 @@ def display_chat(streamlit_key_suffix: Chat_Suffix, account: str = "No account",
   if pii and pii[0] is True: # We're in a pii situation and the user has chosen to press on. So we have to send that chat message before we display the chat history.
     grow_chat(**pii[2])
     ssset( "pii_interrupt_state", streamlit_key_suffix, [None, ""] )
-  needback: bool = is_dev() and bool(ssget("outstanding_activity_log_payload", streamlit_key_suffix) or ssget("outstanding_activity_log_payload2", streamlit_key_suffix)) #TODO(urgent): this is a prototype version that requires you to refresh the page. For this feature to actually work, I'll have to include logic in the activity log discharger that rewrites the contents of the chat to the right thing (which will have to be in a container).
+  needback: bool = is_admin() and bool(ssget("outstanding_activity_log_payload", streamlit_key_suffix) or ssget("outstanding_activity_log_payload2", streamlit_key_suffix)) #TODO(urgent): this is a prototype version that requires you to refresh the page. For this feature to actually work, I'll have to include logic in the activity log discharger that rewrites the contents of the chat to the right thing (which will have to be in a container).
   if ms := ssget("messages", streamlit_key_suffix):
     for message in ms:
       with st.chat_message(message["role"], avatar=message.get("avatar")):
@@ -326,7 +326,7 @@ def display_chat(streamlit_key_suffix: Chat_Suffix, account: str = "No account",
   if needback:
     st.success("Please give feedback to enable copying the text. (And to make Cicero better!)")
   if (s := sspop("last_url_content")):
-    dev_box("Developer Mode Message (will disappear on next page load): url content", s)
+    admin_box("Admin Mode Message (will disappear on next page load): url content", s)
   if ssget("outstanding_activity_log_payload", streamlit_key_suffix):
     cicero_feedback_widget(streamlit_key_suffix, "", "***Did Cicero understand your request? Let us know to continue chatting.***")
   if ssget("outstanding_activity_log_payload2", streamlit_key_suffix):
@@ -351,14 +351,13 @@ def main(streamlit_key_suffix: Chat_Suffix = chat_suffix_default) -> None: # It'
   accessable_voices: tuple[Voice, ...] = (voice_default,) # I wouldn't have written the code this way were it not for a shocking(ly intended) weakness in pyright: https://github.com/microsoft/pyright/issues/9173
   ds = voices_corporate if streamlit_key_suffix == "_corporate" else voices_noncorporate
   accessable_voices += tuple(d for d in get_list_value_of_column_in_table("voices", "cicero.ref_tables.user_pods") if d in ds and d != voice_default)
-  if get_value_of_column_in_table("user_pod", "cicero.ref_tables.user_pods") == "Admin": # Admins get to see all voices, although (for clarity's sake) only the voices per the type of chat.
-    # TODO: possibly collapse Admin mode and dev mode into the same concept later, iff it turns out we want the same set of people in both these days?
+  if is_admin(): # Admins get to see all voices, although (for clarity's sake) only the voices per the type of chat.
     accessable_voices = ds
   voice = st.selectbox("Voice (you must reset the chat for a change to this to take effect)", accessable_voices)
-  account = st.selectbox("Use historical messages from this account:", ("No account",) + load_account_names(), key="account") if streamlit_key_suffix != "_corporate" else st.text_input("Account")
-  expand_links = st.checkbox("Expand links", value=True) if is_dev() else True
-  model_name = st.selectbox("Model", short_model_names, key="model_name") if is_dev() else short_model_name_default
-  st.file_uploader(label="Upload a file", key="chat_file_uploader", type=['csv', 'docx', 'html', 'htm', 'txt', 'xls', 'xlsx'], accept_multiple_files=False, on_change=grow_chat, args=(streamlit_key_suffix, True, account, model_name, voice, expand_links)) if is_dev() else None #note: this seems like a DRY violation to me... #TODO: file upload currently lets people bypass good/bad rating. However, we could hide it when in the asking-for-rating state, if that is deemed a good idea.
+  account = st.selectbox("Use historical messages from this account:", ("No account",)  + load_account_names(), key="account") if streamlit_key_suffix != "_corporate" else st.text_input("Account")
+  expand_links = st.checkbox("Expand links", value=True) if is_admin() else True
+  model_name = st.selectbox("Model", short_model_names, key="model_name") if is_admin() else short_model_name_default
+  st.file_uploader(label="Upload a file", key="chat_file_uploader", type=['csv', 'docx', 'html', 'htm', 'txt', 'xls', 'xlsx'], accept_multiple_files=False, on_change=grow_chat, args=(streamlit_key_suffix, True, account, model_name, voice, expand_links)) if is_admin() else None #note: this seems like a DRY violation to me... #TODO: file upload currently lets people bypass good/bad rating. However, we could hide it when in the asking-for-rating state, if that is deemed a good idea.
   if st.button("Clear conversion"):
     reset_chat(streamlit_key_suffix)
   display_chat(streamlit_key_suffix, account=account, short_model_name=model_name, voice=voice, expand_links=expand_links)

@@ -60,23 +60,28 @@ def sspop(string_to_get_from_streamlit_session_state: str, *additional_args: Any
   """Like ssget, but delete the value we find from its container.""" #could alias ssdel to this I guess.
   return ssdrill(lambda container, accessor: container.pop(accessor) if accessor in container else None, string_to_get_from_streamlit_session_state, *additional_args, dont_actually_set_the_value=True)
 
-def is_dev() -> bool:
-  """Return true if developer mode is active and false if it is inactive."""
-  return bool(ssget("developer_mode"))
+def is_admin() -> bool:
+  """Return true if admin mode is active and false if it is inactive."""
+  return bool(ssget("admin_mode"))
 
-def dev_str(value: object) -> str:
-  """Return a value, converted to a string, if developer_mode is active. Otherwise return an empty string.
-  This function would ideally return the value untouched (of the input type), and None if dev mode is false, but the fact that str(`None`) becomes "None" in python makes that a footgun waiting to happen :(.
-    (You see, you would obviously want to write dev_str("some string") and expect it to not appear if dev mode is off. But instead the word "None" would appear!) """
-  return str(value) if is_dev() else ""
+def admin_str(value: object) -> str:
+  """Return a value, converted to a string, if admin_mode is active. Otherwise return an empty string.
+  This function would ideally return the value untouched (of the input type), and None if admin mode is false, but the fact that str(`None`) becomes "None" in python makes that a footgun waiting to happen :(.
+    (You see, you would obviously want to write admin_str("some string") and expect it to not appear if admin mode is off. But instead the word "None" would appear!) """
+  return str(value) if is_admin() else ""
 
-def dev_box(expander_box_title: str, contents: object) -> None:
-  if is_dev():
-    st.expander("ⓓ "+expander_box_title).write(contents)
+def admin_box(expander_box_title: str, contents: object) -> None:
+  if is_admin():
+    st.expander("Ⓐ "+expander_box_title).write(contents)
 
 def st_print(*args: object) -> None:
   print(*args)
   st.write(*args)
+
+def st_admin_print(*args: object) -> None:
+  print(*args) # the user won't be able to see the print output anyway, so it's inherently limited to admins.
+  if is_admin():
+    st.write(*args)
 
 def get_base_url() -> str:
   """Gets the url where the streamlit app is currently running, not including any page paths underneath. In testing, for example, this value is probably http://localhost:8501 . This function is from BramVanroy https://github.com/streamlit/streamlit/issues/798#issuecomment-1647759949 , with modifications. “WARNING: I found that in multi-page apps, this will always only return the base url and not the sub-page URL with the page appended to the end.”"""
@@ -91,10 +96,10 @@ def get_base_url() -> str:
   except IndexError as e:
     return str(e)
 
-def consul_show(x: object) -> None:
+def admin_sidebar_print(x: object) -> None:
   """Show some debug-like information in the sidebar. Often best used with f"{foo=}" in the calling code, which will become the name and also the value of the variable, such as foo=2 (naturally, this must be done at the calling site (I assume))."""
-  if is_dev():
-    st.sidebar.caption(f"Developer (“Consul”) mode diagnostic: {x}")
+  if is_admin():
+    st.sidebar.caption(f"Ⓐ Admin mode diagnostic: {x}")
 
 # COULD: use an on_exit thing, and maybe counsel the user that they can usually refresh and retry if they hit an error?
 def exit_error(exit_code: int) -> NoReturn:
