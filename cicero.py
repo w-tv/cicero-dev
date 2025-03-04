@@ -35,7 +35,7 @@ with Profiler():
   st.set_page_config(layout="wide", page_title="Cicero", page_icon=r"assets/CiceroLogo_Favicon.png") # Use wide mode in Cicero, mostly so that results display more of their text by default. Also, set title and favicon. #NOTE: "`set_page_config()` can only be called once per app page, and must be called as the first Streamlit command in your script."
 
   for x in st.session_state: #If we don't do this ritual, streamlit drops all the non-active-pages widget states on the floor (bad). https://docs.streamlit.io/develop/concepts/multipage-apps/widgets#option-3-interrupt-the-widget-clean-up-process
-    if not x.startswith("FormSubmitter:") and not x.startswith("⚡") and not x.startswith("👍") and not x.startswith("👎") and not x.startswith("user_input_for_chatbot_this_frame") and not x == "unlucky" and not x == "chat_file_uploader": #Prevent this error: streamlit.errors.StreamlitAPIException: Values for the widget with key "FormSubmitter:query_builder-Submit" cannot be set using `st.session_state`. # Also prevent this error: StreamlitAPIException: Values for the widget with key "⚡1" cannot be set using st.session_state. And similarly for 👍. In general the buttons that can't have state set, I set their keys to emoji+suffix. Just because.
+    if not x.startswith("FormSubmitter:") and not x.startswith("⚡") and not x.startswith("👍") and not x.startswith("👎") and not x.startswith("user_input_for_chatbot_this_frame") and x not in ("unlucky", "chat_file_uploader", "voice_map_editor"): #Prevent this error: streamlit.errors.StreamlitAPIException: Values for the widget with key "FormSubmitter:query_builder-Submit" cannot be set using `st.session_state`. # Also prevent this error: StreamlitAPIException: Values for the widget with key "⚡1" cannot be set using st.session_state. And similarly for 👍. In general the buttons that can't have state set, I set their keys to emoji+suffix. Just because.
       st.session_state[x] = st.session_state[x]
 
   st.markdown("""<style> [data-testid="stDecoration"] { display: none; } </style>""", unsafe_allow_html=True) #this code removes the red bar at the top but keeps the hamburger menu
@@ -98,6 +98,7 @@ with Profiler():
       st.Page("cicero_activity_looker.py", title="👁️ Activity Looker"),
       st.Page("cicero_meddler.py", title="✍️ Meddler"),
       st.Page("cicero_video_brief.py", title="🎬 Video Brief"),
+      st.Page("cicero_voice_map_manager.py", title="👄 Voice Map Manager"),
     ]
   st.navigation(pages).run()
   loading_message.empty() # At this point, we no longer need to display a loading message, once we've gotten here and displayed everything above.

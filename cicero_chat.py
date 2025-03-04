@@ -6,9 +6,8 @@ import streamlit as st
 from datetime import datetime, timedelta
 import time
 from databricks_genai_inference import ChatSession, FoundationModelAPIException
-from cicero_shared import catstr, dev_box, get_value_of_column_in_table, get_list_value_of_column_in_table, is_dev, ssget, ssset, ssmut, sspop, get_base_url, popup, load_account_names, sql_call_cacheless
+from cicero_shared import catstr, dev_box, get_value_of_column_in_table, get_list_value_of_column_in_table, is_dev, sql_call, ssget, ssset, ssmut, sspop, get_base_url, popup, load_account_names, sql_call_cacheless
 from cicero_types import Short_Model_Name, short_model_names, short_model_name_default, short_model_name_to_long_model_name, voices_corporate, voices_noncorporate, Voice, voice_default, Chat_Suffix, chat_suffix_default
-from cicero_voice_map import voice_map
 from cicero_video_brief_system_prompt import nice_text_to_html, video_brief_system_prompt
 import bs4 # for some reason bs4 is how you import beautifulsoup
 import requests
@@ -174,7 +173,7 @@ def grow_chat(streamlit_key_suffix: Chat_Suffix, alternate_content: str|Literal[
 
   #set the system prompt based on various variables
   if voice != voice_default:
-    sys_prompt = voice_map[voice]
+    sys_prompt = sql_call("SELECT voice_description from cicero.default.voice_map WHERE voice_id = :voice", {"voice": voice})[0][0]
   else:
     match streamlit_key_suffix:
       case "_prompter":

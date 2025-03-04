@@ -129,12 +129,12 @@ def ensure_existence_of_activity_log() -> None:
 
 @st.cache_data(show_spinner=False)
 def sql_call(query: str, sql_params_dict: TParameterCollection|None = None) -> list[Row]:
-  """This is a wrapper function for sql_call_cacheless that *is* cached. See that other function for more information about the actual functionality."""
+  """This is a wrapper function for sql_call_cacheless; the difference is that this one *is* cached. See that other function for more information about the actual functionality."""
   return sql_call_cacheless(query, sql_params_dict)
 
 def sql_call_cacheless(query: str, sql_params_dict: TParameterCollection|None = None) -> list[Row]:
   """Make a call to the database, returning a list of Rows. The returned values within the Rows are usually str, but occasionally might be int (as when getting the count) or float or perhaps any of these https://docs.databricks.com/en/dev-tools/python-sql-connector.html#type-conversions .
-  TParameterCollect is dict[str,Any], basically, although it's a bit more complicated, limited, and flexible than that."""
+  TParameterCollect is basically dict[str,Any], although it's a bit more complicated, limited, and flexible than that."""
   # COULD: (but probably won't) there is a minor problem where we'd like to ensure that a query to a table x only occurs after a call to CREATE TABLE IF NOT EXISTS x (parameters of x). Technically, we could ensure this by creating a new function ensure_table(table_name, table_types) which then returns an TableEnsurance object, which then must be passed in as a parameter to SQL call. However, then we would want to check if it were the correct table (and possibly the right parameter types) which would greatly complicate the function signature of sql_call, because we'd have to pass the table name(s) in too, and then string-replace them into the query(?). So, doesn't seem worth it. ALSO: sometimes we don't have the code to create the table. Some tables have to be created and populated by the team in other ways.
   try:
     with sql.connect(server_hostname=st.secrets["DATABRICKS_HOST"], http_path=st.secrets["DATABRICKS_HTTP_PATH"], access_token=st.secrets["DATABRICKS_TOKEN"]) as connection: #These secrets should be in the root level of the .streamlit/secrets.toml
