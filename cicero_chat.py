@@ -242,7 +242,16 @@ def grow_chat(streamlit_key_suffix: Chat_Suffix, alternate_content: str|Literal[
           pass #TODO: should we ask for feedback on the video briefs? I lean no.
         else:
           assert_never(streamlit_key_suffix)
-        break
+
+        # Double-prompting we only do on occasion
+        # The double-prompting makes the error handling less efficient than it theoretically could be, but whatver.
+        if voice == "Arvind":
+          dev_box("Developer Mode Message: double-prompting: the original machine response", chat.last)
+          chat.reply("Make the first sentence more concise, shocking, and unhinged") # we don't have to display this part.
+          messages.pop() # remove the previous last message, now that we have the new one
+          messages.append({"avatar": "assets/CiceroChat_800x800.jpg", "role": "assistant", "content": chat.last})
+
+        break #leave the retry loop, having been successful with everything.
       except FoundationModelAPIException as e:
         if "API request timed out" in e.message or e.message.startswith('{"error_code":"REQUEST_LIMIT_EXCEEDED","message":"REQUEST_LIMIT_EXCEEDED: Exceeded workspace rate limit for'): # Could: test to see if this Exception ever happens still, and remove this code if not.
           print("!!! chat rate limit or api timeout hit; retrying...", e)
