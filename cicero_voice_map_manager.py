@@ -25,7 +25,7 @@ ensure_existence_of_voice_map_table()
 voice_map_results = sql_call_cacheless("SELECT * FROM cicero.default.voice_map")
 
 # Display the voice map table using st.data_editor
-edited_voice_map = st.data_editor(voice_map_results, num_rows="dynamic", key="voice_map_editor")
+edited_voice_map = st.data_editor(voice_map_results, num_rows="dynamic", key="voice_map_editor", use_container_width=True)
 
 # Save changes to the database
 if st.button("Save Changes"):
