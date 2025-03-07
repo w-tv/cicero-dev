@@ -165,7 +165,7 @@ with st.expander("Pod table", expanded=True):
   st.write("## Pod table")
   st.info("This is the database table of user pods that Cicero currently uses. Remember: this section is completely collapsable in the user interface, if its huge size is visually distracting.")
   ensure_existence_of_pod_table()
-  pod_table_results = sql_call_cacheless("SELECT * FROM cicero.ref_tables.user_pods")
+  pod_table_results = sql_call_cacheless("SELECT * FROM cicero.ref_tables.user_pods ORDER BY user_email")
   # An important feature is being able to control-f for names, and st.dataframe breaks that, so we use a table.
   labeled_table(pod_table_results)
 
@@ -175,7 +175,7 @@ with st.expander("Activity log", expanded=True):
   ensure_existence_of_activity_log()
   st.write(f"""activity log entries where the pod is NULL, suggesting you need to run the retroactive application (above) if there are any: ***{sql_call_cacheless("SELECT count(*) FROM cicero.default.activity_log WHERE user_pod IS NULL")[0][0]}***""")
   st.write(f"""activity log entries where the pod is "Pod unknown", suggesting you need to run the retroactive application (above) if there are any: ***{sql_call_cacheless("SELECT count( distinct user_email) FROM cicero.default.activity_log WHERE user_pod = 'Pod unknown'")[0][0]}***""")
-  activity_log_results = sql_call_cacheless("SELECT DISTINCT user_email, user_pod FROM cicero.default.activity_log")
+  activity_log_results = sql_call_cacheless("SELECT DISTINCT user_email, user_pod FROM cicero.default.activity_log ORDER BY user_email")
   labeled_table(activity_log_results)
 
 st.write("## Manipulate the table using SQL directly:")
