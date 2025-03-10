@@ -18,13 +18,6 @@ short_model_name_default = short_model_names[0] #this doesn't have to be the fir
 def short_model_name_to_long_model_name(short_model_name: Short_Model_Name) -> Long_Model_Name:
   return long_model_names[short_model_names.index(short_model_name)]
 
-type Voice_Corporate = Literal["Default", "A16Z", "WCW", "TASC", "1870", "CRES", "Better Solutions", "Highland Fleets", "HAN", "Meta", "ACC", "DIFA"]
-type Voice_Noncorporate = Literal["Default", "NRCC", "AFPI", "Vivek", "Kiggans", "Arvind", "Joni Journal", "CLF", "RJC", "Crane", "Professor", "Tenney", "MAGA", "RSLC", "VPAC", "Scalise", "Schwab"]
-type Voice = Voice_Corporate | Voice_Noncorporate
-voices_corporate: tuple[Voice_Corporate, ...] = aa(Voice_Corporate)
-voices_noncorporate: tuple[Voice_Noncorporate, ...] = aa(Voice_Noncorporate)
-voice_default: Voice = "Default" # Technically we could DRY the this, but we might have to use something like https://github.com/jorenham/optype/blob/master/README.md#optypeinspect 's get_args if we do so.
-
 type Chat_Suffix = Literal["", "_corporate", "_prompter", "_video_brief"]
 chat_suffixes: tuple[Chat_Suffix, ...] = aa(Chat_Suffix)
 chat_suffix_default = chat_suffixes[0]

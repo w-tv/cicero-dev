@@ -7,7 +7,7 @@ from datetime import datetime, timedelta
 import time
 from databricks_genai_inference import ChatSession, FoundationModelAPIException
 from cicero_shared import catstr, admin_box, get_list_value_of_column_in_table, is_admin, sql_call, ssget, ssset, ssmut, sspop, get_base_url, popup, load_account_names, sql_call_cacheless
-from cicero_types import Short_Model_Name, short_model_names, short_model_name_default, short_model_name_to_long_model_name, voices_corporate, voices_noncorporate, Voice, voice_default, Chat_Suffix, chat_suffix_default
+from cicero_types import Short_Model_Name, short_model_names, short_model_name_default, short_model_name_to_long_model_name, Chat_Suffix, chat_suffix_default
 from cicero_video_brief_system_prompt import nice_text_to_html, video_brief_system_prompt
 import bs4 # for some reason bs4 is how you import beautifulsoup
 import requests
@@ -99,7 +99,9 @@ def expand_url_content(s: str) -> str:
   """Expand the urls in a string to the content of their contents (placing said contents back into the same containing string."""
   return re.sub(pattern=url_regex, repl=content_from_url_regex_match, string=s)
 
-def grow_chat(streamlit_key_suffix: Chat_Suffix, alternate_content: str|Literal[True]|None = None, account: str = "No account", short_model_name: Short_Model_Name = short_model_name_default, voice: Voice = voice_default, expand_links: bool = True) -> None:
+voice_map = sql_call("SELECT * FROM cicero.default.voice_map WHERE enabled = TRUE")
+
+def grow_chat(streamlit_key_suffix: Chat_Suffix, alternate_content: str|Literal[True]|None = None, account: str = "No account", short_model_name: Short_Model_Name = short_model_name_default, voice: str = "Default", expand_links: bool = True) -> None:
   """Note that this function will do something special to the prompt if alternate_content is supplied.
   Also, the streamlit_key_suffix is only necessary because we use this code in two places. If streamlit_key_suffix is "", we infer we're in the chat page, and if otherwise we infer we're being used on a different page (so far, the only thing that does this is prompter).
   Random fyi: chat.history is an alias for chat.chat_history (you can mutate chat.chat_history but not chat.history, btw). Internally, it's, like: [{'role': 'system', 'content': 'You are a helpful assistant.'}, {'role': 'user', 'content': 'Knock, knock.'}, {'role': 'assistant', 'content': "Hello! Who's there?"}, {'role': 'user', 'content': 'Guess who!'}, {'role': 'assistant', 'content': "Okay, I'll play along! Is it a person, a place, or a thing?"}]"""
@@ -172,8 +174,8 @@ def grow_chat(streamlit_key_suffix: Chat_Suffix, alternate_content: str|Literal[
       continue_prompt = False
 
   #set the system prompt based on various variables
-  if voice != voice_default:
-    sys_prompt = sql_call("SELECT voice_description from cicero.default.voice_map WHERE voice_id = :voice", {"voice": voice})[0][0]
+  if voice != "Default":
+    sys_prompt = [v["voice_description"] for v in voice_map if v["voice_id"] == voice][0]
   else:
     match streamlit_key_suffix:
       case "_prompter":
@@ -296,7 +298,7 @@ def cicero_feedback_widget(streamlit_key_suffix: Chat_Suffix, feedback_suffix: s
     else:
       print("!! Cicero internal warning: you are in an invalid state somehow? You are using the feedback widget but have neither outstandings {o=},{o2=}")
 
-def display_chat(streamlit_key_suffix: Chat_Suffix, account: str = "No account", short_model_name: Short_Model_Name = short_model_name_default, voice: Voice = voice_default, expand_links: bool = True) -> None:
+def display_chat(streamlit_key_suffix: Chat_Suffix, account: str = "No account", short_model_name: Short_Model_Name = short_model_name_default, voice: str = "Default", expand_links: bool = True) -> None:
   """Display chat messages from history on app reload; this is how we get the messages to display, and then the chat box.
   The streamlit_key_suffix is only necessary because we use this code in two places. But that does make it necessary, for every widget in this function. If streamlit_key_suffix is "", we infer we're in the chat page, and if otherwise we infer we're being used on a different page (so far, the only thing that does this is prompter).
 
@@ -348,11 +350,8 @@ def main(streamlit_key_suffix: Chat_Suffix = chat_suffix_default) -> None: # It'
     case _:
       pass #deliberately non-exhaustive
   #could: use session state for all of these controls instead of doing all this argument passing of voice, etc...
-  accessable_voices: tuple[Voice, ...] = (voice_default,) # I wouldn't have written the code this way were it not for a shocking(ly intended) weakness in pyright: https://github.com/microsoft/pyright/issues/9173
-  ds = voices_corporate if streamlit_key_suffix == "_corporate" else voices_noncorporate
-  accessable_voices += tuple(d for d in get_list_value_of_column_in_table("voices", "cicero.ref_tables.user_pods") if d in ds and d != voice_default)
-  if is_admin(): # Admins get to see all voices, although (for clarity's sake) only the voices per the type of chat.
-    accessable_voices = ds
+  relevant_table_enablement_column = "chatbot_corporate" if streamlit_key_suffix == "_corporate" else "chatbot_political"
+  accessable_voices = ["Default"] + [v["voice_id"] for v in voice_map if v[relevant_table_enablement_column] is True and (is_admin() or v["voice_id"] in get_list_value_of_column_in_table("voices", "cicero.ref_tables.user_pods"))] # We don't need to check for the voice being enabled in the voice_map, because we already did that in the SQL query.
   voice = st.selectbox("Voice (you must reset the chat for a change to this to take effect)", accessable_voices)
   account = st.selectbox("Use historical messages from this account:", ("No account",)  + load_account_names(), key="account") if streamlit_key_suffix != "_corporate" else st.text_input("Account")
   expand_links = st.checkbox("Expand links", value=True) if is_admin() else True
