@@ -233,16 +233,17 @@ def grow_chat(streamlit_key_suffix: Chat_Suffix, alternate_content: str|Literal[
           "activity_log_payload",
           {"user_email": ssget("email"), "prompter_or_chatbot": 'chatbot'+streamlit_key_suffix, "prompt_sent": p, "response_given": chat.last, "model_name": short_model_name, "model_url": chat.model, "model_parameters": str(chat.parameters), "system_prompt": chat.system_message, "base_url": get_base_url(), "used_similarity_search_backup": "no"} | ({"user_feedback": "not asked", "user_feedback_satisfied": "not asked"} if streamlit_key_suffix == "_prompter" else {"user_feedback": "not asked", "user_feedback_satisfied": "not received"}) | {"hit_readlink_time_limit": hit_readlink_time_limit} | {"pii_concern": bool(pii and pii[0]), "winred_concern": winred_concern, "fec_concern": fec_concern, "voice": voice, "account": account}
         )
-        if False: #this is disabled for everything, at least at the moment
-          ssset("outstanding_activity_log_payload", streamlit_key_suffix, ssget("activity_log_payload"))
-        elif streamlit_key_suffix == "" or streamlit_key_suffix == "_corporate":
-          ssset("outstanding_activity_log_payload2", streamlit_key_suffix, ssget("activity_log_payload"))
-        elif streamlit_key_suffix == "_prompter":
-          pass # note that "_prompter" is deliberately absent, because we don't require anything from it. (I guess, also it can't even appear here, because it's in the other tab.)
-        elif streamlit_key_suffix == "_video_brief":
-          pass #TODO: should we ask for feedback on the video briefs? I lean no.
-        else:
-          assert_never(streamlit_key_suffix)
+        match streamlit_key_suffix:
+          case False: #this is disabled for everything, at least at the moment (probably permanently)
+            ssset("outstanding_activity_log_payload", streamlit_key_suffix, ssget("activity_log_payload"))
+          case "" | "_corporate":
+            ssset("outstanding_activity_log_payload2", streamlit_key_suffix, ssget("activity_log_payload"))
+          case "_prompter":
+            pass # "_prompter" is deliberately absent, because we don't require anything from it; also it can't even appear here, because it's in the other tab.
+          case "_video_brief":
+            pass #TODO: should we ask for feedback on the video briefs? I lean no.
+          case _:
+            assert_never(streamlit_key_suffix)
 
         # Double-prompting we only do on occasion
         # The double-prompting makes the error handling less efficient than it theoretically could be, but whatver.
