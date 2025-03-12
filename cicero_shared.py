@@ -64,6 +64,10 @@ def is_admin() -> bool:
   """Return true if admin mode is active and false if it is inactive."""
   return bool(ssget("admin_mode"))
 
+def are_experimental_features_enabled() -> bool:
+  """Return true if experimental features are enabled and false if they are not, so as to gate experimental features only to the right users. Since the right users are just admins, this just checks if admin mode is active."""
+  return is_admin()
+
 def admin_str(value: object) -> str:
   """Return a value, converted to a string, if admin_mode is active. Otherwise return an empty string.
   This function would ideally return the value untouched (of the input type), and None if admin mode is false, but the fact that str(`None`) becomes "None" in python makes that a footgun waiting to happen :(.

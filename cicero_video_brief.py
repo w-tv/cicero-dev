@@ -7,7 +7,7 @@ from googleapiclient.discovery import build # this is google-api-python-client
 from googleapiclient.errors import HttpError
 from googleapiclient.http import MediaIoBaseUpload
 from io import BytesIO
-from cicero_shared import st_print, is_admin
+from cicero_shared import are_experimental_features_enabled, st_print
 from cicero_chat import display_chat
 from cicero_video_brief_system_prompt import example_document, example_dick
 
@@ -15,7 +15,7 @@ from cicero_video_brief_system_prompt import example_document, example_dick
 
 st.warning("The google docs upload seems to work only within GCP so far.")
 # code adapted from https://developers.google.com/drive/api/guides/manage-uploads#python_1
-if is_admin() and st.button("Upload test file"):
+if are_experimental_features_enabled() and st.button("Upload test file"):
   # Upload file with conversion
 
   # Todo(wyatt): figure this out:

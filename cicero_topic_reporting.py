@@ -145,6 +145,7 @@ if len(summary_data_per_topic):
     ).add_params( single )
   event = st.altair_chart(chart, use_container_width=True, on_select="rerun")
   st.caption("*<center>Reflects performance of all Salesforce projects, not just Cicero projects. Performance shown when no account is selected reflects all TV (not just accounts you are permitted to see).</center>*", unsafe_allow_html=True) # You could also do this in-chart using https://altair-viz.github.io/user_guide/customization.html#adjusting-the-title , and it would probably even look better. But we arbitrarily happened to choose to go the other way.
+  #TODO: are the below admin redactions experimental features, in which case we should use are_experimental_features_enabled, or admin features, in which case we should use the admin features (as we do now). Must consult with team.
   if "selection" in event and (is_admin() or len(accounts) == 1): #on click we "drill down"
     if len(event['selection']['param_1']) > 0:
       selected_topics = event['selection']['param_1'][0]['Topic']

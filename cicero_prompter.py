@@ -6,7 +6,7 @@ import streamlit as st
 import pandas as pd
 import json
 from typing import Any, Literal, TypedDict
-from cicero_shared import admin_box, assert_always, admin_sidebar_print, ensure_existence_of_activity_log, exit_error, is_admin, ssget, ssmut, ssset, get_base_url, load_account_names, possibly_pluralize, sql_call, sql_call_cacheless, st_admin_print, topics_big
+from cicero_shared import admin_box, are_experimental_features_enabled, assert_always, admin_sidebar_print, ensure_existence_of_activity_log, exit_error, is_admin, ssget, ssmut, ssset, get_base_url, load_account_names, possibly_pluralize, sql_call, sql_call_cacheless, st_admin_print, topics_big
 from cicero_types import aa, Short_Model_Name, Long_Model_Name, short_model_names, short_model_name_default, short_model_name_to_long_model_name
 import cicero_chat
 
@@ -499,7 +499,7 @@ st.text("") # Just for vertical spacing.
 
 with st.form('query_builder'):
   with st.sidebar:
-    if is_admin():
+    if are_experimental_features_enabled():
       topic_weight: float = st.slider("Topic Weight", min_value=0.0, max_value=10.0, key="topic_weight")
       tone_weight: float = st.slider("Tone Weight", min_value=0.0, max_value=10.0, key="tone_weight")
       client_weight: float = st.slider("Client Weight", min_value=0.0, max_value=10.0, key="client_weight")
@@ -516,7 +516,7 @@ with st.form('query_builder'):
       doc_pool_size = 30
       num_examples = 10
 
-  model_name = st.selectbox("Model (required)", short_model_names, key="model_name") if is_admin() else short_model_name_default
+  model_name = st.selectbox("Model (required)", short_model_names, key="model_name") if are_experimental_features_enabled() else short_model_name_default
   model = short_model_name_to_long_model_name(model_name)
   account = st.selectbox("Account (required)", load_account_names(), key="account")
   sender = st.text_input("Sender Name", key="sender")
@@ -526,7 +526,7 @@ with st.form('query_builder'):
   additional_topics = [x.strip().lower() for x in st.text_input("Additional Topics (examples: Biden, survey, deadline)", key="additional_topics" ).split(",") if x.strip()] # The list comprehension is to filter out empty strings on split, because otherwise this fails to make a truly empty list in the default case, instead having a list with an empty string in, because split changes its behavior when you give it arguments. Anyway, this also filters out trailing comma edge-cases and such.
   tones = st.multiselect("Tones", aa(Tone), key="tones")
   num_outputs = st.selectbox(r"\# Outputs", aa(Num_Outputs), key='num_outputs')
-  temperature: float = st.slider("Output Variance:", min_value=0.0, max_value=1.0, key="temperature") if is_admin() else 0.7
+  temperature: float = st.slider("Output Variance:", min_value=0.0, max_value=1.0, key="temperature") if are_experimental_features_enabled() else 0.7
   buttonhole = st.empty()
   with buttonhole:
     if ssget("submit_button_disabled"):

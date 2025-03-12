@@ -82,7 +82,7 @@ Additionally, the use of fewer variables is preferred over the use of a greater 
 
 Certain features of the app, such as the performance information, are only available to be seen by admins. These are known as "admin mode" features, and you should always use is_admin to check if someone is an admin — or one of the other specialized functions with admin in the name, like admin_box.
 
-Other features of the app are experimental, and are only available to be seen by admins, but on a temporary basis — they will eventually be approved for normal users as well, or scrapped. You should use the function are_experimental_features_enabled for these. Technically, these are all "to⁠do" items, in that eventually they should all be turned into some other type of feature, or removed, and you can grep for are_experimental_features_enabled in the code to find out which ones need to be approved or whatever. TODO: actually use are_experimental_features_enabled for all experimental features.
+Other features of the app are experimental, and are only available to be seen by admins, but on a temporary basis — they will eventually be approved for normal users as well, or scrapped. You should use the function are_experimental_features_enabled for these. Technically, these are all "to⁠do" items, in that eventually they should all be turned into some other type of feature, or removed, and you can grep for are_experimental_features_enabled in the code to find out which ones need to be approved or whatever. Please note that a possible future for an experimental feature is being turned into a permanent, admin-only feature; you **can** have the "best" of both worlds 🥳, if you want.
 
 ## Certain points of code style.
 
