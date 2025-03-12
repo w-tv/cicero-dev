@@ -74,9 +74,15 @@ On an architectural note, we probably should not have used streamlit. It's a fin
 
 ## On variables
 
-Regular variables are to be preferred over st.session_state variables, because static analysis tools work better with the former than the latter. That said, sometimes you need to use st.session_state variables; that's why it's even a feature.
+Regular variables are to be preferred over session state variables, because static analysis tools work better with the former than the latter. That said, sometimes you need to use session state variables; that's why it's even a feature. In a similar vein, unless it's absolutely necessary (when? I can't think of anything like that), you should use the ssget, ssset, sspop, ssmut functions instead of accessing streamlit's session_state directly.
 
 Additionally, the use of fewer variables is preferred over the use of a greater number of variables — but not as strongly as the use of fewer magic values or computations is preferred over the use of a greater number of magic values or computations!
+
+## is_admin and are_experimental_features_enabled
+
+Certain features of the app, such as the performance information, are only available to be seen by admins. These are known as "admin mode" features, and you should always use is_admin to check if someone is an admin — or one of the other specialized functions with admin in the name, like admin_box.
+
+Other features of the app are experimental, and are only available to be seen by admins, but on a temporary basis — they will eventually be approved for normal users as well, or scrapped. You should use the function are_experimental_features_enabled for these. Technically, these are all "to⁠do" items, in that eventually they should all be turned into some other type of feature, or removed, and you can grep for are_experimental_features_enabled in the code to find out which ones need to be approved or whatever. TODO: actually use are_experimental_features_enabled for all experimental features.
 
 ## Certain points of code style.
 
