@@ -1,5 +1,5 @@
 altair == 5.4.1, >= 5.4.0 # I'm pretty sure streamlit automatically installs this, but we want to use a type-bug-fix that was first realized in 5.4.0. So, hopefully...
-streamlit >1.39.0, < 1.42.0 # We use a name or two from 1.37.0 and a typing from 1.38.0. Pre-1.39.0 a user test@test.com will occasionally be detected, even though this is just an internal test value, which is a harmless but annoying mistake. # In 1.42.0, streamlit adds auth, which changes the semantics of experimental_user. It may also simplify our auth code (that its point!) that was written before streamlit auth was a feature. It can even hook up with google.
+streamlit >1.39.0, <1.42.0 # We use a name or two from 1.37.0 and a typing from 1.38.0. Pre-1.39.0 a user test@test.com will occasionally be detected, even though this is just an internal test value, which is a harmless but annoying mistake. # In 1.42.0, streamlit adds auth, which changes the semantics of experimental_user. It may also simplify our auth code (that its point!) that was written before streamlit auth was a feature. It can even hook up with google. TODO: port us forward? Probably not hard.
 pandas == 2.1.4 # avoid https://github.com/pandas-dev/pandas/issues/56995
 psutil
 python-docx

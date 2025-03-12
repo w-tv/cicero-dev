@@ -592,7 +592,8 @@ if ssget("submit_button_disabled"):
 if entire_prompt := ssget('entire_prompt'):
   admin_box(
     "Ⓐ Admin Mode Message: the prompt passed to the model",
-    st.caption(entire_prompt.replace("$", r"\$"))
+    entire_prompt.replace("$", r"\$"),
+    caption_mode=True
   )
 st.error("WARNING! Outputs have not been fact checked. CICERO is not responsible for inaccuracies in deployed copy. Please check all *names*, *places*, *counts*, *times*, *events*, and *titles* (esp. military titles) for accuracy.  \nAll numbers included in outputs are suggestions only and should be updated. They are NOT analytically optimized to increase conversions (yet) and are based solely on frequency in past copy.", icon="⚠️")
 if ssget('outputs'):

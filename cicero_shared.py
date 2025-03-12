@@ -70,9 +70,13 @@ def admin_str(value: object) -> str:
     (You see, you would obviously want to write admin_str("some string") and expect it to not appear if admin mode is off. But instead the word "None" would appear!) """
   return str(value) if is_admin() else ""
 
-def admin_box(expander_box_title: str, contents: object) -> None:
+def admin_box(expander_box_title: str, contents: object, caption_mode: bool = False) -> None:
   if is_admin():
-    st.expander("Ⓐ "+expander_box_title).write(contents)
+    expander = st.expander("Ⓐ "+expander_box_title)
+    if caption_mode:
+      expander.caption(contents)
+    else:
+      expander.write(contents)
 
 def st_print(*args: object) -> None:
   print(*args)
