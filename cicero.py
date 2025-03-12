@@ -45,7 +45,7 @@ with Profiler():
     ssset("email", fe)
   else:
     if (e := st.experimental_user.email) is None:
-      st_print("Your user email is `None`, which implies we are currently running publicly on Streamlit Community Cloud. https://docs.streamlit.io/library/api-reference/personalization/st.experimental_user#public-app-on-streamlit-community-cloud. This app is configured to function only privately and permissionedly, so we will now exit. Good day.")
+      st_print("Your user email is `None`, which implies we are currently running publicly on Streamlit Community Cloud. https://docs.streamlit.io/library/api-reference/personalization/st.experimental_user#community-cloud. This app is configured to function only privately and permissionedly, so we will now exit. Good day.")
       exit_error(34)
     else:
       ssset("email", e)
@@ -62,7 +62,7 @@ with Profiler():
       if "--disable_user_authentication_requirement_DO_NOT_USE_THIS_FLAG_WITH_PUBLIC_INSTANCES_OF_CICERO_ITS_ONLY_FOR_LOCAL_TESTING_USE" in argv:
         pass # The command-line flag we check for here lets you locally test-run the program without an IAP. Do NOT add this flag to any instance of Cicero running publicly, such as the production or development environments. In deployed environments, the other authentication methods are enabled.
       else:
-        st_print("Your user email is test@example.com, which implies we are currently running publicly, and not on Streamlit Community Cloud. And google identity didn't work. https://docs.streamlit.io/library/api-reference/personalization/st.experimental_user#public-app-on-streamlit-community-cloud. This app is configured to function only privately and permissionedly, so we will now exit. Good day.")
+        st_print("Your user email is test@example.com, which implies we are currently running publicly, and not on Streamlit Community Cloud. And (our bespoke) google identity didn't work. https://docs.streamlit.io/library/api-reference/personalization/st.experimental_user#community-cloud. This app is configured to function only privately and permissionedly, so we will now exit. Good day.")
         exit_error(35)
 
   title_and_loading_columns = st.columns(2)
