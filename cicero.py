@@ -10,7 +10,7 @@ import psutil
 import platform
 from sys import argv
 from cicero_chat import main as cicero_chat_main
-from cicero_shared import admin_box, ensure_existence_of_activity_log, exit_error, get_base_url, get_list_value_of_column_in_table, get_value_of_column_in_table, is_admin, sql_call_cacheless, ssget, ssset, sspop, st_print
+from cicero_shared import admin_box, admin_str, ensure_existence_of_activity_log, exit_error, get_base_url, get_list_value_of_column_in_table, get_value_of_column_in_table, is_admin, sql_call_cacheless, ssget, ssset, sspop, st_print
 from google.auth.transport import requests
 from google.oauth2 import id_token
 from wfork_streamlit_profiler import Profiler
@@ -71,6 +71,11 @@ with Profiler():
   with title_and_loading_columns[1]:
     loading_message = st.empty()
     loading_message.write("Loading CICERO.  This may take up to a minute...")
+  
+  with st.sidebar:
+    st.write(
+      f"You are {'fake-'*bool(ssget('fake_email'))}logged in as {ssget('email')}{admin_str( f" (internally, {st.experimental_user.email})" )}. {admin_str("You are in admin mode.")}"
+    )
 
   #This is the way you set admin mode. However, for the sake of brevity and DRY, the way to *check* admin mode is is_admin() from cicero_shared. You should always use that way.
   ssset('admin_mode', not ssget("admin_mode_disabled") and get_value_of_column_in_table("user_pod", "cicero.ref_tables.user_pods") == "Admin")
