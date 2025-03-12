@@ -75,8 +75,8 @@ def expand_url_content(s: str) -> str:
 
 voice_map = sql_call("SELECT * FROM cicero.default.voice_map WHERE enabled = TRUE")
 
-def grow_chat(streamlit_key_suffix: Chat_Suffix, alternate_content: str|Literal[True]|None = None, account: str = "No account", short_model_name: Short_Model_Name = short_model_name_default, voice: str = "Default", expand_links: bool = True) -> None:
-  """Note that this function will do something special to the prompt if alternate_content is supplied.
+def grow_chat(streamlit_key_suffix: Chat_Suffix, alternate_content: tuple[Literal['normal', 'analyze', 'file', 'resurrect'], str]|None = None, account: str = "No account", short_model_name: Short_Model_Name = short_model_name_default, voice: str = "Default", expand_links: bool = True) -> None:
+  """Note that this function will do something special to the prompt (possibly ignoring it) if the first field of the alternate_content tuple is anything but 'normal'.
   Also, the streamlit_key_suffix is only necessary because we use this code in two places. If streamlit_key_suffix is "", we infer we're in the chat page, and if otherwise we infer we're being used on a different page (so far, the only thing that does this is prompter).
   Random fyi: chat.history is an alias for chat.chat_history (you can mutate chat.chat_history but not chat.history, btw). Internally, it's, like: [{'role': 'system', 'content': 'You are a helpful assistant.'}, {'role': 'user', 'content': 'Knock, knock.'}, {'role': 'assistant', 'content': "Hello! Who's there?"}, {'role': 'user', 'content': 'Guess who!'}, {'role': 'assistant', 'content': "Okay, I'll play along! Is it a person, a place, or a thing?"}]"""
   keyword_arguments = locals()
@@ -84,31 +84,40 @@ def grow_chat(streamlit_key_suffix: Chat_Suffix, alternate_content: str|Literal[
 
   # determine what the prompt content will be
   if alternate_content:
-    if alternate_content is True:
-      content = ssget("chat_file_uploader")
-      file_ext = Path(str(content.name)).suffix
-      match file_ext: #todo: delete this? or at least the st.write statements in it?
-        case '.txt' | '.html' | '.htm' :
-          stringio = StringIO(content.getvalue().decode("utf-8")) # convert file-like BytesIO object to a string based IO
-          string_data = stringio.read() # read file as string
-          p = string_data
-        case '.docx':
-          docx_text = '\n'.join([para.text for para in Document(content).paragraphs])
-          p = docx_text
-        case '.csv':
-          x = pd.read_csv(content, nrows=10)
-          st.dataframe( x )
-          p = str(x)
-        case '.xls' | '.xlsx':
-          st.dataframe( x := pd.read_excel(content, nrows=10) )
-          p = str(x)
-        case _:
-          x = "Error: Cicero does not currently support this file type!"
-          p = x
-      display_p = f"「 {p} 」"
-    else:
-      p = "Here is a conservative fundraising text: [" + alternate_content + "] Analyze the quality of the text based off of these five fundraising elements: the Hook, Urgency, Agency, Stakes, and the Call to Action (CTA). Do not assign scores to the elements. It's possible one or more of these elements is missing from the text provided. If so, please point that out. Then, directly ask the user what assistance they need with the text. Additionally, mention that you can also help edit the text to be shorter or longer, and convert the text into an email. Only provide analysis once, unless the user asks for analysis again."
-      display_p = "« " + alternate_content + " »"
+    match alternate_content:
+      case 'normal', payload:
+        p = payload
+        display_p = p
+      case 'resurrect', _:
+        p = ssget("resurrect_box"+streamlit_key_suffix)
+        display_p = p
+      case 'file', _:
+        content = ssget("chat_file_uploader")
+        file_ext = Path(str(content.name)).suffix
+        match file_ext: #todo: delete this? or at least the st.write statements in it?
+          case '.txt' | '.html' | '.htm' :
+            stringio = StringIO(content.getvalue().decode("utf-8")) # convert file-like BytesIO object to a string based IO
+            string_data = stringio.read() # read file as string
+            p = string_data
+          case '.docx':
+            docx_text = '\n'.join([para.text for para in Document(content).paragraphs])
+            p = docx_text
+          case '.csv':
+            x = pd.read_csv(content, nrows=10)
+            st.dataframe( x )
+            p = str(x)
+          case '.xls' | '.xlsx':
+            st.dataframe( x := pd.read_excel(content, nrows=10) )
+            p = str(x)
+          case _:
+            x = "Error: Cicero does not currently support this file type!"
+            p = x
+        display_p = f"「 {p} 」"
+      case 'analyze', payload:
+        p = "Here is a conservative fundraising text: [" + payload + "] Analyze the quality of the text based off of these five fundraising elements: the Hook, Urgency, Agency, Stakes, and the Call to Action (CTA). Do not assign scores to the elements. It's possible one or more of these elements is missing from the text provided. If so, please point that out. Then, directly ask the user what assistance they need with the text. Additionally, mention that you can also help edit the text to be shorter or longer, and convert the text into an email. Only provide analysis once, unless the user asks for analysis again."
+        display_p = "« " + payload + " »"
+      case _:
+        assert_never(alternate_content)
   elif pii and pii[0]: #there was pii, and we are continuing
     p = pii[1]
     display_p = p
@@ -313,7 +322,15 @@ def display_chat(streamlit_key_suffix: Chat_Suffix, account: str = "No account",
       st.info("Message you were editing (may contain PII):")
       st.code(pii[1])
       ssset( "pii_interrupt_state", streamlit_key_suffix, [None, ""] )
-    st.container().chat_input(on_submit=grow_chat, key="user_input_for_chatbot_this_frame"+streamlit_key_suffix, args=(streamlit_key_suffix, None, account, short_model_name, voice, expand_links) ) #Note that because it's a callback, the profiler will not catch grow_chat here. However, it takes about a second. (Update: maybe it's about 4 seconds, now? That's in the happy path, as well.) #Without the container, this UI element floats BELOW the pyinstrument profiler now, which is inconvenient. But also we might want it to float down later, if we start using streaming text...
+
+    if are_experimental_features_enabled():
+      result = sql_call_cacheless(
+        "SELECT prompt_sent FROM cicero.default.activity_log WHERE user_email == :user_email ORDER BY timestamp DESC",
+        {"user_email": ssget('email')}
+      )
+      st.selectbox("(Optional) use a previous prompt (will be sent to current chat):", [""] + [row[0] for row in result], key="resurrect_box"+streamlit_key_suffix, on_change=grow_chat, args=(streamlit_key_suffix, ('resurrect', ''), account, short_model_name, voice, expand_links))
+
+    st.container().chat_input(key="user_input_for_chatbot_this_frame"+streamlit_key_suffix, on_submit=grow_chat, args=(streamlit_key_suffix, None, account, short_model_name, voice, expand_links) ) #Note that because it's a callback, the profiler will not catch grow_chat here. However, it takes about a second. (Update: maybe it's about 4 seconds, now? That's in the happy path, as well.) #Without the container, this UI element floats BELOW the pyinstrument profiler now, which is inconvenient. But also we might want it to float down later, if we start using streaming text...
 
 def main(streamlit_key_suffix: Chat_Suffix = chat_suffix_default) -> None: # It's convenient to import cicero_chat in other files, to use its function in them, so we do a main() here so we don't run this code on startup.
   st.write("**Chat freeform with Cicero directly ChatGPT-style!**")

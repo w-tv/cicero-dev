@@ -88,7 +88,9 @@ Other features of the app are experimental, and are only available to be seen by
 
 ## Nulls in the database
 
-Cicero endeavors to never write any nulls to the database. Since null is the implicit value in the database, writing explicit values instead (usually a string like "not asked" or something) lets us know that absences are intentional. This allows for easier detection of bugs in code that writes to the database, or erroneous data entry. (If you see a null? That's a bug.) As of 2025-03-11 (update this number when necessary 🙂) this should be true, so new entries can be expected to enjoy this property, but the database has not been fixed retroactively, unless it was extremely easy to do so.
+Cicero endeavors to never write any nulls to the database. Since null is the implicit value in the database, writing explicit values instead (usually a string like "not asked" or something) lets us know that absences are intentional. This allows for easier detection of bugs in code that writes to the database, or erroneous data entry. (If you see a null? That's a bug.) As of 2025-03-12 (update this number when necessary 🙂) this should be true, so new entries can be expected to enjoy this property, but the database has not been fixed retroactively, unless it was extremely easy to do so.
+
+Typically, new nulls are introduced in huge chunks of a column at a time, when we extend the table: everything cell before when we start generating and storing the new value is just going to be null; that's basically just how databases work 🤷.
 
 ## Certain points of code style.
 
