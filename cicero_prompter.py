@@ -6,7 +6,7 @@ import streamlit as st
 import pandas as pd
 import json
 from typing import Any, Literal, TypedDict
-from cicero_shared import admin_box, assert_always, admin_sidebar_print, ensure_existence_of_activity_log, exit_error, is_admin, ssget, get_base_url, load_account_names, possibly_pluralize, sql_call, sql_call_cacheless, st_admin_print, topics_big
+from cicero_shared import admin_box, assert_always, admin_sidebar_print, ensure_existence_of_activity_log, exit_error, is_admin, ssget, ssmut, ssset, get_base_url, load_account_names, possibly_pluralize, sql_call, sql_call_cacheless, st_admin_print, topics_big
 from cicero_types import aa, Short_Model_Name, Long_Model_Name, short_model_names, short_model_name_default, short_model_name_to_long_model_name
 import cicero_chat
 
@@ -26,7 +26,7 @@ import jellyfish
 from databricks.vector_search.client import VectorSearchClient
 
 def disable_submit_button_til_complete() -> None:
-  st.session_state["submit_button_disabled"] = True
+  ssset("submit_button_disabled", True)
 
 @st.cache_data(show_spinner=False) #STREAMLIT-BUG-WORKAROUND: Necessity demands we do a manual cache of this function's result anyway in the one place we call it, but (for some reason) it seems like our deployed environment is messed up in some way I cannot locally replicate, which causes it to run this function once every five minutes. So, we cache it as well, to prevent waking up our server and costing us money.
 def count_from_activity_log_times_used_today(user_email: str) -> int:
@@ -103,7 +103,7 @@ presets: dict[str, PresetsPayload] = {
 def set_ui_to_preset(preset_name: str) -> None:
   preset = presets[preset_name]
   for key, value in preset.items():
-    st.session_state[key] = value
+    ssset(key, value)
 
 def list_lower(list: list[str]) -> list[str]:
   return [x.lower() for x in list]
@@ -300,7 +300,7 @@ def execute_prompting(model: Long_Model_Name, account: str, sender: str|None, as
     # Perform a similarity search using the target_prompt defined beforehand. Filter for only the results we found earlier in this current iteration.
     print()
     try: # In case something goes wrong, we have FAISS as a backup. #Ironically, the backup has its own issues. But I guess it's being triggered, because those issues seem to be coming up!
-      assert not st.session_state.get("use_backup_similarity_search_library") #this is not a "real" assert, but rather just a way to let devs easily test the backup
+      assert not ssget("use_backup_similarity_search_library") #this is not a "real" assert, but rather just a way to let devs easily test the backup
       for end in batch_bounds[1:]:
         dbx_search = text_index.similarity_search(
           num_results=doc_pool_size, # This must be at most about 2**13 (8192) I have no idea what the actual max is
@@ -457,23 +457,23 @@ def execute_prompting(model: Long_Model_Name, account: str, sender: str|None, as
   return question, outputs, entire_prompt, prompter_system_prompt, used_similarity_search_backup
 
 
-st.session_state['human-facing_prompt'] = '' #to clear the prompt between prompts. could definitely be placed in a better spot.
-if not st.session_state.get('email'): #this line is of dubious usefulness. It's supposed to let you run cicero_prompter.py locally and stand-alone without cicero.py, however.
-  st.session_state["email"] = str(st.experimental_user["email"]) #this str call also accounts for if the user email is None.
-if 'use_count' not in st.session_state:
-  st.session_state['use_count'] = count_from_activity_log_times_used_today(st.session_state["email"])
+ssset('human-facing_prompt', '') #to clear the prompt between prompts. TODO: could definitely be placed in a better spot.
+if not ssget('email'): #this line is of dubious usefulness. It's supposed to let you run cicero_prompter.py locally and stand-alone without cicero.py, however.
+  ssset("email", str(st.experimental_user["email"])) #this str call also accounts for if the user email is None.
+if ssget('use_count') is None:
+  ssset('use_count', count_from_activity_log_times_used_today(ssget("email")))
 use_count_limit = 100 #arbitrary but reasonable choice of limit
-if st.session_state['email'] in ["abrady@targetedvictory.com", "thall@targetedvictory.com", "test@example.com"]: # Give certain users nigh-unlimited uses.
+if ssget('email') in ["abrady@targetedvictory.com", "thall@targetedvictory.com", "test@example.com"]: # Give certain users nigh-unlimited uses.
   use_count_limit = 100_000_000
-if st.session_state['use_count'] >= use_count_limit:
+if ssget('use_count') >= use_count_limit:
   st.write(f"You cannot use this service more than {use_count_limit} times a day, and you have reached that limit. Please contact the team if this is in error or if you wish to expand the limit.")
   exit_error(52) # When a user hits the limit it completely locks them out of the ui using an error message. This wasn't a requirement, but it seems fine.
 
 bios: dict[str, str] = load_bios()
 
-if not st.session_state.get("initted"):
+if not ssget("initted"):
   set_ui_to_preset("default")
-  st.session_state["initted"] = True
+  ssset("initted", True)
   st.rerun() #STREAMLIT-BUG-WORKAROUND: this rerun actually has nothing to do with initing, it's just convenient to do here, since we need to do it exactly once, on app startup. It prevents the expander from experiencing a streamlit bug (<https://github.com/streamlit/streamlit/issues/2360>) that is only present in the initial run state. Anyway, this rerun is really fast and breaks nothing (except the admin mode initial performance timer readout, which is now clobbered) so it's a good workaround.
 
 login_activity_counter_container = st.container()
@@ -529,22 +529,22 @@ with st.form('query_builder'):
   temperature: float = st.slider("Output Variance:", min_value=0.0, max_value=1.0, key="temperature") if is_admin() else 0.7
   buttonhole = st.empty()
   with buttonhole:
-    if st.session_state.get("submit_button_disabled"):
+    if ssget("submit_button_disabled"):
       st.form_submit_button("Processing...", type="primary", disabled=True)
     else:
       st.form_submit_button("Submit", type="primary", on_click=disable_submit_button_til_complete)
   if is_admin():
-    st.session_state["use_backup_similarity_search_library"] = st.selectbox("Ⓐ (Admin mode option) trigger a fake error in the appropriate place in this run to use backup similarity search library", [False, True])
+    ssset("use_backup_similarity_search_library", st.selectbox("Ⓐ (Admin mode option) trigger a fake error in the appropriate place in this run to use backup similarity search library", [False, True]))
 if is_admin():
   if st.button("Ⓐ Admin mode special button for testing: “***I'm feeling (un)lucky***”", key="unlucky"):
-    st.session_state["submit_button_disabled"] = True
+    ssset("submit_button_disabled", True)
     account = "AAF" # Just a testing value.
 
 max_tokens = 4096 # This isn't really a thing we should let the user control, at the moment, but we the developers could change it, much like the other variables.
 
 #Composition and sending a request:
 did_a_query = False
-if st.session_state.get("submit_button_disabled"):
+if ssget("submit_button_disabled"):
   if not account:
     st.warning("***No Account is selected, so I can't send the request!***")
   elif not model:
@@ -552,11 +552,12 @@ if st.session_state.get("submit_button_disabled"):
   else:
     did_a_query = True
     cicero_chat.reset_chat(streamlit_key_suffix="_prompter")
-    st.session_state['use_count']+=1 #this is just an optimization for the front-end display of the query count
+    ssmut(lambda x: x+1, 'use_count') #this is just an optimization for the front-end display of the query count
     bio = bios.get(account) if ("bio" in topics and account in bios) else None
     prompt_tries = 5
     while True: #this is written in a slightly-more-complicated way so that the typechecker can infer that the variables are never unbound.
-      prompt_sent, output_array, st.session_state['entire_prompt'], prompter_system_prompt, used_similarity_search_backup = execute_prompting(model, account, sender, ask_type, topics, additional_topics, tones, length_select, headline, num_outputs, temperature, bio, max_tokens, topic_weight, tone_weight, client_weight, ask_weight, text_len_weight, doc_pool_size, num_examples)
+      prompt_sent, output_array, entire_prompt, prompter_system_prompt, used_similarity_search_backup = execute_prompting(model, account, sender, ask_type, topics, additional_topics, tones, length_select, headline, num_outputs, temperature, bio, max_tokens, topic_weight, tone_weight, client_weight, ask_weight, text_len_weight, doc_pool_size, num_examples)
+      ssset('entire_prompt', entire_prompt)
       # Heuristic detection of if the text model has refused to answer. (Eg "As an AI model, I can't say anything hateful blah blah blah".)
       if len(output_array) == 1 and len(output_array[0]) < 100 and (output_array[0].startswith("I can't fulfill") or output_array[0].startswith("As a large language model")):
         prompt_tries -= 1
@@ -565,11 +566,11 @@ if st.session_state.get("submit_button_disabled"):
           break
       else:
         break
-    st.session_state['outputs'] = output_array
+    ssset('outputs', output_array) # we immediately shove this in to the session state because it eventually needs to be there (so the page can keep rendering it), so why not have it be there from the start?
     # Activity logging takes a bit, so I've put it last (in cicero.py, not this file) to preserve immediate-feeling performance and responses for the user making a query. We set it up here.
     # prompt_sent is only illustrative. But maybe that's enough. Maybe we should be using a different prompt? TODO: determine this.
-    st.session_state["activity_log_payload"] = (
-      {"user_email": st.session_state['email'], "prompter_or_chatbot": "prompter", "prompt_sent": prompt_sent, "response_given": json.dumps(st.session_state['outputs']), "model_name": model_name, "model_url": model, "model_parameters": str({"max_tokens": max_tokens, "temperature": temperature}), "system_prompt": prompter_system_prompt, "base_url": get_base_url(), "used_similarity_search_backup": used_similarity_search_backup} |
+    ssset("activity_log_payload",
+      {"user_email": ssget('email'), "prompter_or_chatbot": "prompter", "prompt_sent": prompt_sent, "response_given": json.dumps(ssget('outputs')), "model_name": model_name, "model_url": model, "model_parameters": str({"max_tokens": max_tokens, "temperature": temperature}), "system_prompt": prompter_system_prompt, "base_url": get_base_url(), "used_similarity_search_backup": used_similarity_search_backup} |
       {"user_feedback": "not asked", "user_feedback_satisfied": "not asked"} |
       {"hit_readlink_time_limit": False} |
       {"pii_concern": None} | #pii_concern is always None for the prompter, because we can neither affirmatively say yes or no (but the falsy behavior of null suits us well, because it's almost certainly not a problem)
@@ -579,24 +580,24 @@ if st.session_state.get("submit_button_disabled"):
     #this | formatting is not important, I was just kind of feeling out how to format this when I originally wrote it; you can reformat it if you like.
     )
 
-    if len(st.session_state['outputs']) != num_outputs:
+    if len(ssget('outputs')) != num_outputs:
       st.info("CICERO has detected that the number of outputs may be wrong.")
-    if 'history' not in st.session_state:
-      st.session_state['history'] = []
-    st.session_state['history'] += st.session_state['outputs']
-    st.session_state['character_counts_caption'] = "Character counts: "+str([len(o) for o in st.session_state['outputs']])
+    if ssget('history') is None:
+      ssset('history', [])
+    ssmut(lambda x: x + ssget('outputs'), 'history')
+    ssset( "character_counts_caption", f"Character counts: {[len(o) for o in ssget('outputs')]}" )
 
 # The idea is for these output elements to persist after one query button, until overwritten by the results of the next query.
 
-if 'entire_prompt' in st.session_state:
+if entire_prompt := ssget('entire_prompt'):
   admin_box(
     "Ⓐ Admin Mode Message: the prompt passed to the model",
-    st.caption(st.session_state['entire_prompt'].replace("$", r"\$"))
+    st.caption(entire_prompt.replace("$", r"\$"))
   )
 st.error("WARNING! Outputs have not been fact checked. CICERO is not responsible for inaccuracies in deployed copy. Please check all *names*, *places*, *counts*, *times*, *events*, and *titles* (esp. military titles) for accuracy.  \nAll numbers included in outputs are suggestions only and should be updated. They are NOT analytically optimized to increase conversions (yet) and are based solely on frequency in past copy.", icon="⚠️")
-if 'outputs' in st.session_state:
+if ssget('outputs'):
   key_collision_preventer = 1
-  for output in st.session_state['outputs']:
+  for output in ssget('outputs'):
     col1, col2 = st.columns([.95, .05])
     with col1:
       st.write( output.replace("$", r"\$") ) #this prevents us from entering math mode when we ask about money.
@@ -605,22 +606,20 @@ if 'outputs' in st.session_state:
         cicero_chat.reset_chat(streamlit_key_suffix="_prompter")
         cicero_chat.grow_chat(streamlit_key_suffix="_prompter", alternate_content=output)
       key_collision_preventer += 1
-  st.caption(st.session_state.get('character_counts_caption'))
+  st.caption(ssget('character_counts_caption'))
   if ssget("messages", "_prompter"):
     cicero_chat.display_chat(streamlit_key_suffix="_prompter")
 st.error('**REMINDER!** Please tag all projects with "**optimization**" in the LABELS field in Salesforce.')
 
 with st.sidebar: #The history display includes a result of the logic of the script, that has to be updated in the middle of the script where the button press is (when the button is in fact pressed), so the code to display it has to be after all the logic of the script or else it will lag behind the actual state of the history by one time step.
   st.header("History of replies:")
-  if 'history' not in st.session_state:
-    st.session_state['history'] = []
-  st.dataframe( pd.DataFrame(reversed( ssget('history') ),columns=(["Outputs"])), hide_index=True, use_container_width=True)
+  st.dataframe( pd.DataFrame(reversed( ssget('history') or [] ),columns=(["Outputs"])), hide_index=True, use_container_width=True)
 
 login_activity_counter_container.write(
   f"You have prompted {possibly_pluralize(ssget('use_count'), 'time')} today, out of a limit of {use_count_limit}."
 )
 
-st.session_state["submit_button_disabled"] = False
+ssset("submit_button_disabled", False)
 buttonhole.form_submit_button("Submit ", type="primary", on_click=disable_submit_button_til_complete) # After everything, re-enable the submit button. Note that the space at the end of Submit here doesn't show up in the UI; it's just a convenient way to make the key of this replacement button not identical to the original button (which would cause an error). I didn't even bother to file an issue about this because who cares.
 
 # import streamlit.components.v1 as components; components.html('<!--<script>//you can include arbitrary html and javascript this way</script>-->') #or, use st.markdown, if you want arbitrary html but javascript isn't needed.
