@@ -196,9 +196,9 @@ def possibly_pluralize(quantity: float, label: str) -> str:
   """ Return a label with the quantity either pluralized or kept singular, as appropriate (iff == 1). This only covers the "dumb plural", just adding s. Haven't needed more yet. """
   return f"{quantity} {label}{'' if quantity == 1 else 's'}"
 
-def pii_detector(input: str) -> tuple[bool, dict[str, list[object]]]:
+def pii_detector(input: str) -> dict[str, list[object]]:
   """Check for phone numbers, email addresses, credit card numbers, and street addresses in the text, and return true/false for if we've found anything and a dict of what of those we've found.
-  It's important, for the assumptions of the caller of this function, that if no pii is found, then this function returns an empty (and thus falsy) dict.
+  It's important, for the assumptions of the caller of this function, that if no pii is found, then this function returns an empty (and thus falsy) dict. Therefore, you can use the return value of this function in an if, and a bool().
   re.findall seems to be declared (in typeshed I guess) with a return type of `list[Any]`, which I consider ultimately bad practice although there are probably overwhelming practical reasons in this case to declare it so. So, anyway, that's why we treat it (and, therefore, this function) as though it returns `list[object]`. Possibly you could consider this a TYPESHED-BUG-WORKAROUND, although it would probably take multiple typing PEPs to fix the assumptions of the type system that produce this corner case. Possibly even dependent typing (but probably not). We could also have done some str calls to return list[str], but it didn't end up mattering.
   Actually checking for all phone number types ( such as those covered by https://en.wikipedia.org/wiki/List_of_country_calling_codes ) would be extremely arduous and possibly lead to unwanted to false-positives with other numbers. So we basically just check for american phone numbers and maybe some other ones that happen to have a similar form. (We also don't check for phone numbers that exclude area code.) Similar story with credit card numbers and the various forms in https://en.wikipedia.org/wiki/Payment_card_number#Structure . We also purposefully do not exclude the non-issuable Social Security numbers ( https://en.wikipedia.org/wiki/Social_Security_number#Valid_SSNs ), so that example SSNs can be detected for testing purposes."""
   phone = re.findall(r"(?<!\d)\d?[- ]?\(?\d{3}\)?[- ]?\d{3}[- ]?\d{4}(?!\d)", input)
@@ -214,9 +214,7 @@ def pii_detector(input: str) -> tuple[bool, dict[str, list[object]]]:
     re.IGNORECASE,
   )
   ssn = re.findall(r"(?<!\d)\d{3}[- ]?\d{2}?[- ]?\d{4}(?!\d)", input)
-  return (
-    bool(phone and email and credit_card and street_address and ssn),
-    
+  return (    
     {}
     | {'phone': phone} if phone else {}
     | {'email': email} if email else {}

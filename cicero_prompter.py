@@ -573,7 +573,7 @@ if ssget("submit_button_disabled"):
       {"user_email": ssget('email'), "prompter_or_chatbot": "prompter", "prompt_sent": prompt_sent, "response_given": json.dumps(ssget('outputs')), "model_name": model_name, "model_url": model, "model_parameters": str({"max_tokens": max_tokens, "temperature": temperature}), "system_prompt": prompter_system_prompt, "base_url": get_base_url(), "used_similarity_search_backup": used_similarity_search_backup} |
       {"user_feedback": "not asked", "user_feedback_satisfied": "not asked"} |
       {"hit_readlink_time_limit": False} |
-      {"pii_concern": pii_detector(prompt_sent)[0]} |
+      {"pii_concern": bool(pii_detector(prompt_sent))} |
       {"winred_concern": False, "fec_concern": False} | # These concerns are 100% about url expansion of these sites, which prompter doesn't do, so we're safe.
       {"voice": "voice is not available in prompter"} |
       {"account": account}

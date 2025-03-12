@@ -136,7 +136,7 @@ def grow_chat(streamlit_key_suffix: Chat_Suffix, alternate_content: str|Literal[
 
   # detect pii
   continue_prompt = True
-  if possible_pii := pii_detector(p)[1]:
+  if possible_pii := pii_detector(p):
     pii_state = ssget("pii_interrupt_state", streamlit_key_suffix)
     if pii_state is None: #TODO: this can be refactored to be clearer about what it does.
       ssset("pii_interrupt_state", {})
