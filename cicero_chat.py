@@ -116,7 +116,7 @@ def grow_chat(streamlit_key_suffix: Chat_Suffix, alternate_content: tuple[Litera
       case 'analyze', payload:
         p = "Here is a conservative fundraising text: [" + payload + "] Analyze the quality of the text based off of these five fundraising elements: the Hook, Urgency, Agency, Stakes, and the Call to Action (CTA). Do not assign scores to the elements. It's possible one or more of these elements is missing from the text provided. If so, please point that out. Then, directly ask the user what assistance they need with the text. Additionally, mention that you can also help edit the text to be shorter or longer, and convert the text into an email. Only provide analysis once, unless the user asks for analysis again."
         display_p = "« " + payload + " »"
-      case _:
+      case _, _:
         assert_never(alternate_content)
   elif pii and pii[0]: #there was pii, and we are continuing
     p = pii[1]
