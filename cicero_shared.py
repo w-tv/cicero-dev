@@ -182,3 +182,7 @@ topics_big: dict[str, Topics_Big_Payload] = (
   for name, color, visible_frontend, regex
   in sql_call_cacheless('SELECT tag_name, color, visible_frontend, regex_pattern FROM cicero.ref_tables.ref_tags WHERE tag_type == "Topic" AND enabled ORDER BY tag_name ASC')}
 )
+
+def possibly_pluralize(quantity: float, label: str) -> str:
+  """ Return a label with the quantity either pluralized or kept singular, as appropriate (iff == 1). This only covers the "dumb plural", just adding s. Haven't needed more yet. """
+  return f"{quantity} {label}{'' if quantity == 1 else 's'}"

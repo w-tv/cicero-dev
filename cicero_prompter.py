@@ -6,7 +6,7 @@ import streamlit as st
 import pandas as pd
 import json
 from typing import Any, Literal, TypedDict
-from cicero_shared import admin_box, assert_always, admin_sidebar_print, admin_str, ensure_existence_of_activity_log, exit_error, is_admin, ssget, get_base_url, load_account_names, sql_call, sql_call_cacheless, st_admin_print, topics_big
+from cicero_shared import admin_box, assert_always, admin_sidebar_print, ensure_existence_of_activity_log, exit_error, is_admin, ssget, get_base_url, load_account_names, possibly_pluralize, sql_call, sql_call_cacheless, st_admin_print, topics_big
 from cicero_types import aa, Short_Model_Name, Long_Model_Name, short_model_names, short_model_name_default, short_model_name_to_long_model_name
 import cicero_chat
 
@@ -614,10 +614,10 @@ with st.sidebar: #The history display includes a result of the logic of the scri
   st.header("History of replies:")
   if 'history' not in st.session_state:
     st.session_state['history'] = []
-  st.dataframe( pd.DataFrame(reversed( st.session_state['history'] ),columns=(["Outputs"])), hide_index=True, use_container_width=True)
+  st.dataframe( pd.DataFrame(reversed( ssget('history') ),columns=(["Outputs"])), hide_index=True, use_container_width=True)
 
 login_activity_counter_container.write(
-  f"You have prompted {st.session_state['use_count']} time{'s' if st.session_state['use_count'] != 1 else ''} today, out of a limit of {use_count_limit}."
+  f"You have prompted {possibly_pluralize(ssget('use_count'), 'time')} today, out of a limit of {use_count_limit}."
 )
 
 st.session_state["submit_button_disabled"] = False
