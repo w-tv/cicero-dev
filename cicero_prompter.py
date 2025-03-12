@@ -6,7 +6,7 @@ import streamlit as st
 import pandas as pd
 import json
 from typing import Any, Literal, TypedDict
-from cicero_shared import admin_box, are_experimental_features_enabled, assert_always, admin_sidebar_print, ensure_existence_of_activity_log, exit_error, is_admin, ssget, ssmut, ssset, get_base_url, load_account_names, possibly_pluralize, sql_call, sql_call_cacheless, st_admin_print, topics_big
+from cicero_shared import admin_box, are_experimental_features_enabled, assert_always, admin_sidebar_print, ensure_existence_of_activity_log, exit_error, is_admin, pii_detector, ssget, ssmut, ssset, get_base_url, load_account_names, possibly_pluralize, sql_call, sql_call_cacheless, st_admin_print, topics_big
 from cicero_types import aa, Short_Model_Name, Long_Model_Name, short_model_names, short_model_name_default, short_model_name_to_long_model_name
 import cicero_chat
 
@@ -573,7 +573,7 @@ if ssget("submit_button_disabled"):
       {"user_email": ssget('email'), "prompter_or_chatbot": "prompter", "prompt_sent": prompt_sent, "response_given": json.dumps(ssget('outputs')), "model_name": model_name, "model_url": model, "model_parameters": str({"max_tokens": max_tokens, "temperature": temperature}), "system_prompt": prompter_system_prompt, "base_url": get_base_url(), "used_similarity_search_backup": used_similarity_search_backup} |
       {"user_feedback": "not asked", "user_feedback_satisfied": "not asked"} |
       {"hit_readlink_time_limit": False} |
-      {"pii_concern": None} | #pii_concern is always None for the prompter, because we can neither affirmatively say yes or no (but the falsy behavior of null suits us well, because it's almost certainly not a problem)
+      {"pii_concern": pii_detector(prompt_sent)[0]} |
       {"winred_concern": False, "fec_concern": False} | # These concerns are 100% about url expansion of these sites, which prompter doesn't do, so we're safe.
       {"voice": "voice is not available in prompter"} |
       {"account": account}

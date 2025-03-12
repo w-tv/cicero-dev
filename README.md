@@ -66,6 +66,8 @@ Various ridiculous workarounds in the code have been labeled FOO-BUG-WORKAROUND,
 
 Various things in this project have been labeled TO⁠DO, to eventually be dealt with. You can also grep for this. There is something weaker than a TO⁠DO, which is a Could, which just notes the possibility of developing in a different direction in the future. The idea is that all TO⁠DOs must be dealt with (even the ones that are just "figure out if we need to do this") and the sooner the better; Coulds can hang around indefinitely.
 
+Incidentally, all times the text "TO⁠DO" is mentioned but does not actually mark a TO⁠DO I need to deal with, such as in the above paragraph, I use a unicode character U+2060 WORD JOINER in the middle, which generally stops grep-like tools from picking up on that string. You should also do this, as it will make your grep results cleaner.
+
 ## Additional information about streamlit
 
 If you have any questions about streamlit, checkout its [documentation](https://docs.streamlit.io) and [community forums](https://discuss.streamlit.io). If you have any questions about Cicero, he wrote some books you can read.
@@ -83,6 +85,10 @@ Additionally, the use of fewer variables is preferred over the use of a greater 
 Certain features of the app, such as the performance information, are only available to be seen by admins. These are known as "admin mode" features, and you should always use is_admin to check if someone is an admin — or one of the other specialized functions with admin in the name, like admin_box.
 
 Other features of the app are experimental, and are only available to be seen by admins, but on a temporary basis — they will eventually be approved for normal users as well, or scrapped. You should use the function are_experimental_features_enabled for these. Technically, these are all "to⁠do" items, in that eventually they should all be turned into some other type of feature, or removed, and you can grep for are_experimental_features_enabled in the code to find out which ones need to be approved or whatever. Please note that a possible future for an experimental feature is being turned into a permanent, admin-only feature; you **can** have the "best" of both worlds 🥳, if you want.
+
+## Nulls in the database
+
+Cicero endeavors to never write any nulls to the database. Since null is the implicit value in the database, writing explicit values instead (usually a string like "not asked" or something) lets us know that absences are intentional. This allows for easier detection of bugs in code that writes to the database, or erroneous data entry. (If you see a null? That's a bug.) As of 2025-03-11 (update this number when necessary 🙂) this should be true, so new entries can be expected to enjoy this property, but the database has not been fixed retroactively, unless it was extremely easy to do so.
 
 ## Certain points of code style.
 

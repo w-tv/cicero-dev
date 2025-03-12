@@ -6,7 +6,7 @@ import streamlit as st
 from datetime import datetime, timedelta
 import time
 from databricks_genai_inference import ChatSession, FoundationModelAPIException
-from cicero_shared import are_experimental_features_enabled, catstr, admin_box, get_list_value_of_column_in_table, is_admin, sql_call, ssget, ssset, ssmut, sspop, get_base_url, popup, load_account_names, sql_call_cacheless
+from cicero_shared import are_experimental_features_enabled, catstr, admin_box, get_list_value_of_column_in_table, is_admin, pii_detector, sql_call, ssget, ssset, ssmut, sspop, get_base_url, popup, load_account_names, sql_call_cacheless
 from cicero_types import Short_Model_Name, short_model_names, short_model_name_default, short_model_name_to_long_model_name, Chat_Suffix, chat_suffix_default
 from cicero_video_brief_system_prompt import nice_text_to_html, video_brief_system_prompt
 import bs4 # for some reason bs4 is how you import beautifulsoup
@@ -17,32 +17,6 @@ from io import StringIO
 import pandas as pd
 from docx import Document
 from typing import assert_never, Literal
-
-def pii_detector(input: str) -> dict[str, list[object]]:
-  """Check for phone numbers, email addresses, credit card numbers, and street addresses in the text, and return a dict of what of those we've found.
-  It's important, for the assumptions of the caller of this function, that if no pii is found, then this function returns an empty (and thus falsy) dict.
-  re.findall seems to be declared (in typeshed I guess) with a return type of `list[Any]`, which I consider ultimately bad practice although there are probably overwhelming practical reasons in this case to declare it so. So, anyway, that's why we treat it (and, therefore, this function) as though it returns `list[object]`. Possibly you could consider this a TYPESHED-BUG-WORKAROUND, although it would probably take multiple typing PEPs to fix the assumptions of the type system that produce this corner case. Possibly even dependent typing (but probably not). We could also have done some str calls to return list[str], but it didn't end up mattering.
-  Actually checking for all phone number types ( such as those covered by https://en.wikipedia.org/wiki/List_of_country_calling_codes ) would be extremely arduous and possibly lead to unwanted to false-positives with other numbers. So we basically just check for american phone numbers and maybe some other ones that happen to have a similar form. (We also don't check for phone numbers that exclude area code.) Similar story with credit card numbers and the various forms in https://en.wikipedia.org/wiki/Payment_card_number#Structure . We also purposefully do not exclude the non-issuable Social Security numbers ( https://en.wikipedia.org/wiki/Social_Security_number#Valid_SSNs ), so that example SSNs can be detected for testing purposes."""
-  phone = re.findall(r"(?<!\d)\d?[- ]?\(?\d{3}\)?[- ]?\d{3}[- ]?\d{4}(?!\d)", input)
-  email = re.findall(
-    r"([a-z0-9!#$%&'*+\/=?^_`{|.}~-]+@(?:[a-z0-9](?:[a-z0-9-]*[a-z0-9])?\.)+[a-z0-9](?:[a-z0-9-]*[a-z0-9])?)",
-    input,
-    re.IGNORECASE,
-  )
-  credit_card = re.findall(r"(?<!\d)(?:(?:\d{4}[- ]?){3}\d{4}|\d{15,16})(?!\d)", input)
-  street_address = re.findall(
-    r"\d{1,4} (?:\w+ ){0,4}(?:street|st|avenue|ave|road|rd|highway|hwy|square|sq|trail|trl|drive|dr|court|ct|park|parkway|pkwy|circle|cir|boulevard|blvd)\b",
-    input,
-    re.IGNORECASE,
-  )
-  ssn = re.findall(r"(?<!\d)\d{3}[- ]?\d{2}?[- ]?\d{4}(?!\d)", input)
-  return ( {}
-    | {'phone': phone} if phone else {}
-    | {'email': email} if email else {}
-    | {'credit card': credit_card} if credit_card else {}
-    | {'street address': street_address} if street_address else {}
-    | {'social security number': ssn} if ssn else {}
-  )
 
 @st.dialog(title='PII detected!', width="large")
 def pii_dialog(input: str, pii_list: object, streamlit_key_suffix: str, keyword_arguments: dict[str, str|None]) -> None:
@@ -162,7 +136,7 @@ def grow_chat(streamlit_key_suffix: Chat_Suffix, alternate_content: str|Literal[
 
   # detect pii
   continue_prompt = True
-  if possible_pii := pii_detector(p):
+  if possible_pii := pii_detector(p)[1]:
     pii_state = ssget("pii_interrupt_state", streamlit_key_suffix)
     if pii_state is None: #TODO: this can be refactored to be clearer about what it does.
       ssset("pii_interrupt_state", {})

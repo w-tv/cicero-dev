@@ -9,6 +9,7 @@ import streamlit as st
 from streamlit import runtime
 from typing import Any, Callable, NoReturn, TypedDict
 import urllib.parse
+import re
 
 def labeled_table(rows: list[Row]) -> None:
   st.table([x.asDict() for x in rows]) # for some reason, the asDict puts it in the right form to display the column headers. # possibly a streamlit-bug-workaround, although I've never looked into it.
@@ -194,3 +195,32 @@ topics_big: dict[str, Topics_Big_Payload] = (
 def possibly_pluralize(quantity: float, label: str) -> str:
   """ Return a label with the quantity either pluralized or kept singular, as appropriate (iff == 1). This only covers the "dumb plural", just adding s. Haven't needed more yet. """
   return f"{quantity} {label}{'' if quantity == 1 else 's'}"
+
+def pii_detector(input: str) -> tuple[bool, dict[str, list[object]]]:
+  """Check for phone numbers, email addresses, credit card numbers, and street addresses in the text, and return true/false for if we've found anything and a dict of what of those we've found.
+  It's important, for the assumptions of the caller of this function, that if no pii is found, then this function returns an empty (and thus falsy) dict.
+  re.findall seems to be declared (in typeshed I guess) with a return type of `list[Any]`, which I consider ultimately bad practice although there are probably overwhelming practical reasons in this case to declare it so. So, anyway, that's why we treat it (and, therefore, this function) as though it returns `list[object]`. Possibly you could consider this a TYPESHED-BUG-WORKAROUND, although it would probably take multiple typing PEPs to fix the assumptions of the type system that produce this corner case. Possibly even dependent typing (but probably not). We could also have done some str calls to return list[str], but it didn't end up mattering.
+  Actually checking for all phone number types ( such as those covered by https://en.wikipedia.org/wiki/List_of_country_calling_codes ) would be extremely arduous and possibly lead to unwanted to false-positives with other numbers. So we basically just check for american phone numbers and maybe some other ones that happen to have a similar form. (We also don't check for phone numbers that exclude area code.) Similar story with credit card numbers and the various forms in https://en.wikipedia.org/wiki/Payment_card_number#Structure . We also purposefully do not exclude the non-issuable Social Security numbers ( https://en.wikipedia.org/wiki/Social_Security_number#Valid_SSNs ), so that example SSNs can be detected for testing purposes."""
+  phone = re.findall(r"(?<!\d)\d?[- ]?\(?\d{3}\)?[- ]?\d{3}[- ]?\d{4}(?!\d)", input)
+  email = re.findall(
+    r"([a-z0-9!#$%&'*+\/=?^_`{|.}~-]+@(?:[a-z0-9](?:[a-z0-9-]*[a-z0-9])?\.)+[a-z0-9](?:[a-z0-9-]*[a-z0-9])?)",
+    input,
+    re.IGNORECASE,
+  )
+  credit_card = re.findall(r"(?<!\d)(?:(?:\d{4}[- ]?){3}\d{4}|\d{15,16})(?!\d)", input)
+  street_address = re.findall(
+    r"\d{1,4} (?:\w+ ){0,4}(?:street|st|avenue|ave|road|rd|highway|hwy|square|sq|trail|trl|drive|dr|court|ct|park|parkway|pkwy|circle|cir|boulevard|blvd)\b",
+    input,
+    re.IGNORECASE,
+  )
+  ssn = re.findall(r"(?<!\d)\d{3}[- ]?\d{2}?[- ]?\d{4}(?!\d)", input)
+  return (
+    bool(phone and email and credit_card and street_address and ssn),
+    
+    {}
+    | {'phone': phone} if phone else {}
+    | {'email': email} if email else {}
+    | {'credit card': credit_card} if credit_card else {}
+    | {'street address': street_address} if street_address else {}
+    | {'social security number': ssn} if ssn else {}
+  )
