@@ -235,7 +235,7 @@ def grow_chat(streamlit_key_suffix: Chat_Suffix, alternate_content: str|Literal[
         )
         match streamlit_key_suffix:
           case False: #this is disabled for everything, at least at the moment (probably permanently)
-            ssset("outstanding_activity_log_payload", streamlit_key_suffix, ssget("activity_log_payload"))
+            pass # ssset("outstanding_activity_log_payload", streamlit_key_suffix, ssget("activity_log_payload")) #this is commented out because mypy strict thinks unreachable code is an error — which is probably a good idea.
           case "" | "_corporate":
             ssset("outstanding_activity_log_payload2", streamlit_key_suffix, ssget("activity_log_payload"))
           case "_prompter":
