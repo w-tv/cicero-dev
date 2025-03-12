@@ -343,7 +343,7 @@ def main(streamlit_key_suffix: Chat_Suffix = chat_suffix_default) -> None: # It'
       pass #deliberately non-exhaustive
   #could: use session state for all of these controls instead of doing all this argument passing of voice, etc...
   relevant_table_enablement_column = "chatbot_corporate" if streamlit_key_suffix == "_corporate" else "chatbot_political"
-  accessable_voices = ["Default"] + [v["voice_id"] for v in voice_map if v[relevant_table_enablement_column] is True and (is_admin() or v["voice_id"] in get_list_value_of_column_in_table("voices", "cicero.ref_tables.user_pods"))] # We don't need to check for the voice being enabled in the voice_map, because we already did that in the SQL query.
+  accessable_voices = ["Default", "Kellyanne Surrogate"] + [v["voice_id"] for v in voice_map if v[relevant_table_enablement_column] is True and (is_admin() or v["voice_id"] in get_list_value_of_column_in_table("voices", "cicero.ref_tables.user_pods"))] # We don't need to check for the voice being enabled in the voice_map, because we already did that in the SQL query.
   voice = st.selectbox("Voice (you must reset the chat for a change to this to take effect)", accessable_voices)
   account = st.selectbox("Use historical messages from this account:", ("No account",)  + load_account_names(), key="account") if streamlit_key_suffix != "_corporate" else st.text_input("Account")
   expand_links = st.checkbox("Expand links", value=True) if are_experimental_features_enabled() else True
