@@ -93,8 +93,9 @@ with Profiler():
     pages += [ st.Page(cicero_chat_main, title="💬 Chat with Cicero", url_path="chat_with_cicero") ]
   if 'chat_with_corpo' in page_access: #the following logic implements how we want people with corpo access to not see the prompter, unless they are admins.
     pages += [ st.Page(lambda: cicero_chat_main("_corporate"), title="💼 Chat with Cicero", url_path="chat_with_cicero_corporate") ]
-  elif not is_admin(): #we prevent giving this to admins just because we also add it to admins' view in a second (in order to let admins have everything, but not twice (twice would be a Multiple Pages specified with URL the same error))
-    pages += [st.Page("cicero_prompter.py", title="🗣️ Prompter")]
+  else:
+    if not is_admin(): #we prevent giving this to admins just because we also add it to admins' view in a second (in order to let admins have everything, but not twice (twice would be a Multiple Pages specified with URL the same error))
+      pages += [st.Page("cicero_prompter.py", title="🗣️ Prompter")]
   if is_admin():
     pages += [
       st.Page("cicero_prompter.py", title="🗣️ Prompter"),
