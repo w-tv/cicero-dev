@@ -172,7 +172,7 @@ with st.expander("Pod table", expanded=True):
 with st.expander("Activity log", expanded=True):
   st.write("## Activity log")
   st.info("Here, you can see what pods users actually have in the activity log, in case you need to correct any mistakes of previous pod-assignment. Remember: this section is completely collapsable in the user interface, if its huge size is visually distracting.\n\nPlease note also that if a user has had multiple pod values over the course of time, you should expect to see multiple values for them in here (one for each different pod). These are in no particular order, so you might want to ctrl+f (although, beware the other table, the pod table above) which will also contain them!).")
-  ensure_existence_of_activity_log()
+  ensure_existence_of_activity_log(dont_complain_about_the_fake_email_its_ok_im_just_reading=True)
   st.write(f"""activity log entries where the pod is NULL, suggesting you need to run the retroactive application (above) if there are any: ***{sql_call_cacheless("SELECT count(*) FROM cicero.default.activity_log WHERE user_pod IS NULL")[0][0]}***""")
   st.write(f"""activity log entries where the pod is "Pod unknown", suggesting you need to run the retroactive application (above) if there are any: ***{sql_call_cacheless("SELECT count( distinct user_email) FROM cicero.default.activity_log WHERE user_pod = 'Pod unknown'")[0][0]}***""")
   activity_log_results = sql_call_cacheless("SELECT DISTINCT user_email, user_pod FROM cicero.default.activity_log ORDER BY user_email")

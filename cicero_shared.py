@@ -126,12 +126,12 @@ def popup(title: str, body: str, show_x_instruction: bool = True) -> None:
       st.caption("Press enter or click the ❌︎ in the upper-right corner to close this message.")
   _()
 
-def ensure_existence_of_activity_log() -> None:
+def ensure_existence_of_activity_log(dont_complain_about_the_fake_email_its_ok_im_just_reading: bool = False) -> None:
   """Run this code before accessing the activity log. If the activity log doesn't exist, this function call will create it.
-  We also check if you're faking being a user, and refuse to write if so.
+  We also check if you're faking being a user, and end the program, so as to refuse to write, if so. You can disable that by passing a flag, in case you're just reading not writing.
   Note that if the table exists, this sql call will not check if it has the right columns (names or types), unfortunately.
   Note that this table uses a real timestamp datatype. You can `SET TIME ZONE "US/Eastern";` in sql to get them to output as strings in US Eastern time, instead of the default UTC."""
-  if fe := ssget("fake_email"):
+  if fe := ssget("fake_email") and not dont_complain_about_the_fake_email_its_ok_im_just_reading:
     popup("You are fake!", f"You are using the fake email {fe}, so I won't write to the activity log, as that would be impolite to the real user of that email.")
     exit()
   sql_call("CREATE TABLE IF NOT EXISTS cicero.default.activity_log (timestamp timestamp, user_email STRING, user_pod STRING, prompter_or_chatbot STRING, prompt_sent STRING, response_given STRING, model_name STRING, model_url STRING, model_parameters STRING, system_prompt STRING, base_url STRING, user_feedback STRING, user_feedback_satisfied STRING, used_similarity_search_backup STRING, hit_readlink_time_limit BOOLEAN, pii_concern BOOLEAN, fec_concern BOOLEAN, winred_concern BOOLEAN, voice STRING, account STRING)")

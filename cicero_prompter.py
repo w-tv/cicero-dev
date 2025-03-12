@@ -33,7 +33,7 @@ def count_from_activity_log_times_used_today(user_email: str) -> int:
   """Count the number of times the user has used the prompter.
   This goes by whatever the default timezone is because we don't expect the exact boundary to matter much."""
   keyword_arguments = locals()
-  ensure_existence_of_activity_log()
+  ensure_existence_of_activity_log(dont_complain_about_the_fake_email_its_ok_im_just_reading=True)
   return int( sql_call("SELECT COUNT(*) FROM cicero.default.activity_log WHERE user_email = :user_email AND DATE(timestamp) == current_date() AND prompter_or_chatbot = 'prompter'", keyword_arguments)[0][0] )
 
 @st.cache_data(show_spinner=False)
