@@ -35,14 +35,8 @@ def content_from_url(url: str) -> str:
     return "(document appears to Cicero to be empty; if you don't expect the document to be empty, please copy-and-paste in directly. TELL THE USER TO COPY AND PASTE THE CONTENT INTO THE CHATBOT DIRECTLY, USING THOSE EXACT WORDS, AND ALSO EXPLAINING THAT IT LOOKS EMPTY TO YOU LIKELY DUE TO TECHNICAL LIMITATIONS)" # there is no content on the page, I guess, so the correct thing to return is this explicit empty indicator
 
 def content_from_url_regex_match(m: re.Match[str]) -> str:
-  count = ssmut(lambda x: (x or 0) + 1, "urls_we_have_expanded_right_now")
-  if count == 1:
-    new_str = content_from_url(m.group(0))
-    ssset("last_url_content", new_str.replace("$", r"\$")) #diagnostic we want to print elsewhere on the page (later)
-  else:
-    new_str = ""
-    if count == 2:
-      st.toast("1 website at a time please")
+  new_str = content_from_url(m.group(0))
+  ssmut(lambda x: (x or "")+'\n\n\n'+new_str.replace("$", r"\$"), "last_url_content") #diagnostic we want to print elsewhere on the page (later)
   return new_str
 
 url_regex = r"""(?i)\b((?:[a-z][\w-]+:(?:/{1,3}|[a-z0-9%])|www\d{0,3}[.]|[a-z0-9.\-]+[.][a-z]{2,4}/)(?:[^\s()<>]+|\(([^\s()<>]+|(\([^\s()<>]+\)))*\))+(?:\(([^\s()<>]+|(\([^\s()<>]+\)))*\)|[^\s`!()\[\]{};:'".,<>?«»“”‘’]))""" # from https://gist.github.com/gruber/249502
@@ -101,7 +95,6 @@ def grow_chat(streamlit_key_suffix: Chat_Suffix, alternate_content: tuple[Litera
   # URL content expansion
   if expand_links:
     p = expand_url_content(p)
-  ssset("urls_we_have_expanded_right_now", 0) # Have to reset this value in this remote place for flow-control reasons :/
 
   #set the system prompt based on various variables
   if voice != "Default":
