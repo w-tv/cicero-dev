@@ -157,7 +157,7 @@ def grow_chat(streamlit_key_suffix: Chat_Suffix, alternate_content: tuple[Litera
       )
       match streamlit_key_suffix:
         case "" | "_corporate":
-          ssset("outstanding_activity_log_payload", streamlit_key_suffix, ssget("activity_log_payload"))
+          ssset("if this is truthy, the user owes us some feedback; the update will use this object", streamlit_key_suffix, ssget("activity_log_payload"))
         case "_prompter":
           pass # "_prompter" is deliberately absent, because we don't require anything from it; also it can't even appear here, because it's in the other tab.
         case "_video_brief":
@@ -185,7 +185,7 @@ def reset_chat(streamlit_key_suffix: Chat_Suffix) -> None:
   sspop("chat", streamlit_key_suffix)
   sspop("messages", streamlit_key_suffix)
   # We don't force the user to up/down the cleared message if they reset the chat; therefore we do this line:
-  sspop("outstanding_activity_log_payload", streamlit_key_suffix)
+  sspop("if this is truthy, the user owes us some feedback; the update will use this object", streamlit_key_suffix)
 
 def cicero_feedback_widget(streamlit_key_suffix: Chat_Suffix, feedback_message: str) -> None:
   """This function returns nothing, and (tees up a state that) writes to the activity log. It also manipulates the session state to remove the session state that leads to its running."""
@@ -203,9 +203,9 @@ def cicero_feedback_widget(streamlit_key_suffix: Chat_Suffix, feedback_message: 
     emptyable.empty()
     user_feedback = "bad" if st_feedback == 0 else "good"
     ssmut(lambda x: x+1 if x else 1, "feedback", ss_feedback_key) # We have to do this, or the feedback widget will get stuck on its old value.
-    if oalp := ssget("outstanding_activity_log_payload", streamlit_key_suffix):
-      ssset("activity_log_update", oalp | {"user_feedback"+feedback_suffix: user_feedback})
-      sspop("outstanding_activity_log_payload", streamlit_key_suffix)
+    if o := ssget("if this is truthy, the user owes us some feedback; the update will use this object", streamlit_key_suffix):
+      ssset("activity_log_update", o | {"user_feedback"+feedback_suffix: user_feedback})
+      sspop("if this is truthy, the user owes us some feedback; the update will use this object", streamlit_key_suffix)
 
 
 def display_chat(streamlit_key_suffix: Chat_Suffix, account: str = "No account", short_model_name: Short_Model_Name = short_model_name_default, voice: str = "Default", expand_links: bool = True) -> None:
@@ -217,7 +217,7 @@ def display_chat(streamlit_key_suffix: Chat_Suffix, account: str = "No account",
   the computer knows something we don't
   we must let it make management decisions
   —Alex Chang"""
-  needback: bool = are_experimental_features_enabled() and bool(ssget("outstanding_activity_log_payload", streamlit_key_suffix)) #TODO: this is a prototype version that requires you to refresh the page. If we decide to actually have this feature, then for this feature to actually work, I'll have to include logic in the activity log discharger that rewrites the contents of the chat to the right thing (which will have to be in a container).
+  needback: bool = are_experimental_features_enabled() and bool(ssget("if this is truthy, the user owes us some feedback; the update will use this object", streamlit_key_suffix)) #TODO: this is a prototype version that requires you to refresh the page. If we decide to actually have this feature, then for this feature to actually work, I'll have to include logic in the activity log discharger that rewrites the contents of the chat to the right thing (which will have to be in a container).
   if ms := ssget("messages", streamlit_key_suffix):
     for message in ms:
       with st.chat_message(message["role"], avatar=message.get("avatar")):
@@ -235,7 +235,7 @@ def display_chat(streamlit_key_suffix: Chat_Suffix, account: str = "No account",
     st.success("Please give feedback to enable copying the text. (And to make Cicero better!)")
   if (s := sspop("last_url_content")):
     admin_box("Admin Mode Message (will disappear on next page load): url content", s)
-  if ssget("outstanding_activity_log_payload", streamlit_key_suffix):
+  if ssget("if this is truthy, the user owes us some feedback; the update will use this object", streamlit_key_suffix):
     cicero_feedback_widget(streamlit_key_suffix, "***Like this output?  Let us know to continue chatting.***")
   else:
 
