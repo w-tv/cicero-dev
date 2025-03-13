@@ -3,10 +3,8 @@
 """Cicero (the actual, historical man (it's really him))."""
 
 import streamlit as st
-from datetime import datetime, timedelta
-import time
 from databricks_genai_inference import ChatSession, FoundationModelAPIException
-from cicero_shared import are_experimental_features_enabled, catstr, admin_box, get_list_value_of_column_in_table, is_admin, pii_detector, sql_call, ssget, ssset, ssmut, sspop, get_base_url, popup, load_account_names, sql_call_cacheless
+from cicero_shared import are_experimental_features_enabled, catstr, admin_box, get_list_value_of_column_in_table, is_admin, pii_detector, sql_call, ssget, ssset, ssmut, sspop, get_base_url, load_account_names, sql_call_cacheless
 from cicero_types import Short_Model_Name, short_model_names, short_model_name_default, short_model_name_to_long_model_name, Chat_Suffix, chat_suffix_default
 from cicero_video_brief_system_prompt import nice_text_to_html, video_brief_system_prompt
 import bs4 # for some reason bs4 is how you import beautifulsoup
@@ -65,9 +63,6 @@ def content_from_url_regex_match(m: re.Match[str]) -> str:
   return new_str
 
 url_regex = r"""(?i)\b((?:[a-z][\w-]+:(?:/{1,3}|[a-z0-9%])|www\d{0,3}[.]|[a-z0-9.\-]+[.][a-z]{2,4}/)(?:[^\s()<>]+|\(([^\s()<>]+|(\([^\s()<>]+\)))*\))+(?:\(([^\s()<>]+|(\([^\s()<>]+\)))*\)|[^\s`!()\[\]{};:'".,<>?«»“”‘’]))""" # from https://gist.github.com/gruber/249502
-
-def detect_url_content(s: str) -> bool:
-  return False if re.search(pattern=url_regex, string=s) is None else True
 
 def expand_url_content(s: str) -> str:
   """Expand the urls in a string to the content of their contents (placing said contents back into the same containing string."""
@@ -130,16 +125,7 @@ def grow_chat(streamlit_key_suffix: Chat_Suffix, alternate_content: tuple[Litera
   fec_concern = "fec.gov" in p.lower()
 
   # URL content expansion
-  hit_readlink_time_limit = False
-  if expand_links and detect_url_content(p):
-    if llt := ssget("last_link_time"):
-      time_difference = datetime.now() - llt
-      if time_difference < timedelta(seconds=27): # It's 27 because we don't want to alert the user if they just have to wait another second or two. The query already takes that long, probably.
-        hit_readlink_time_limit = True
-        remaining_seconds = round( 30 - time_difference.total_seconds() )
-        popup("Throttled!", f"Link reading is currently limited to once every 30 seconds per user.  Cicero has delayed your request by {remaining_seconds} seconds.  Contact the Cicero Team for more info.", show_x_instruction=False) # Festina lente! #Unfortunately I think an unreported (TODO) bug in streamlit means this dialog only ever shows once per session. But that's ok in this case.
-        time.sleep(remaining_seconds)
-    ssset("last_link_time", datetime.now())
+  if expand_links:
     p = expand_url_content(p)
   ssset("urls_we_have_expanded_right_now", 0) # Have to reset this value in this remote place for flow-control reasons :/
 
@@ -214,7 +200,7 @@ def grow_chat(streamlit_key_suffix: Chat_Suffix, alternate_content: tuple[Litera
         messages.append({"avatar": "assets/CiceroChat_800x800.jpg", "role": "assistant", "content": chat.last})
         ssset(
           "activity_log_payload",
-          {"user_email": ssget("email"), "prompter_or_chatbot": 'chatbot'+streamlit_key_suffix, "prompt_sent": p, "response_given": chat.last, "model_name": short_model_name, "model_url": chat.model, "model_parameters": str(chat.parameters), "system_prompt": chat.system_message, "base_url": get_base_url(), "used_similarity_search_backup": "no"} | ({"user_feedback": "not asked", "user_feedback_satisfied": "not asked"} if streamlit_key_suffix == "_prompter" else {"user_feedback": "not asked", "user_feedback_satisfied": "not received"}) | {"hit_readlink_time_limit": hit_readlink_time_limit} | {"pii_concern": bool(pii and pii[0]), "winred_concern": winred_concern, "fec_concern": fec_concern, "voice": voice, "account": account}
+          {"user_email": ssget("email"), "prompter_or_chatbot": 'chatbot'+streamlit_key_suffix, "prompt_sent": p, "response_given": chat.last, "model_name": short_model_name, "model_url": chat.model, "model_parameters": str(chat.parameters), "system_prompt": chat.system_message, "base_url": get_base_url(), "used_similarity_search_backup": "no"} | ({"user_feedback": "not asked", "user_feedback_satisfied": "not asked"} if streamlit_key_suffix == "_prompter" else {"user_feedback": "not asked", "user_feedback_satisfied": "not received"}) | {"hit_readlink_time_limit": "link-read throttling has been removed"} | {"pii_concern": bool(pii and pii[0]), "winred_concern": winred_concern, "fec_concern": fec_concern, "voice": voice, "account": account}
         )
         match streamlit_key_suffix:
           case False: #this is disabled for everything, at least at the moment (probably permanently)
