@@ -16,23 +16,6 @@ import pandas as pd
 from docx import Document
 from typing import assert_never, Literal
 
-@st.dialog(title='PII detected!', width="large")
-def pii_dialog(input: str, pii_list: object, streamlit_key_suffix: str, keyword_arguments: dict[str, str|None]) -> None:
-  st.write("Cicero noticed that there might be PII in your message!\n\nMessage:")
-  st.code(input)
-  st.write("Potential PII:")
-  st.write(pii_list)
-  st.write('Would you still like to submit the prompt?')
-  col1, col2, _col3, _col4 = st.columns(spec=[.17, .23, .30, .30], gap='small', vertical_alignment='center')
-  with col1:
-    if st.button("Yes, submit"):
-      ssset( "pii_interrupt_state", streamlit_key_suffix, (True, input, keyword_arguments) ) #the true means true, continue
-      st.rerun()
-  with col2:
-    if st.button("No, keep editing"):
-      ssset( "pii_interrupt_state", streamlit_key_suffix, (False, input, keyword_arguments) ) #the false means false, do not continue
-      st.rerun()
-
 def content_from_url(url: str) -> str:
   forbiddens = ["winred.com", "fed.gov", "example.com/bad"] #example.com/bad is supposed to let you test this code without the risk of going to an actual forbidden website if the forbidding code fails. # If testing this function: please note that due to the regex, 'winred.com' on its own is not captured as a url; only eg https://winred.com/ is.
   for forbade in forbiddens:
@@ -74,8 +57,6 @@ def grow_chat(streamlit_key_suffix: Chat_Suffix, alternate_content: tuple[Litera
   """Note that this function will do something special to the prompt (possibly ignoring it) if the first field of the alternate_content tuple is anything but 'normal'.
   Also, the streamlit_key_suffix is only necessary because we use this code in two places. If streamlit_key_suffix is "", we infer we're in the chat page, and if otherwise we infer we're being used on a different page (so far, the only thing that does this is prompter).
   Random fyi: chat.history is an alias for chat.chat_history (you can mutate chat.chat_history but not chat.history, btw). Internally, it's, like: [{'role': 'system', 'content': 'You are a helpful assistant.'}, {'role': 'user', 'content': 'Knock, knock.'}, {'role': 'assistant', 'content': "Hello! Who's there?"}, {'role': 'user', 'content': 'Guess who!'}, {'role': 'assistant', 'content': "Okay, I'll play along! Is it a person, a place, or a thing?"}]"""
-  keyword_arguments = locals()
-  pii = ssget("pii_interrupt_state", streamlit_key_suffix)
 
   # determine what the prompt content will be
   if alternate_content:
@@ -113,10 +94,7 @@ def grow_chat(streamlit_key_suffix: Chat_Suffix, alternate_content: tuple[Litera
         display_p = "« " + payload + " »"
       case _, _:
         assert_never(alternate_content)
-  elif pii and pii[0]: #there was pii, and we are continuing
-    p = pii[1]
-    display_p = p
-  else:
+  else: #TODO: just refactor this into the match
     p = ssget("user_input_for_chatbot_this_frame"+streamlit_key_suffix)
     display_p = p
 
@@ -128,19 +106,6 @@ def grow_chat(streamlit_key_suffix: Chat_Suffix, alternate_content: tuple[Litera
   if expand_links:
     p = expand_url_content(p)
   ssset("urls_we_have_expanded_right_now", 0) # Have to reset this value in this remote place for flow-control reasons :/
-
-  # detect pii
-  continue_prompt = True
-  if possible_pii := pii_detector(p):
-    pii_state = ssget("pii_interrupt_state", streamlit_key_suffix)
-    if pii_state is None: #TODO: this can be refactored to be clearer about what it does.
-      ssset("pii_interrupt_state", {})
-    if pii_state and pii_state[0]: #if the field is true, we continue
-      ssset( "pii_interrupt_state", streamlit_key_suffix, [None, "", {}] ) #reset the field, since we're going to send this one and get a new circumstance later.
-    else:
-      ssset( "pii_interrupt_state", streamlit_key_suffix, [None, "", {}] ) #reset the field, since the dialog is about to set it, and this prevents funny business from x-ing the dialogue.
-      pii_dialog(p, possible_pii, streamlit_key_suffix, keyword_arguments)
-      continue_prompt = False
 
   #set the system prompt based on various variables
   if voice != "Default":
@@ -191,44 +156,43 @@ def grow_chat(streamlit_key_suffix: Chat_Suffix, alternate_content: tuple[Litera
     ssset("messages", streamlit_key_suffix, []) # We keep our own list of messages, I think because I found it hard to format the chat_history output when I tried once.
   messages = ssget("messages", streamlit_key_suffix) # Note that, as an object reference, updating and accessing messages will continue to update and access the same object.
 
-  if continue_prompt:
-    old_chat = chat.chat_history.copy()
-    while True:
-      try:
-        chat.reply(p)
-        messages.append({"role": "user", "content": display_p})
+  old_chat = chat.chat_history.copy()
+  while True:
+    try:
+      chat.reply(p)
+      messages.append({"role": "user", "content": display_p})
+      messages.append({"avatar": "assets/CiceroChat_800x800.jpg", "role": "assistant", "content": chat.last})
+      ssset(
+        "activity_log_payload",
+        {"user_email": ssget("email"), "prompter_or_chatbot": 'chatbot'+streamlit_key_suffix, "prompt_sent": p, "response_given": chat.last, "model_name": short_model_name, "model_url": chat.model, "model_parameters": str(chat.parameters), "system_prompt": chat.system_message, "base_url": get_base_url(), "used_similarity_search_backup": "no"} | ({"user_feedback": "not asked", "user_feedback_satisfied": "not asked"} if streamlit_key_suffix == "_prompter" else {"user_feedback": "not asked", "user_feedback_satisfied": "not received"}) | {"hit_readlink_time_limit": "link-read throttling has been removed"} | {"pii_concern": bool(pii_detector(p)), "winred_concern": winred_concern, "fec_concern": fec_concern, "voice": voice, "account": account}
+      )
+      match streamlit_key_suffix:
+        case False: #this is disabled for everything, at least at the moment (probably permanently)
+          pass # ssset("outstanding_activity_log_payload", streamlit_key_suffix, ssget("activity_log_payload")) #this is commented out because mypy strict thinks unreachable code is an error — which is probably a good idea.
+        case "" | "_corporate":
+          ssset("outstanding_activity_log_payload2", streamlit_key_suffix, ssget("activity_log_payload"))
+        case "_prompter":
+          pass # "_prompter" is deliberately absent, because we don't require anything from it; also it can't even appear here, because it's in the other tab.
+        case "_video_brief":
+          pass #TODO: should we ask for feedback on the video briefs? I lean no.
+        case _:
+          assert_never(streamlit_key_suffix)
+
+      # Double-prompting we only do on occasion
+      # The double-prompting makes the error handling less efficient than it theoretically could be, but whatver.
+      if voice == "Arvind":
+        admin_box("Developer Mode Message: double-prompting: the original machine response", chat.last)
+        chat.reply("Make the first sentence more concise, shocking, and unhinged") # we don't have to display this part.
+        messages.pop() # remove the previous last message, now that we have the new one
         messages.append({"avatar": "assets/CiceroChat_800x800.jpg", "role": "assistant", "content": chat.last})
-        ssset(
-          "activity_log_payload",
-          {"user_email": ssget("email"), "prompter_or_chatbot": 'chatbot'+streamlit_key_suffix, "prompt_sent": p, "response_given": chat.last, "model_name": short_model_name, "model_url": chat.model, "model_parameters": str(chat.parameters), "system_prompt": chat.system_message, "base_url": get_base_url(), "used_similarity_search_backup": "no"} | ({"user_feedback": "not asked", "user_feedback_satisfied": "not asked"} if streamlit_key_suffix == "_prompter" else {"user_feedback": "not asked", "user_feedback_satisfied": "not received"}) | {"hit_readlink_time_limit": "link-read throttling has been removed"} | {"pii_concern": bool(pii and pii[0]), "winred_concern": winred_concern, "fec_concern": fec_concern, "voice": voice, "account": account}
-        )
-        match streamlit_key_suffix:
-          case False: #this is disabled for everything, at least at the moment (probably permanently)
-            pass # ssset("outstanding_activity_log_payload", streamlit_key_suffix, ssget("activity_log_payload")) #this is commented out because mypy strict thinks unreachable code is an error — which is probably a good idea.
-          case "" | "_corporate":
-            ssset("outstanding_activity_log_payload2", streamlit_key_suffix, ssget("activity_log_payload"))
-          case "_prompter":
-            pass # "_prompter" is deliberately absent, because we don't require anything from it; also it can't even appear here, because it's in the other tab.
-          case "_video_brief":
-            pass #TODO: should we ask for feedback on the video briefs? I lean no.
-          case _:
-            assert_never(streamlit_key_suffix)
 
-        # Double-prompting we only do on occasion
-        # The double-prompting makes the error handling less efficient than it theoretically could be, but whatver.
-        if voice == "Arvind":
-          admin_box("Developer Mode Message: double-prompting: the original machine response", chat.last)
-          chat.reply("Make the first sentence more concise, shocking, and unhinged") # we don't have to display this part.
-          messages.pop() # remove the previous last message, now that we have the new one
-          messages.append({"avatar": "assets/CiceroChat_800x800.jpg", "role": "assistant", "content": chat.last})
-
-        break #leave the retry loop, having been successful with everything.
-      except FoundationModelAPIException as e:
-        if "API request timed out" in e.message or e.message.startswith('{"error_code":"REQUEST_LIMIT_EXCEEDED","message":"REQUEST_LIMIT_EXCEEDED: Exceeded workspace rate limit for'): # Could: test to see if this Exception ever happens still, and remove this code if not.
-          print("!!! chat rate limit or api timeout hit; retrying...", e)
-          chat.chat_history = old_chat.copy() #remove failed prompt. But, there is no break statement after this because we just want to try again. The rate-limit is 2 per second so there's a good chance this works.
-        else: # I guess it's some other error, so crash 🤷
-          raise e
+      break #leave the retry loop, having been successful with everything.
+    except FoundationModelAPIException as e:
+      if "API request timed out" in e.message or e.message.startswith('{"error_code":"REQUEST_LIMIT_EXCEEDED","message":"REQUEST_LIMIT_EXCEEDED: Exceeded workspace rate limit for'): # Could: test to see if this Exception ever happens still, and remove this code if not.
+        print("!!! chat rate limit or api timeout hit; retrying...", e)
+        chat.chat_history = old_chat.copy() #remove failed prompt. But, there is no break statement after this because we just want to try again. The rate-limit is 2 per second so there's a good chance this works.
+      else: # I guess it's some other error, so crash 🤷
+        raise e
 
 def reset_chat(streamlit_key_suffix: Chat_Suffix) -> None:
   sspop("chat", streamlit_key_suffix)
@@ -277,10 +241,6 @@ def display_chat(streamlit_key_suffix: Chat_Suffix, account: str = "No account",
   the computer knows something we don't
   we must let it make management decisions
   —Alex Chang"""
-  pii = ssget("pii_interrupt_state", streamlit_key_suffix)
-  if pii and pii[0] is True: # We're in a pii situation and the user has chosen to press on. So we have to send that chat message before we display the chat history.
-    grow_chat(**pii[2])
-    ssset( "pii_interrupt_state", streamlit_key_suffix, [None, ""] )
   needback: bool = are_experimental_features_enabled() and bool(ssget("outstanding_activity_log_payload", streamlit_key_suffix) or ssget("outstanding_activity_log_payload2", streamlit_key_suffix)) #TODO(urgent): this is a prototype version that requires you to refresh the page. For this feature to actually work, I'll have to include logic in the activity log discharger that rewrites the contents of the chat to the right thing (which will have to be in a container).
   if ms := ssget("messages", streamlit_key_suffix):
     for message in ms:
@@ -304,10 +264,6 @@ def display_chat(streamlit_key_suffix: Chat_Suffix, account: str = "No account",
   if ssget("outstanding_activity_log_payload2", streamlit_key_suffix):
     cicero_feedback_widget(streamlit_key_suffix, "_satisfied", "***Like this output?  Let us know to continue chatting.***")
   if not ( ssget("outstanding_activity_log_payload", streamlit_key_suffix) or ssget("outstanding_activity_log_payload2", streamlit_key_suffix) ):
-    if pii and pii[0] is False: # We're in a pii situation and the user has chosen to press on. So we have to show them the message they just had.
-      st.info("Message you were editing (may contain PII):")
-      st.code(pii[1])
-      ssset( "pii_interrupt_state", streamlit_key_suffix, [None, ""] )
 
     if are_experimental_features_enabled():
       result = sql_call_cacheless(
