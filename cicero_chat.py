@@ -156,8 +156,6 @@ def grow_chat(streamlit_key_suffix: Chat_Suffix, alternate_content: tuple[Litera
         {"user_email": ssget("email"), "prompter_or_chatbot": 'chatbot'+streamlit_key_suffix, "prompt_sent": p, "response_given": chat.last, "model_name": short_model_name, "model_url": chat.model, "model_parameters": str(chat.parameters), "system_prompt": chat.system_message, "base_url": get_base_url(), "used_similarity_search_backup": "no"} | ({"user_feedback": "not asked", "user_feedback_satisfied": "not asked"} if streamlit_key_suffix == "_prompter" else {"user_feedback": "not asked", "user_feedback_satisfied": "not received"}) | {"hit_readlink_time_limit": False} | {"pii_concern": bool(pii_detector(p)), "winred_concern": winred_concern, "fec_concern": fec_concern, "voice": voice, "account": account}
       )
       match streamlit_key_suffix:
-        case False: #this is disabled for everything, at least at the moment (probably permanently)
-          pass # ssset("outstanding_activity_log_payload", streamlit_key_suffix, ssget("activity_log_payload")) #this is commented out because mypy strict thinks unreachable code is an error — which is probably a good idea.
         case "" | "_corporate":
           ssset("outstanding_activity_log_payload2", streamlit_key_suffix, ssget("activity_log_payload"))
         case "_prompter":
@@ -186,13 +184,13 @@ def grow_chat(streamlit_key_suffix: Chat_Suffix, alternate_content: tuple[Litera
 def reset_chat(streamlit_key_suffix: Chat_Suffix) -> None:
   sspop("chat", streamlit_key_suffix)
   sspop("messages", streamlit_key_suffix)
-  sspop("outstanding_activity_log_payload", streamlit_key_suffix) # Don't force the user to up/down the cleared message if they reset the chat.
+  # We don't force the user to up/down the cleared message if they reset the chat; therefore we do this line:
   sspop("outstanding_activity_log_payload2", streamlit_key_suffix)
 
-def cicero_feedback_widget(streamlit_key_suffix: Chat_Suffix, feedback_suffix: str, feedback_message: str) -> None:
-  """ '' is the feedback suffix we started with, so probably the one you want to use.
-  This function returns nothing, and (tees up a state that) writes to the activity log. It also manipulates the session state to remove the session state that leads to its running."""
+def cicero_feedback_widget(streamlit_key_suffix: Chat_Suffix, feedback_message: str) -> None:
+  """This function returns nothing, and (tees up a state that) writes to the activity log. It also manipulates the session state to remove the session state that leads to its running."""
   # The code that controls the feedback widget and logging is all over the place (in this file, and also in cicero.py). Would be a fine thing to refactor. But it's easy enough to leave it as-is for now. We have higher priorities, and this works the way it is.
+  feedback_suffix = "_satisfied"
   st_feedback: int|None = None # This is "declared" up here to appease possibly-unbound analysis.
   emptyable = st.empty()
   ss_feedback_key = "feedback" + streamlit_key_suffix + feedback_suffix
@@ -205,21 +203,10 @@ def cicero_feedback_widget(streamlit_key_suffix: Chat_Suffix, feedback_suffix: s
     emptyable.empty()
     user_feedback = "bad" if st_feedback == 0 else "good"
     ssmut(lambda x: x+1 if x else 1, "feedback", ss_feedback_key) # We have to do this, or the feedback widget will get stuck on its old value.
-
-    o = ssget("outstanding_activity_log_payload", streamlit_key_suffix)
-    o2 = ssget("outstanding_activity_log_payload2", streamlit_key_suffix)
-    if o and o2:
-      print("!! Cicero internal error: you are in an invalid state somehow! You have both outstandings {o=},{o2=}")
-    elif o:
-      ssset("activity_log_update", o | {"user_feedback"+feedback_suffix: user_feedback})
-      if streamlit_key_suffix == "_corporate":
-        ssset("outstanding_activity_log_payload2", streamlit_key_suffix, o)
-      sspop("outstanding_activity_log_payload", streamlit_key_suffix)
-    elif o2:
+    if o2 := ssget("outstanding_activity_log_payload2", streamlit_key_suffix):
       ssset("activity_log_update2", o2 | {"user_feedback"+feedback_suffix: user_feedback})
       sspop("outstanding_activity_log_payload2", streamlit_key_suffix)
-    else:
-      print("!! Cicero internal warning: you are in an invalid state somehow? You are using the feedback widget but have neither outstandings {o=},{o2=}")
+
 
 def display_chat(streamlit_key_suffix: Chat_Suffix, account: str = "No account", short_model_name: Short_Model_Name = short_model_name_default, voice: str = "Default", expand_links: bool = True) -> None:
   """Display chat messages from history on app reload; this is how we get the messages to display, and then the chat box.
@@ -230,7 +217,7 @@ def display_chat(streamlit_key_suffix: Chat_Suffix, account: str = "No account",
   the computer knows something we don't
   we must let it make management decisions
   —Alex Chang"""
-  needback: bool = are_experimental_features_enabled() and bool(ssget("outstanding_activity_log_payload", streamlit_key_suffix) or ssget("outstanding_activity_log_payload2", streamlit_key_suffix)) #TODO(urgent): this is a prototype version that requires you to refresh the page. For this feature to actually work, I'll have to include logic in the activity log discharger that rewrites the contents of the chat to the right thing (which will have to be in a container).
+  needback: bool = are_experimental_features_enabled() and bool(ssget("outstanding_activity_log_payload2", streamlit_key_suffix)) #TODO: this is a prototype version that requires you to refresh the page. If we decide to actually have this feature, then for this feature to actually work, I'll have to include logic in the activity log discharger that rewrites the contents of the chat to the right thing (which will have to be in a container).
   if ms := ssget("messages", streamlit_key_suffix):
     for message in ms:
       with st.chat_message(message["role"], avatar=message.get("avatar")):
@@ -248,11 +235,9 @@ def display_chat(streamlit_key_suffix: Chat_Suffix, account: str = "No account",
     st.success("Please give feedback to enable copying the text. (And to make Cicero better!)")
   if (s := sspop("last_url_content")):
     admin_box("Admin Mode Message (will disappear on next page load): url content", s)
-  if ssget("outstanding_activity_log_payload", streamlit_key_suffix):
-    cicero_feedback_widget(streamlit_key_suffix, "", "***Did Cicero understand your request? Let us know to continue chatting.***")
   if ssget("outstanding_activity_log_payload2", streamlit_key_suffix):
-    cicero_feedback_widget(streamlit_key_suffix, "_satisfied", "***Like this output?  Let us know to continue chatting.***")
-  if not ( ssget("outstanding_activity_log_payload", streamlit_key_suffix) or ssget("outstanding_activity_log_payload2", streamlit_key_suffix) ):
+    cicero_feedback_widget(streamlit_key_suffix, "***Like this output?  Let us know to continue chatting.***")
+  if not ssget("outstanding_activity_log_payload2", streamlit_key_suffix):
 
     if are_experimental_features_enabled():
       result = sql_call_cacheless(

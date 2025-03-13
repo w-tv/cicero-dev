@@ -140,16 +140,6 @@ with Profiler():
     )
     print("Done writing to log.")
 
-  if alu := sspop("activity_log_update"):
-    print("Writing good/bad to log.")
-    ensure_existence_of_activity_log()
-    sql_call_cacheless(
-      # Note: we are gambling that the user_pod and timestamp will never be necessary in practice to have in here, because getting them would be inconvenient. Theoretically, an exact replica circumstance could occur, without those disambiguators. But this is so unlikely; it's probably fine.
-      "UPDATE cicero.default.activity_log SET user_feedback = :user_feedback WHERE user_email = :user_email AND prompter_or_chatbot = :prompter_or_chatbot AND prompt_sent = :prompt_sent AND response_given = :response_given AND model_name = :model_name AND model_url = :model_url AND model_parameters = :model_parameters AND system_prompt = :system_prompt AND base_url = :base_url AND voice = :voice and account = :account;",
-      alu
-    )
-    print("Done writing update to log.")
-
   if alu2 := sspop("activity_log_update2"):
     print("Writing good/bad 2 to log.")
     ensure_existence_of_activity_log()
