@@ -59,44 +59,40 @@ def grow_chat(streamlit_key_suffix: Chat_Suffix, alternate_content: tuple[Litera
   Random fyi: chat.history is an alias for chat.chat_history (you can mutate chat.chat_history but not chat.history, btw). Internally, it's, like: [{'role': 'system', 'content': 'You are a helpful assistant.'}, {'role': 'user', 'content': 'Knock, knock.'}, {'role': 'assistant', 'content': "Hello! Who's there?"}, {'role': 'user', 'content': 'Guess who!'}, {'role': 'assistant', 'content': "Okay, I'll play along! Is it a person, a place, or a thing?"}]"""
 
   # determine what the prompt content will be
-  if alternate_content:
-    match alternate_content:
-      case 'normal', payload:
-        p = payload
-        display_p = p
-      case 'resurrect', _:
-        p = ssget("resurrect_box"+streamlit_key_suffix)
-        display_p = p
-      case 'file', _:
-        content = ssget("chat_file_uploader")
-        file_ext = Path(str(content.name)).suffix
-        match file_ext: #todo: delete this? or at least the st.write statements in it?
-          case '.txt' | '.html' | '.htm' :
-            stringio = StringIO(content.getvalue().decode("utf-8")) # convert file-like BytesIO object to a string based IO
-            string_data = stringio.read() # read file as string
-            p = string_data
-          case '.docx':
-            docx_text = '\n'.join([para.text for para in Document(content).paragraphs])
-            p = docx_text
-          case '.csv':
-            x = pd.read_csv(content, nrows=10)
-            st.dataframe( x )
-            p = str(x)
-          case '.xls' | '.xlsx':
-            st.dataframe( x := pd.read_excel(content, nrows=10) )
-            p = str(x)
-          case _:
-            x = "Error: Cicero does not currently support this file type!"
-            p = x
-        display_p = f"「 {p} 」"
-      case 'analyze', payload:
-        p = "Here is a conservative fundraising text: [" + payload + "] Analyze the quality of the text based off of these five fundraising elements: the Hook, Urgency, Agency, Stakes, and the Call to Action (CTA). Do not assign scores to the elements. It's possible one or more of these elements is missing from the text provided. If so, please point that out. Then, directly ask the user what assistance they need with the text. Additionally, mention that you can also help edit the text to be shorter or longer, and convert the text into an email. Only provide analysis once, unless the user asks for analysis again."
-        display_p = "« " + payload + " »"
-      case _, _:
-        assert_never(alternate_content)
-  else: #TODO: just refactor this into the match
-    p = ssget("user_input_for_chatbot_this_frame"+streamlit_key_suffix)
-    display_p = p
+  match alternate_content:
+    case None:
+      p = ssget("user_input_for_chatbot_this_frame"+streamlit_key_suffix)
+      display_p = p
+    case 'normal', payload:
+      p = payload
+      display_p = p
+    case 'resurrect', _:
+      p = ssget("resurrect_box"+streamlit_key_suffix)
+      display_p = p
+    case 'file', _:
+      content = ssget("chat_file_uploader")
+      file_ext = Path(str(content.name)).suffix
+      match file_ext:
+        case '.txt' | '.html' | '.htm' :
+          stringio = StringIO(content.getvalue().decode("utf-8")) # convert file-like BytesIO object to a string based IO
+          p = stringio.read() # read file as string
+        case '.docx':
+          p = '\n'.join([para.text for para in Document(content).paragraphs]) # read the docx file as string, by extracting the text from each paragraph (I suppose)
+        case '.csv':
+          x = pd.read_csv(content, nrows=10) # I guess we put only 10 in for testing purposes probably, and likely (TODO) we should just use all rows. (same for excel below)
+          st.dataframe(x) # I guess we put this in here for a little visual feedback
+          p = str(x)
+        case '.xls' | '.xlsx':
+          st.dataframe( x := pd.read_excel(content, nrows=10) )
+          p = str(x)
+        case _:
+          p = "Error: Cicero does not currently support this file type!"
+      display_p = f"「 {p} 」"
+    case 'analyze', payload:
+      p = "Here is a conservative fundraising text: [" + payload + "] Analyze the quality of the text based off of these five fundraising elements: the Hook, Urgency, Agency, Stakes, and the Call to Action (CTA). Do not assign scores to the elements. It's possible one or more of these elements is missing from the text provided. If so, please point that out. Then, directly ask the user what assistance they need with the text. Additionally, mention that you can also help edit the text to be shorter or longer, and convert the text into an email. Only provide analysis once, unless the user asks for analysis again."
+      display_p = "« " + payload + " »"
+    case _, _:
+      assert_never(alternate_content)
 
   #detect concerning elements:
   winred_concern = "winred.com" in p.lower()
